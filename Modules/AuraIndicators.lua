@@ -581,11 +581,15 @@ function EnhancedRaidFrames:UpdateOverlayGlow(indicatorFrame, remainingTime)
 	if self.db.profile["indicator-" .. i].indicatorGlow and remainingTime
 			and (self.db.profile["indicator-" .. i].glowRemainingSecs == 0
 			or self.db.profile["indicator-" .. i].glowRemainingSecs >= remainingTime) then
-		if ActionButton_ShowOverlayGlow then
+		if ActionButtonSpellAlertManager and ActionButtonSpellAlertManager.ShowAlert then
+			ActionButtonSpellAlertManager:ShowAlert(indicatorFrame)
+		elseif ActionButton_ShowOverlayGlow then
 			ActionButton_ShowOverlayGlow(indicatorFrame)
 		end
 	else
-		if ActionButton_HideOverlayGlow then
+		if ActionButtonSpellAlertManager and ActionButtonSpellAlertManager.HideAlert then
+			ActionButtonSpellAlertManager:HideAlert(indicatorFrame)
+		elseif ActionButton_HideOverlayGlow then
 			ActionButton_HideOverlayGlow(indicatorFrame)
 		end
 	end
