@@ -88,8 +88,10 @@ end
 
 --- Open the Triage settings panel
 function EnhancedRaidFrames:ChatCommand()
-	if self.settingsCategoryID then
-		Settings.OpenToCategory(self.settingsCategoryID)
+	-- Use Ace3's internal ID map to get the correct category ID for this client
+	local categoryID = AceConfigDialog.BlizOptionsIDMap and AceConfigDialog.BlizOptionsIDMap["Triage"]
+	if categoryID then
+		Settings.OpenToCategory(categoryID)
 	end
 end
 
@@ -130,9 +132,7 @@ function EnhancedRaidFrames:InitializeConfigPanels()
 	AceConfigRegistry:RegisterOptionsTable("Triage Import Export Profile Options", self:CreateProfileImportExportOptions())
 
 	-- Add config panels to in-game interface options
-	-- Capture the category ID for Settings.OpenToCategory (required on Midnight 12.0+)
-	local _, categoryID = AceConfigDialog:AddToBlizOptions("Triage", "Triage")
-	self.settingsCategoryID = categoryID
+	AceConfigDialog:AddToBlizOptions("Triage", "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Indicator Options", L["Indicator Options"], "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Target Marker Options", L["Target Marker Options"], "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Profiles", L["Profiles"], "Triage")
