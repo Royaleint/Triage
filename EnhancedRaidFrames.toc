@@ -1,0 +1,46 @@
+﻿## Interface: 11508, 50503, 110207
+## Title: Enhanced Raid Frames
+## Notes: Enhances the Blizzard raid frames with configurable Buff/Debuff indicators
+## IconTexture: Interface\Icons\spell_holy_borrowedtime
+## Author: Britt W. Yazel
+## Version: @project-version@
+## DefaultState: enabled
+## SavedVariables: EnhancedRaidFramesDB
+## SavedVariablesPerCharacter:
+## X-Credits-Maintainer: Britt W. Yazel
+## X-Email: bwyazel@gmail.com
+## X-License: MIT
+## X-Curse-Project-ID: 298558
+## X-Wago-ID: xZKxkE6k
+
+# Libraries
+Libs\embeds.xml
+
+# Locales
+Localizations\Localizations.xml
+
+# Core
+EnhancedRaidFrames.lua
+Globals.lua
+DatabaseDefaults.lua
+Overrides.lua
+
+# Utils
+Utils/Utilities.lua
+Utils/DatabaseMigration.lua
+
+# Aura Indicators
+Modules/AuraListeners.lua
+Modules/AuraIndicators.lua
+
+# Target Markers
+Modules/TargetMarkers.lua
+
+# Templates
+XML\IndicatorTemplate.xml
+
+# GUI
+GUI\GeneralConfigPanel.lua
+GUI\IndicatorConfigPanel.lua
+GUI\TargetMarkerConfigPanel.lua
+GUI\ProfileImportExport.lua
