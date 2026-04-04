@@ -42,7 +42,7 @@ function EnhancedRaidFrames.ShouldContinue(frame, skipVisibilityCheck)
 	-- Check that we have a frame and that it is visible
 	if not skipVisibilityCheck then
 		-- Don't do any work if the raid frames aren't shown
-		if not CompactRaidFrameContainer:IsShown() and CompactPartyFrame and not CompactPartyFrame:IsShown() then
+		if (not CompactRaidFrameContainer or not CompactRaidFrameContainer:IsShown()) and (not CompactPartyFrame or not CompactPartyFrame:IsShown()) then
 			return false
 		end
 

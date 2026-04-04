@@ -87,7 +87,7 @@ function EnhancedRaidFrames:SetIndicatorAppearance(frame)
 
 		-- We probably don't want to overlap the power bar (rage, mana, energy, etc) so we need a compensation factor
 		local powerBarVertOffset
-		if self.db.profile.powerBarOffset and frame.powerBar:IsShown() then
+		if self.db.profile.powerBarOffset and frame.powerBar and frame.powerBar:IsShown() then
 			powerBarVertOffset = frame.powerBar:GetHeight() + 2 -- Add 2 to not overlap the powerBar border
 		else
 			powerBarVertOffset = 0

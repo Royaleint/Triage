@@ -74,11 +74,13 @@ function EnhancedRaidFrames:OnEnable()
 		self:UpdateAllTargetMarkers()
 	end)
 
-	-- Hook our UpdateInRange function to the default CompactUnitFrame_UpdateInRange function.
+	-- Hook our UpdateInRange function if the global function exists.
 	-- Using SecureHook ensures that our function will run 'after' the default function, which is what we want.
-	self:SecureHook("CompactUnitFrame_UpdateInRange", function(frame)
-		self:UpdateInRange(frame)
-	end)
+	if CompactUnitFrame_UpdateInRange then
+		self:SecureHook("CompactUnitFrame_UpdateInRange", function(frame)
+			self:UpdateInRange(frame)
+		end)
+	end
 
 	-- Hook frame unit assignment to refresh indicators and listeners when a frame gets a new unit.
 	-- Without this, indicators and aura listeners become stale until the next GROUP_ROSTER_UPDATE

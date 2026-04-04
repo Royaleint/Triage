@@ -131,13 +131,17 @@ function EnhancedRaidFrames:UpdateBackgroundAlpha(frame)
 	end
 
 	-- Set the background alpha to the user defined value
-	frame.background:SetAlpha(self.db.profile.backgroundAlpha)
+	if frame.background then
+		frame.background:SetAlpha(self.db.profile.backgroundAlpha)
+	end
 end
 
 --- Set the scale of the overall raid frame container.
 function EnhancedRaidFrames:UpdateScale()
 	if not InCombatLockdown() then
-		CompactRaidFrameContainer:SetScale(self.db.profile.frameScale)
+		if CompactRaidFrameContainer then
+			CompactRaidFrameContainer:SetScale(self.db.profile.frameScale)
+		end
 		if CompactPartyFrame then
 			CompactPartyFrame:SetScale(self.db.profile.frameScale)
 		end

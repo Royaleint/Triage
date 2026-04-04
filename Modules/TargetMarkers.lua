@@ -6,6 +6,8 @@
 ---@type EnhancedRaidFrames
 local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
+local floor = math.floor
+
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
@@ -30,7 +32,7 @@ function EnhancedRaidFrames:SetTargetMarkerAppearance(frame)
 
 	-- We probably don't want to overlap the power bar (rage, mana, energy, etc) so we need a compensation factor
 	local powerBarVertOffset
-	if self.db.profile.powerBarOffset and frame.powerBar:IsShown() then
+	if self.db.profile.powerBarOffset and frame.powerBar and frame.powerBar:IsShown() then
 		powerBarVertOffset = frame.powerBar:GetHeight() + 2 -- Add 2 to not overlap the powerBar border
 	else
 		powerBarVertOffset = 0
@@ -94,11 +96,26 @@ function EnhancedRaidFrames:UpdateTargetMarker(frame, setAppearance)
 
 	if index and index >= 1 and index <= 8 then
 		-- Get the full texture path for the marker
-		local texture = UnitPopupRaidTarget1ButtonMixin:GetIcon() or "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
-		
+		local texture = "Interface\\TargetingFrame\\UI-RaidTargetingIcons"
+		if UnitPopupRaidTarget1ButtonMixin and UnitPopupRaidTarget1ButtonMixin.GetIcon then
+			texture = UnitPopupRaidTarget1ButtonMixin:GetIcon() or texture
+		end
+
 		-- Get the texture coordinates for the marker icon
-		local tCoordLeft, tCoordRight, tCoordTop, tCoordBottom = _G["UnitPopupRaidTarget" .. index .. "ButtonMixin"]:GetTextureCoords()
-		
+		local mixin = _G["UnitPopupRaidTarget" .. index .. "ButtonMixin"]
+		local tCoordLeft, tCoordRight, tCoordTop, tCoordBottom
+		if mixin and mixin.GetTextureCoords then
+			tCoordLeft, tCoordRight, tCoordTop, tCoordBottom = mixin:GetTextureCoords()
+		else
+			-- Manual fallback: 4x2 grid of icons in the standard raid target texture
+			local col = (index - 1) % 4
+			local row = floor((index - 1) / 4)
+			tCoordLeft = col * 0.25
+			tCoordRight = (col + 1) * 0.25
+			tCoordTop = row * 0.5
+			tCoordBottom = (row + 1) * 0.5
+		end
+
 		-- Set the marker texture using trilinear filtering (reduces pixelation)
 		frame.ERF_targetMarkerFrame:SetTexture(texture, nil, nil, "TRILINEAR")
 
