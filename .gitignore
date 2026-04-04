@@ -1,0 +1,36 @@
+# Dev-only documents and working files
+Triage_Dev/
+CLAUDE.md
+
+# Claude Code config (local)
+.claude/
+
+# MCP config (copied from BawrLabs, not committed)
+.mcp.json
+
+# Binaries
+luacheck.exe
+
+# Credentials
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Downloaded archives
+*.zip
+
+# Copy/backup files
+*- Copy.lua
+*_backup.lua
+*_backup_*.lua
+
+# Windows junk
+nul
+Thumbs.db
+
+# Libraries (fetched by packager via .pkgmeta externals)
+# Committed for now since ERF shipped embedded libs.
+# Switch to externals-only when pkgmeta packaging is verified.
+# Libs/

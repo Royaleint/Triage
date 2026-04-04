@@ -1,0 +1,34 @@
+package-as: Triage
+
+enable-nolib-creation: no
+enable-toc-creation: yes
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - .git
+  - .gitignore
+  - .pkgmeta
+  - .claude
+  - .mcp.json
+  - .luacheckrc
+  - "*.md"
+  - "!README.md"
+  - "!CHANGELOG.md"
+  - Triage_Dev
+
+embedded-libraries:
+  - Ace3
+  - LibSharedMedia-3-0
+  - Ace-GUI-3-0-Shared-Media-Widgets
+  - LibDualSpec-1-0
+  - librangecheck-3-0
+  - LibClassicDurations
+  - LibDeflate
+
+tools-used:
+  - devtool
+  - bugsack
+  - bug-grabber
