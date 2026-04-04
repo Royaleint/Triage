@@ -217,7 +217,7 @@ function EnhancedRaidFrames:ProcessIndicator(indicatorFrame, unit)
 	if indicatorFrame.thisAura then
 		-- Clear the frame if we're only showing missing auras or we're only showing our own auras and the aura isn't ours
 		if self.db.profile["indicator-" .. i].missingOnly
-				or (self.db.profile["indicator-" .. i].mineOnly and not indicatorFrame.thisAura.sourceUnit == "player") then
+				or (self.db.profile["indicator-" .. i].mineOnly and indicatorFrame.thisAura.sourceUnit ~= "player") then
 			self:ClearIndicator(indicatorFrame)
 			return
 		end
