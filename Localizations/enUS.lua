@@ -73,7 +73,7 @@ L["40 yards"] = true
 ------------------- General Panel ------------------
 ----------------------------------------------------
 
-L["generalOptions_desc"] = "Below you will find general configuration options. Please expand the 'Enhanced Raid Frames' menu item in the left-hand column to configure aura indicators, target markers, and more"
+L["generalOptions_desc"] = "Below you will find general configuration options. Please expand the 'Triage' menu item in the left-hand column to configure aura indicators, target markers, and more"
 
 L["Open the Blizzard Raid Profiles Options"] = true
 L["blizzardRaidOptionsButton_desc"] = "Launch the built-in raid profiles interface configuration menu"

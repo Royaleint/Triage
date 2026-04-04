@@ -1,17 +1,15 @@
-﻿## Interface: 11508, 50503, 110207
-## Title: Enhanced Raid Frames
-## Notes: Enhances the Blizzard raid frames with configurable Buff/Debuff indicators
+﻿## Interface: 11508, 50503, 120001
+## Title: Triage - Enhanced Raid Frames Reforged
+## Notes: Enhanced Raid Frames, reforged for Midnight and still supporting Classic and Pandaria
 ## IconTexture: Interface\Icons\spell_holy_borrowedtime
-## Author: Britt W. Yazel
+## Author: Royaleint
+## X-Credits-Original-Author: Britt W. Yazel (Soyier)
 ## Version: @project-version@
 ## DefaultState: enabled
 ## SavedVariables: EnhancedRaidFramesDB
 ## SavedVariablesPerCharacter:
-## X-Credits-Maintainer: Britt W. Yazel
-## X-Email: bwyazel@gmail.com
 ## X-License: MIT
-## X-Curse-Project-ID: 298558
-## X-Wago-ID: xZKxkE6k
+## X-Original-Addon: Enhanced Raid Frames
 
 # Libraries
 Libs\embeds.xml

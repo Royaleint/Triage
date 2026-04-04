@@ -52,9 +52,14 @@ end
 --- We perform more startup tasks here, such as registering events, hooking functions, creating frames, or getting 
 --- information from the game that wasn't yet available during :OnInitialize()
 function EnhancedRaidFrames:OnEnable()
+	-- Register slash commands first so they're available even if startup hits an error
+	self:RegisterChatCommand("erf", "ChatCommand")
+	self:RegisterChatCommand("triage", "ChatCommand")
+	self:RegisterChatCommand("tri", "ChatCommand")
+
 	-- Populate our starting config values
 	self:RefreshConfig()
-	
+
 	-- Run a full update of all auras for a starting point
 	self:UpdateAllAuras()
 
@@ -79,11 +84,13 @@ function EnhancedRaidFrames:OnEnable()
 	self:SecureHook("CompactUnitFrame_UpdateInRange", function(frame)
 		self:UpdateInRange(frame)
 	end)
+end
 
-	-- Register our slash command to open the config panel
-	self:RegisterChatCommand("erf", function()
-		Settings.OpenToCategory("Enhanced Raid Frames")
-	end)
+--- Open the Triage settings panel
+function EnhancedRaidFrames:ChatCommand()
+	if self.settingsCategoryID then
+		Settings.OpenToCategory(self.settingsCategoryID)
+	end
 end
 
 --- Called when our addon is manually being disabled during a running session.
@@ -116,19 +123,21 @@ end
 --- Set up our configuration panels and add them to the Blizzard interface options
 function EnhancedRaidFrames:InitializeConfigPanels()
 	-- Build our config panels
-	AceConfigRegistry:RegisterOptionsTable("Enhanced Raid Frames", self:CreateGeneralOptions())
-	AceConfigRegistry:RegisterOptionsTable("ERF Indicator Options", self:CreateIndicatorOptions())
-	AceConfigRegistry:RegisterOptionsTable("ERF Target Marker Options", self:CreateIconOptions())
-	AceConfigRegistry:RegisterOptionsTable("ERF Profiles", AceDBOptions:GetOptionsTable(self.db))
-	AceConfigRegistry:RegisterOptionsTable("ERF Import Export Profile Options", self:CreateProfileImportExportOptions())
+	AceConfigRegistry:RegisterOptionsTable("Triage", self:CreateGeneralOptions())
+	AceConfigRegistry:RegisterOptionsTable("Triage Indicator Options", self:CreateIndicatorOptions())
+	AceConfigRegistry:RegisterOptionsTable("Triage Target Marker Options", self:CreateIconOptions())
+	AceConfigRegistry:RegisterOptionsTable("Triage Profiles", AceDBOptions:GetOptionsTable(self.db))
+	AceConfigRegistry:RegisterOptionsTable("Triage Import Export Profile Options", self:CreateProfileImportExportOptions())
 
-	-- Add to config panels to in-game interface options
-	AceConfigDialog:AddToBlizOptions("Enhanced Raid Frames", "Enhanced Raid Frames")
-	AceConfigDialog:AddToBlizOptions("ERF Indicator Options", L["Indicator Options"], "Enhanced Raid Frames")
-	AceConfigDialog:AddToBlizOptions("ERF Target Marker Options", L["Target Marker Options"], "Enhanced Raid Frames")
-	AceConfigDialog:AddToBlizOptions("ERF Profiles", L["Profiles"], "Enhanced Raid Frames")
-	AceConfigDialog:AddToBlizOptions("ERF Import Export Profile Options",
-			(L["Profile"] .. " " .. L["Import"] .. "/" .. L["Export"]), "Enhanced Raid Frames")
+	-- Add config panels to in-game interface options
+	-- Capture the category ID for Settings.OpenToCategory (required on Midnight 12.0+)
+	local _, categoryID = AceConfigDialog:AddToBlizOptions("Triage", "Triage")
+	self.settingsCategoryID = categoryID
+	AceConfigDialog:AddToBlizOptions("Triage Indicator Options", L["Indicator Options"], "Triage")
+	AceConfigDialog:AddToBlizOptions("Triage Target Marker Options", L["Target Marker Options"], "Triage")
+	AceConfigDialog:AddToBlizOptions("Triage Profiles", L["Profiles"], "Triage")
+	AceConfigDialog:AddToBlizOptions("Triage Import Export Profile Options",
+			(L["Profile"] .. " " .. L["Import"] .. "/" .. L["Export"]), "Triage")
 end
 
 --- Refresh everything that is affected by changes to the configuration
