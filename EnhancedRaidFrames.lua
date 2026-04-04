@@ -79,6 +79,36 @@ function EnhancedRaidFrames:OnEnable()
 	self:SecureHook("CompactUnitFrame_UpdateInRange", function(frame)
 		self:UpdateInRange(frame)
 	end)
+
+	-- Hook frame unit assignment to refresh indicators and listeners when a frame gets a new unit.
+	-- Without this, indicators and aura listeners become stale until the next GROUP_ROSTER_UPDATE
+	-- throttle interval (1 second) when frames are reassigned.
+	self:SecureHook("CompactUnitFrame_SetUnit", function(frame, unit)
+		if not self.ShouldContinue(frame, true) then
+			return
+		end
+		-- Re-register the aura listener for the new unit
+		-- (CreateAuraListener already handles unregistering old events)
+		self:CreateAuraListener(frame)
+		-- Clear stale indicators and immediately scan the new unit's auras
+		-- so there is no visible gap between reassignment and repopulation
+		if frame.ERF_indicatorFrames then
+			for i = 1, 9 do
+				if frame.ERF_indicatorFrames[i] then
+					self:ClearIndicator(frame.ERF_indicatorFrames[i])
+				end
+			end
+		end
+		if self.isWoWClassicEra or self.isWoWClassic then
+			self:UpdateUnitAuras_Classic(frame, true)
+		else
+			self:UpdateUnitAuras(frame, {}, true)
+		end
+		-- Refresh target marker
+		if frame.ERF_targetMarkerFrame then
+			self:UpdateTargetMarker(frame)
+		end
+	end)
 end
 
 --- Open the Triage settings panel
