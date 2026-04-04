@@ -4,8 +4,8 @@
 
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/FrameXML/UI_shared.xsd">
-    <!--Template for ERF indicator frames-->
-    <Button name="ERF_indicatorTemplate" virtual="true">
+    <!--Template for ERF indicator frames — propagateMouseInput is Retail 11.0+ only, ignored on Classic-->
+    <Button name="ERF_indicatorTemplate" virtual="true" propagateMouseInput="Both">
         <Layers>
             <Layer level="BACKGROUND">
                 <!--Icon texture-->

@@ -38,17 +38,29 @@ function EnhancedRaidFrames:CreateIndicators(frame)
 		-- Indicate the position of this particular frame for use later (i.e. 1->9)
 		indicatorFrame.position = i
 
-		-- Hook OnEnter and OnLeave for showing and hiding ability tooltips
-		indicatorFrame:SetScript("OnEnter", function()
-			self:Tooltip_OnEnter(indicatorFrame, frame)
-		end)
-		indicatorFrame:SetScript("OnLeave", function()
-			GameTooltip:Hide()
-		end)
+		-- On Retail, indicators keep mouse enabled so native OnEnter/OnLeave drive tooltips.
+		-- Propagation is set via XML template (propagateMouseInput="Both"), not runtime.
+		if not self.isWoWClassicEra and not self.isWoWClassic then
+			indicatorFrame:SetScript("OnEnter", function()
+				self:Tooltip_OnEnter(indicatorFrame, frame)
+			end)
+			indicatorFrame:SetScript("OnLeave", function()
+				GameTooltip:Hide()
+				-- Restore the parent frame's unit tooltip when leaving an indicator
+				if frame:IsMouseOver() then
+					UnitFrame_UpdateTooltip(frame)
+				end
+			end)
+		end
 	end
 
 	-- Set our mouse behavior for our indicators
 	self:SetMouseBehavior(frame)
+
+	-- On Classic, set up parent-level tooltip scanning since indicators have mouse disabled
+	if self.isWoWClassicEra or self.isWoWClassic then
+		self:SetupClassicTooltipScanning(frame)
+	end
 
 	-- Set our initial indicator appearance
 	self:SetIndicatorAppearance(frame)
@@ -132,19 +144,19 @@ function EnhancedRaidFrames:SetMouseBehavior(frame)
 	end
 
 	-- Set the mouse behavior for our indicators
+	-- On Retail (11.0+), propagation is set via XML template attributes, so indicators
+	-- can keep mouse enabled for tooltips while clicks/motion pass through to the parent.
+	-- On Classic clients without propagation APIs, disable mouse entirely for click-cast safety.
+	local hasPropagation = not self.isWoWClassicEra and not self.isWoWClassic
 	for i = 1, 9 do
-		-- Create local pointer for readability
 		local indicatorFrame = frame.ERF_indicatorFrames[i]
 
-		if self.db.profile.mouseoverCastCompat then
-			-- For mouseover functionality to work, we need to disable all mouse behavior on our frames
-			indicatorFrame:EnableMouse(false)
-		else
-			-- If we're not using mouseover functionality, we need to enable mouse behavior on our frames to reset the default behavior
+		if hasPropagation then
 			indicatorFrame:EnableMouse(true)
-			-- We also need to disable mouse clicks on our frames to prevent clicks from interfering with the raid frame
-			-- By selectively targeting just SetMouseClickEnabled(), we retain the ability to hover over the indicator and see the tooltip
 			indicatorFrame:SetMouseClickEnabled(false)
+		else
+			-- Classic fallback: disable mouse entirely so clicks pass to the parent frame
+			indicatorFrame:EnableMouse(false)
 		end
 	end
 end
@@ -629,6 +641,90 @@ function EnhancedRaidFrames:Tooltip_OnEnter(indicatorFrame, parentFrame)
 	else
 		-- Causes the tooltip to reset to the "default" tooltip which is usually information about the character
 		UnitFrame_UpdateTooltip(parentFrame)
+	end
+end
+
+------------------------------------------------
+-------- Classic Tooltip Scanning Code ---------
+------------------------------------------------
+
+--- Set up parent-level tooltip scanning for Classic clients.
+--- Since indicators have EnableMouse(false), tooltips are driven by scanning
+--- indicator geometry while the parent frame is hovered.
+--- @param frame table @The raid frame to set up scanning on
+function EnhancedRaidFrames:SetupClassicTooltipScanning(frame)
+	if frame.ERF_tooltipHooked then
+		return
+	end
+	frame.ERF_tooltipHooked = true
+
+	if not self:IsHooked(frame, "OnEnter") then
+		self:SecureHookScript(frame, "OnEnter", function()
+			self:StartClassicTooltipScanning(frame)
+		end)
+	end
+	if not self:IsHooked(frame, "OnLeave") then
+		self:SecureHookScript(frame, "OnLeave", function()
+			self:StopClassicTooltipScanning(frame)
+		end)
+	end
+	if not self:IsHooked(frame, "OnHide") then
+		self:SecureHookScript(frame, "OnHide", function()
+			self:StopClassicTooltipScanning(frame)
+		end)
+	end
+end
+
+--- Start the hover-driven tooltip scanner while the parent is hovered
+--- @param frame table @The raid frame being hovered
+function EnhancedRaidFrames:StartClassicTooltipScanning(frame)
+	if frame.ERF_tooltipTicker then
+		return
+	end
+	self:ScanClassicIndicatorTooltips(frame)
+	frame.ERF_tooltipTicker = self:ScheduleRepeatingTimer(function()
+		self:ScanClassicIndicatorTooltips(frame)
+	end, 0.1)
+end
+
+--- Stop the tooltip scanner when the parent is no longer hovered
+--- @param frame table @The raid frame no longer hovered
+function EnhancedRaidFrames:StopClassicTooltipScanning(frame)
+	if frame.ERF_tooltipTicker then
+		self:CancelTimer(frame.ERF_tooltipTicker)
+		frame.ERF_tooltipTicker = nil
+	end
+	if frame.ERF_activeTooltipIndicator then
+		frame.ERF_activeTooltipIndicator = nil
+	end
+end
+
+--- Scan indicators for hover and show/restore tooltips accordingly
+--- @param frame table @The raid frame to scan
+function EnhancedRaidFrames:ScanClassicIndicatorTooltips(frame)
+	if not frame.ERF_indicatorFrames then
+		return
+	end
+
+	for i = 1, 9 do
+		local indicatorFrame = frame.ERF_indicatorFrames[i]
+		if indicatorFrame and indicatorFrame:IsShown() and indicatorFrame:IsMouseOver()
+				and self.db.profile["indicator-" .. i].showTooltip
+				and indicatorFrame.thisAura then
+			-- Only update tooltip if the hovered indicator changed
+			if frame.ERF_activeTooltipIndicator ~= indicatorFrame then
+				frame.ERF_activeTooltipIndicator = indicatorFrame
+				self:Tooltip_OnEnter(indicatorFrame, frame)
+			end
+			return
+		end
+	end
+
+	-- No indicator is hovered — restore parent tooltip if we were showing one
+	if frame.ERF_activeTooltipIndicator then
+		frame.ERF_activeTooltipIndicator = nil
+		GameTooltip:Hide()
+		UnitFrame_UpdateTooltip(frame)
 	end
 end
 

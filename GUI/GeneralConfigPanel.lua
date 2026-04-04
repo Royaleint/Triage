@@ -148,20 +148,7 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				width = THIRD_WIDTH,
 				order = 33,
 			},
-			mouseoverCastCompat = {
-				type = "toggle",
-				name = L["Mouseover Cast Compatibility"],
-				desc = L["mouseoverCast_desc"],
-				get = function()
-					return self.db.profile.mouseoverCastCompat
-				end,
-				set = function(_, value)
-					self.db.profile.mouseoverCastCompat = value
-					self:SetAllMouseBehavior()
-				end,
-				width = THIRD_WIDTH,
-				order = 34,
-			},
+			-- mouseoverCastCompat removed in v1.0 — click-cast safety is now always on
 			indicatorFont = {
 				type = 'select',
 				dialogControl = "LSM30_Font",
