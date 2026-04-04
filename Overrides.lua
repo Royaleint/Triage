@@ -105,34 +105,25 @@ function EnhancedRaidFrames:UpdateInRange(frame)
 		return
 	end
 
-	-- Sometimes the "displayed unit" is different than the actual unit, so we'll check both.
-	-- (E.g. If we're in a vehicle, we'll use the vehicle unit instead of the player unit.)
-	local effectiveUnit = frame.unit
-	if frame.unit ~= frame.displayedUnit then
-		effectiveUnit = frame.displayedUnit
-	end
+	-- Use the displayed unit (handles vehicles correctly)
+	local effectiveUnit = frame.displayedUnit or frame.unit
 
-	local inRange, checkedRange
+	-- Determine range: custom range if enabled, otherwise default 40 yards
+	-- Always use LibRangeCheck to avoid C_Secrets taint from UnitInRange()
+	-- GetFriendMaxChecker returns the best available checker at or below the target range,
+	-- avoiding silent no-ops when an exact checker doesn't exist for this class/client
+	local targetRange = self.db.profile.customRangeCheck and self.db.profile.customRange or 40
+	local rangeChecker = LibRangeCheck:GetFriendMaxChecker(targetRange)
 
-	-- Try to use LibRangeCheck if we have a custom range set
-	if self.db.profile.customRangeCheck then
-		local rangeChecker = LibRangeCheck:GetFriendChecker(self.db.profile.customRange)
-		if rangeChecker then
-			-- If we have a valid range checker, use it
-			inRange = rangeChecker(effectiveUnit)
-			checkedRange = true
+	if rangeChecker then
+		local inRange = rangeChecker(effectiveUnit)
+		if not inRange then
+			frame:SetAlpha(self.db.profile.rangeAlpha)
+		else
+			frame:SetAlpha(1)
 		end
-	end
-
-	-- If we haven't successfully checked the range yet, use the default range checking function
-	if not checkedRange then
-		inRange, checkedRange = UnitInRange(effectiveUnit)
-	end
-
-	-- If we weren't able to check the range for some reason, treat them as being in-range as a fallback.
-	if checkedRange and not inRange then
-		frame:SetAlpha(self.db.profile.rangeAlpha)
 	else
+		-- Fallback: treat as in-range if no checker available
 		frame:SetAlpha(1)
 	end
 end
