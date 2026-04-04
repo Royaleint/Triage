@@ -219,7 +219,6 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						set = function(_, value)
 							self.db.profile["indicator-" .. i].indicatorVerticalOffset = value
 							self:RefreshConfig()
-							self:RefreshConfig()
 						end,
 						width = THIRD_WIDTH,
 						order = 3,

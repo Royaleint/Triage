@@ -34,18 +34,13 @@ function EnhancedRaidFrames:OnInitialize()
 	self:InitializeConfigPanels()
 
 	-- Register callbacks for profile switching
-	self.db.RegisterCallback(self, "OnProfileChanged", function()
+	local function onProfileUpdate()
 		self:MigrateDatabase()
 		self:RefreshConfig()
-	end)
-	self.db.RegisterCallback(self, "OnProfileCopied", function()
-		self:MigrateDatabase()
-		self:RefreshConfig()
-	end)
-	self.db.RegisterCallback(self, "OnProfileReset", function()
-		self:MigrateDatabase()
-		self:RefreshConfig()
-	end)
+	end
+	self.db.RegisterCallback(self, "OnProfileChanged", onProfileUpdate)
+	self.db.RegisterCallback(self, "OnProfileCopied", onProfileUpdate)
+	self.db.RegisterCallback(self, "OnProfileReset", onProfileUpdate)
 end
 
 --- Called during the PLAYER_LOGIN event when most of the data provided by the game is already present.
@@ -145,22 +140,11 @@ function EnhancedRaidFrames:RefreshConfig()
 	self:GenerateAuraStrings()
 	self:UpdateAllAuras() -- Update all auras to reflect new settings
 	self:UpdateScale()
-	if CompactRaidFrameContainer and CompactRaidFrameContainer.ApplyToFrames then
-		-- 10.0 refactored CompactRaidFrameContainer with new functionality
-		CompactRaidFrameContainer:ApplyToFrames("normal", function(frame)
-			self:UpdateIndicators(frame, true)
-			self:UpdateBackgroundAlpha(frame)
-			self:UpdateInRange(frame)
-			self:UpdateTargetMarker(frame, true)
-			self:UpdateStockAuraVisibility(frame)
-		end)
-	else
-		CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "normal", function(frame)
-			self:UpdateIndicators(frame, true)
-			self:UpdateBackgroundAlpha(frame)
-			self:UpdateInRange(frame)
-			self:UpdateTargetMarker(frame, true)
-			self:UpdateStockAuraVisibility(frame)
-		end)
-	end
+	self.ApplyToAllFrames(function(frame)
+		self:UpdateIndicators(frame, true)
+		self:UpdateBackgroundAlpha(frame)
+		self:UpdateInRange(frame)
+		self:UpdateTargetMarker(frame, true)
+		self:UpdateStockAuraVisibility(frame)
+	end)
 end

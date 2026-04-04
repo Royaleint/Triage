@@ -60,16 +60,13 @@ end
 function EnhancedRaidFrames:UpdateAllAuras()
 	-- Iterate over all raid frame units, forcing a full refresh and re-creating the listener frame
 	-- It is important that we re-create the listener frame for each unit to ensure that the listener is attached to the correct unit
-	if CompactRaidFrameContainer and CompactRaidFrameContainer.ApplyToFrames then
-		-- 10.0 refactored CompactRaidFrameContainer with new functionality
-		CompactRaidFrameContainer:ApplyToFrames("normal", function(frame)
+	self.ApplyToAllFrames(function(frame)
+		if self.isWoWClassicEra or self.isWoWClassic then
+			self:UpdateUnitAuras_Classic(frame, true)
+		else
 			self:UpdateUnitAuras(frame, {}, true)
-		end)
-	else
-		CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "normal", function(frame)
-			self:UpdateUnitAuras_Classic(frame, true) -- Classic uses the legacy method prior to 10.0
-		end)
-	end
+		end
+	end)
 end
 
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.

@@ -117,16 +117,9 @@ end
 
 --- Update the appearance of our target markers for all frames
 function EnhancedRaidFrames:UpdateAllTargetMarkers()
-	if CompactRaidFrameContainer and CompactRaidFrameContainer.ApplyToFrames then
-		-- 10.0 refactored CompactRaidFrameContainer with new functionality
-		CompactRaidFrameContainer:ApplyToFrames("normal", function(frame)
-			self:UpdateTargetMarker(frame)
-		end)
-	else
-		CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "normal", function(frame)
-			self:UpdateTargetMarker(frame)
-		end)
-	end
+	self.ApplyToAllFrames(function(frame)
+		self:UpdateTargetMarker(frame)
+	end)
 end
 
 --- Clear the target marker for a given frame

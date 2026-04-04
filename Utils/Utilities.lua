@@ -13,6 +13,16 @@ local LibDeflate = LibStub:GetLibrary("LibDeflate")
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+--- Apply a function to all raid frames, handling the API difference between 10.0+ and older clients.
+---@param func function @The function to apply to each frame
+function EnhancedRaidFrames.ApplyToAllFrames(func)
+	if CompactRaidFrameContainer and CompactRaidFrameContainer.ApplyToFrames then
+		CompactRaidFrameContainer:ApplyToFrames("normal", func)
+	elseif CompactRaidFrameContainer then
+		CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "normal", func)
+	end
+end
+
 --- Test for whether or not we should continue processing a given unit
 ---@param frame table @The frame to test
 ---@return boolean @Whether or not we should continue processing the unit

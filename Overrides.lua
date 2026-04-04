@@ -12,23 +12,18 @@ local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 
 --- Set the visibility on the stock buff/debuff frames
 function EnhancedRaidFrames:UpdateAllStockAuraVisibility()
-	if CompactRaidFrameContainer and CompactRaidFrameContainer.ApplyToFrames then
-		-- 10.0 refactored CompactRaidFrameContainer with new functionality
-		CompactRaidFrameContainer:ApplyToFrames("normal", function(frame)
-			self:UpdateStockAuraVisibility(frame)
-		end)
+	self.ApplyToAllFrames(function(frame)
+		self:UpdateStockAuraVisibility(frame)
+	end)
 
-		-- In retail, there's a special type of boss aura called a "private aura" that is not accessible to addons.
-		-- We can attempt to hide these auras by hooking the default CompactUnitFrame_UpdatePrivateAuras function.
+	-- In retail, there's a special type of boss aura called a "private aura" that is not accessible to addons.
+	-- We can attempt to hide these auras by hooking the default CompactUnitFrame_UpdatePrivateAuras function.
+	if not self.isWoWClassicEra and not self.isWoWClassic then
 		if not self:IsHooked("CompactUnitFrame_UpdatePrivateAuras") then
 			self:SecureHook("CompactUnitFrame_UpdatePrivateAuras", function(frame)
 				self:UpdatePrivateAuraVisOverrides(frame)
 			end)
 		end
-	else
-		CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "normal", function(frame)
-			self:UpdateStockAuraVisibility(frame)
-		end)
 	end
 end
 

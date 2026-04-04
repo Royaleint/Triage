@@ -10,6 +10,8 @@ local EnhancedRaidFrames = _G.EnhancedRaidFrames
 local LibSharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 local LibDispel = LibStub("LibDispel-1.0")
 
+local floor = math.floor
+
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
@@ -150,16 +152,9 @@ end
 --- Update all mouse behavior for all indicators
 --- This is used to update all indicators when the user changes the mouseoverCastCompat option
 function EnhancedRaidFrames:SetAllMouseBehavior()
-	if CompactRaidFrameContainer and CompactRaidFrameContainer.ApplyToFrames then
-		-- 10.0 refactored CompactRaidFrameContainer with new functionality
-		CompactRaidFrameContainer:ApplyToFrames("normal", function(frame)
-			self:SetMouseBehavior(frame)
-		end)
-	else
-		CompactRaidFrameContainer_ApplyToFrames(CompactRaidFrameContainer, "normal", function(frame)
-			self:SetMouseBehavior(frame)
-		end)
-	end
+	self.ApplyToAllFrames(function(frame)
+		self:SetMouseBehavior(frame)
+	end)
 end
 
 ------------------------------------------------
@@ -427,7 +422,7 @@ function EnhancedRaidFrames:UpdateIndicatorIcon(indicatorFrame)
 		if thisAura.icon then
 			-- If we have an icon, use it
 			-- add spell icon info to cache in case we need it later on
-			if not self.iconCache[thisAura.name] or self.iconCache[thisAura.spellId] then
+			if not self.iconCache[thisAura.name] or not self.iconCache[thisAura.spellId] then
 				self.iconCache[thisAura.name] = thisAura.icon
 				self.iconCache[thisAura.spellId] = thisAura.icon
 			end
