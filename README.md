@@ -1,34 +1,35 @@
-# Enhanced Raid Frames
+# Triage - Enhanced Raid Frames Reforged
 
-_**Update regarding WoW Midnight.**_
+Enhanced Raid Frames, reforged for Midnight and still supporting Classic and Pandaria.
 
-_Due to the changes Blizzard is making to addons in WoW Midnight, it looks like Enhanced Raid Frames will cease functioning. As I currently no longer play WoW and have been keeping the addon updated solely for the benefit of you all, I don't foresee Enhanced Raid Frames continuing once these changes go into effect. We had a good run, and it's been a pleasure developing addons for you all. Cheers,_
+Triage continues the work of [Enhanced Raid Frames](https://github.com/brittyazel/EnhancedRaidFrames) by Britt W. Yazel (Soyier), which enhanced Blizzard's built-in raid frames with configurable aura indicators, target markers, range checking, and more.
 
-_-Soyier_
+When Midnight changed the addon landscape, ERF's development ended. Triage picks up the foundation, ports it to WoW 12.0, fixes known issues, and will add a healing intelligence layer in future releases.
 
-**Enhanced Raid Frames** is a raid frame add-on for **World of Warcraft**, **World of Warcraft: Classic** and
-**World of Warcraft: Classic Era** that adds many small but significant features to enhance the (already quite awesome) 
-built-in raid frames, allowing the raid frames to function much closer to add-ons such as Grid/Grid2 or VuhDo — the most 
-notable addition being configurable aura indicators.
+## Features (v1.0: ERF Reforged)
 
-Along with options to adjust the out-of-range distance, frame scale, frame opacity, overlay target icons, and numerous
-other small features, Enhanced Raid Frames adds 9 aura indicators for each raid member, forming a 3x3 grid overlaying
-each unit frame. These indicators allow for showing the presence, countdown time, and stack size of buffs and debuffs in
-any configuration that suits your needs, which has become absolutely vital for endgame content. While designed with
-healing in mind, other common use cases for Enhanced Raid Frames include competitive PvP, endgame tanking, or really any
-type of gaming that involves quick and easy access to vital information.
+- **9-position aura indicator grid:** configurable buff/debuff tracking on each raid frame
+- **Range checking:** custom range with configurable out-of-range alpha
+- **Target markers:** raid target icon overlay on frames
+- **Frame scaling:** adjustable raid frame scale
+- **Stock aura visibility:** show/hide default buff, debuff, and dispel frames
+- **Profile system:** per-character, per-spec profiles with import/export
+- **Classic support:** full support for Classic Era and Pandaria Classic
 
-## Want to contribute?
+## Commands
 
-* [Report Bugs and Request Features](https://github.com/brittyazel/RaidFrameIndicators/issues)
-* [Source Code](https://github.com/brittyazel/RaidFrameIndicators)
+- `/triage` or `/tri`: Open settings
+- `/erf`: Open settings (legacy alias)
 
-## Want to Donate?
+## Credits
 
-Making add-ons is a lot of work! Your help goes a huge way to making my add-on work possible. If you would like to
-Donate, [Github Sponsors](https://github.com/sponsors/brittyazel) is the preferred method.
+- **Original author:** Britt W. Yazel (Soyier) - [Enhanced Raid Frames](https://github.com/brittyazel/EnhancedRaidFrames)
+- **Original inspiration:** Blizzard Raid Frame: Indicators by Szandos (pre-Legion)
+- **Continued by:** Royaleint
+- **License:** MIT
 
-## Credits:
+## Links
 
-Enhanced Raid Frames was inspired by the amazing Blizzard Raid Frame: Indicators addon by Szandos, for World of Warcraft
-prior to Legion.
+- [Report Bugs](https://github.com/Royaleint/Triage/issues)
+- [Source Code](https://github.com/Royaleint/Triage)
+- [CurseForge](https://www.curseforge.com/wow/addons/triage-erf)
