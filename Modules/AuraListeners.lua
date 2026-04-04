@@ -160,6 +160,22 @@ end
 ---@param auraData table @Payload from UNIT_AURA event
 ---@return boolean @True if we added or updated an aura
 function EnhancedRaidFrames:addToAuraTable(parentFrame, auraData)
+	-- Skip auras with secret values from C_Secrets (M+, rated PvP)
+	-- issecretvalue() is safe to call on any value including nil, so it runs
+	-- before any boolean tests on aura fields to avoid taint from truthiness checks
+	if issecretvalue and (
+		issecretvalue(auraData.name)
+		or issecretvalue(auraData.spellId)
+		or issecretvalue(auraData.dispelName)
+	) then
+		return false
+	end
+
+	-- Skip auras with nil names (defensive)
+	if not auraData.name then
+		return false
+	end
+
 	-- Inject bleed debuff types into our auraData, courtesy of LibDispel
 	if not self.isWoWClassicEra and not self.isWoWClassic then
 		-- Check if the aura is harmful and if it's a known bleed (as defined by LibDispel)
