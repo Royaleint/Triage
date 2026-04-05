@@ -31,6 +31,11 @@ function EnhancedRaidFrames:CreateDefaults()
 		backgroundAlpha = 1,
 		indicatorFont = "Arial Narrow",
 
+		-- Minimap Button
+		minimap = {
+			hide = false,
+		},
+
 		-- Out-of-Range Options
 		customRangeCheck = false,
 		customRange = 30,

@@ -41,4 +41,8 @@ https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/FrameXML/UI
     <!--LibDispel-->
     <!-- https://github.com/tukui-org/LibDispel -->
     <Script file="LibDispel\LibDispel.lua"/>
+
+    <!--LibDataBroker + LibDBIcon (minimap button)-->
+    <Script file="LibDataBroker-1.1\LibDataBroker-1.1.lua"/>
+    <Include file="LibDBIcon-1.0\lib.xml"/>
 </Ui>

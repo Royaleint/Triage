@@ -27,6 +27,8 @@ embedded-libraries:
   - librangecheck-3-0
   - LibClassicDurations
   - LibDeflate
+  - LibDataBroker-1-1
+  - LibDBIcon-1-0
 
 tools-used:
   - devtool

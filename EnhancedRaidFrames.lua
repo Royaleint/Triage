@@ -41,6 +41,41 @@ function EnhancedRaidFrames:OnInitialize()
 	self.db.RegisterCallback(self, "OnProfileChanged", onProfileUpdate)
 	self.db.RegisterCallback(self, "OnProfileCopied", onProfileUpdate)
 	self.db.RegisterCallback(self, "OnProfileReset", onProfileUpdate)
+
+	-- Initialize minimap button
+	self:InitializeMinimapButton()
+end
+
+-------------------------------------------------------------------------
+-------------------------------------------------------------------------
+
+--- Initialize the minimap button using LibDataBroker and LibDBIcon
+function EnhancedRaidFrames:InitializeMinimapButton()
+	local LDB = LibStub("LibDataBroker-1.1", true)
+	local LDBIcon = LibStub("LibDBIcon-1.0", true)
+
+	if not LDB or not LDBIcon then
+		return
+	end
+
+	local dataObj = LDB:NewDataObject("Triage", {
+		type = "launcher",
+		text = "Triage",
+		icon = "Interface\\Icons\\spell_holy_borrowedtime",
+		OnClick = function(_, button)
+			if button == "LeftButton" then
+				self:ChatCommand()
+			end
+		end,
+		OnTooltipShow = function(tooltip)
+			tooltip:AddLine("|cFFFFD700Triage|r")
+			tooltip:AddLine("Enhanced Raid Frames Reforged", 1, 1, 1)
+			tooltip:AddLine(" ")
+			tooltip:AddLine("|cFFFFFFFFLeft-Click:|r Open settings")
+		end,
+	})
+
+	LDBIcon:Register("Triage", dataObj, self.db.profile.minimap)
 end
 
 --- Called during the PLAYER_LOGIN event when most of the data provided by the game is already present.
