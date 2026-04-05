@@ -105,10 +105,10 @@ function EnhancedRaidFrames:UpdateInRange(frame)
 
 	-- Determine range: custom range if enabled, otherwise default 40 yards
 	-- Always use LibRangeCheck to avoid C_Secrets taint from UnitInRange()
-	-- GetFriendMaxChecker returns the best available checker at or below the target range,
-	-- avoiding silent no-ops when an exact checker doesn't exist for this class/client
+	-- GetFriendMinChecker returns a checker at or above the target range, suitable for
+	-- out-of-range detection: if the checker returns false, the unit is definitely beyond range
 	local targetRange = self.db.profile.customRangeCheck and self.db.profile.customRange or 40
-	local rangeChecker = LibRangeCheck:GetFriendMaxChecker(targetRange)
+	local rangeChecker = LibRangeCheck:GetFriendMinChecker(targetRange)
 
 	if rangeChecker then
 		local inRange = rangeChecker(effectiveUnit)
