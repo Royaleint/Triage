@@ -37,6 +37,10 @@ function EnhancedRaidFrames:OnInitialize()
 	local function onProfileUpdate()
 		self:MigrateDatabase()
 		self:RefreshConfig()
+		local LDBIcon = LibStub("LibDBIcon-1.0", true)
+		if LDBIcon then
+			LDBIcon:Refresh("Triage", self.db.profile.minimap)
+		end
 	end
 	self.db.RegisterCallback(self, "OnProfileChanged", onProfileUpdate)
 	self.db.RegisterCallback(self, "OnProfileCopied", onProfileUpdate)
@@ -124,9 +128,6 @@ function EnhancedRaidFrames:OnEnable()
 		if not self.ShouldContinue(frame, true) then
 			return
 		end
-		-- Re-register the aura listener for the new unit
-		-- (CreateAuraListener already handles unregistering old events)
-		self:CreateAuraListener(frame)
 		-- Clear stale indicators and immediately scan the new unit's auras
 		-- so there is no visible gap between reassignment and repopulation
 		if frame.ERF_indicatorFrames then
