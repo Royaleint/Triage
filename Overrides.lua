@@ -52,9 +52,9 @@ function EnhancedRaidFrames:UpdateStockAuraVisibility(frame)
 				-- Query the specific visibility flag for this frame type
 				if not self:IsHooked(auraFrame, "OnShow") then
 					-- Be careful not to hook the same frame multiple times
-					self:SecureHookScript(auraFrame, "OnShow", function(self)
-						self:Hide()
-					end)
+						self:SecureHookScript(auraFrame, "OnShow", function(shownFrame)
+							shownFrame:Hide()
+						end)
 				end
 				-- Hide frame immediately as well, otherwise some already shown frames will remain visible
 				auraFrame:Hide()
@@ -93,22 +93,27 @@ function EnhancedRaidFrames:UpdatePrivateAuraVisOverrides(frame)
 end
 
 --- Updates the frame alpha based on if a unit is in range or not.
---- This function is secure hooked to the CompactUnitFrame_UpdateInRange function.
+--- Hooked to CompactUnitFrame_UpdateInRange and CompactUnitFrame_UpdateCenterStatusIcon.
 ---@param frame table @The frame to update the alpha on
-function EnhancedRaidFrames:UpdateInRange(frame)
+---@param rangeChecker function|nil @Optional cached LibRangeCheck checker for this update pass
+function EnhancedRaidFrames:UpdateInRange(frame, rangeChecker)
 	if not self.ShouldContinue(frame, true) then
 		return
 	end
 
-	-- Use the displayed unit (handles vehicles correctly)
-	local effectiveUnit = frame.displayedUnit or frame.unit
+	if not self.db.profile.customRangeCheck then
+		-- Default range: Blizzard handles 40yd range correctly via privileged code
+		-- (immune to C_Secrets). frame.outOfRange, GetAlpha(), and UnitInRange() are
+		-- all secret-tainted and unreadable from addon code. Let Blizzard's hardcoded
+		-- 0.3 alpha stand. Users who want custom dim alpha should enable Custom Range.
+		return
+	end
 
-	-- Determine range: custom range if enabled, otherwise default 40 yards
-	-- Always use LibRangeCheck to avoid C_Secrets taint from UnitInRange()
-	-- GetFriendMinChecker returns a checker at or above the target range, suitable for
-	-- out-of-range detection: if the checker returns false, the unit is definitely beyond range
-	local targetRange = self.db.profile.customRangeCheck and self.db.profile.customRange or 40
-	local rangeChecker = LibRangeCheck:GetFriendMinChecker(targetRange)
+	-- Custom range: use LibRangeCheck since Blizzard only checks the default 40yd boundary.
+	-- CompactUnitFrame_UpdateInRange only flips when Blizzard's UnitInRange state changes,
+	-- so crossing a custom threshold inside 40yd needs our own polling pass.
+	local effectiveUnit = frame.displayedUnit or frame.unit
+	rangeChecker = rangeChecker or LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange)
 
 	if rangeChecker then
 		local inRange = rangeChecker(effectiveUnit)
@@ -118,8 +123,35 @@ function EnhancedRaidFrames:UpdateInRange(frame)
 			frame:SetAlpha(1)
 		end
 	else
-		-- Fallback: treat as in-range if no checker available
 		frame:SetAlpha(1)
+	end
+end
+
+--- Update the range alpha state for all active compact frames.
+function EnhancedRaidFrames:UpdateAllRanges()
+	local rangeChecker
+	if self.db.profile.customRangeCheck then
+		rangeChecker = LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange)
+	end
+
+	self.ApplyToAllFrames(function(frame)
+		self:UpdateInRange(frame, rangeChecker)
+	end)
+end
+
+--- Start or stop the custom range polling timer based on the user's settings.
+function EnhancedRaidFrames:RefreshRangeTicker()
+	if self.rangeTicker then
+		self:CancelTimer(self.rangeTicker)
+		self.rangeTicker = nil
+	end
+
+	if self.db.profile.customRangeCheck then
+		-- Blizzard only updates its in-range state when the native 40yd result changes.
+		-- Poll custom ranges so frames recover immediately after crossing the configured threshold.
+		self.rangeTicker = self:ScheduleRepeatingTimer(function()
+			self:UpdateAllRanges()
+		end, 0.2)
 	end
 end
 

@@ -83,7 +83,7 @@ function EnhancedRaidFrames:InitializeMinimapButton()
 end
 
 --- Called during the PLAYER_LOGIN event when most of the data provided by the game is already present.
---- We perform more startup tasks here, such as registering events, hooking functions, creating frames, or getting 
+--- We perform more startup tasks here, such as registering events, hooking functions, creating frames, or getting
 --- information from the game that wasn't yet available during :OnInitialize()
 function EnhancedRaidFrames:OnEnable()
 	-- Register slash commands first so they're available even if startup hits an error
@@ -121,6 +121,16 @@ function EnhancedRaidFrames:OnEnable()
 		end)
 	end
 
+	-- Hook UpdateCenterStatusIcon to re-apply our range alpha after Blizzard sets its own.
+	-- Blizzard's SetAlpha at CompactUnitFrame.lua:1583 uses frame.outOfRange which is
+	-- broken by C_Secrets in Midnight. Our hook runs after and overrides with LibRangeCheck.
+	-- We cannot write frame.outOfRange directly — that taints Blizzard's next comparison.
+	if CompactUnitFrame_UpdateCenterStatusIcon then
+		self:SecureHook("CompactUnitFrame_UpdateCenterStatusIcon", function(frame)
+			self:UpdateInRange(frame)
+		end)
+	end
+
 	-- Hook frame unit assignment to refresh indicators and listeners when a frame gets a new unit.
 	-- Without this, indicators and aura listeners become stale until the next GROUP_ROSTER_UPDATE
 	-- throttle interval (1 second) when frames are reassigned.
@@ -147,21 +157,33 @@ function EnhancedRaidFrames:OnEnable()
 			self:UpdateTargetMarker(frame)
 		end
 	end)
+
 end
 
 --- Open the Triage settings panel
 function EnhancedRaidFrames:ChatCommand()
+	if InCombatLockdown() then
+		self:Print("Cannot open settings during combat.")
+		return
+	end
 	-- Use Ace3's internal ID map to get the correct category ID for this client
 	local categoryID = AceConfigDialog.BlizOptionsIDMap and AceConfigDialog.BlizOptionsIDMap["Triage"]
 	if categoryID then
 		Settings.OpenToCategory(categoryID)
+		-- Settings.OpenToCategory can show the Game Menu behind the settings panel
+		if GameMenuFrame and GameMenuFrame:IsShown() then
+			HideUIPanel(GameMenuFrame)
+		end
 	end
 end
 
 --- Called when our addon is manually being disabled during a running session.
 --- We primarily use this to unhook scripts, unregister events, or hide frames that we created.
 function EnhancedRaidFrames:OnDisable()
-	-- Empty --
+	if self.rangeTicker then
+		self:CancelTimer(self.rangeTicker)
+		self.rangeTicker = nil
+	end
 end
 
 -------------------------------------------------------------------------
@@ -171,10 +193,8 @@ end
 function EnhancedRaidFrames:InitializeDatabase()
 	-- Set up database defaults
 	local defaults = self:CreateDefaults()
-
 	-- Create database object
 	self.db = AceDB:New("EnhancedRaidFramesDB", defaults) --EnhancedRaidFramesDB is our saved variable table
-	
 	-- Enhance database and profile options using LibDualSpec
 	if not self.isWoWClassicEra then
 		-- Not available in Classic Era
@@ -207,6 +227,7 @@ end
 function EnhancedRaidFrames:RefreshConfig()
 	self:GenerateAuraStrings()
 	self:UpdateAllAuras() -- Update all auras to reflect new settings
+	self:RefreshRangeTicker()
 	self:UpdateScale()
 	self.ApplyToAllFrames(function(frame)
 		self:UpdateIndicators(frame, true)
