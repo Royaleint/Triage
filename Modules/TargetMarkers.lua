@@ -27,13 +27,24 @@ function EnhancedRaidFrames:SetTargetMarkerAppearance(frame)
 	local PAD = 3
 	local pos = self.db.profile.markerPosition
 
-	local markerVerticalOffset = self.db.profile.markerVerticalOffset * frame:GetHeight()
-	local markerHorizontalOffset = self.db.profile.markerHorizontalOffset * frame:GetWidth()
+	-- Frame dimensions can be secret numbers in Midnight — fall back to safe defaults
+	local frameHeight = frame:GetHeight()
+	local frameWidth = frame:GetWidth()
+	if issecretvalue and (issecretvalue(frameHeight) or issecretvalue(frameWidth)) then
+		frameHeight = 36
+		frameWidth = 72
+	end
+	local markerVerticalOffset = self.db.profile.markerVerticalOffset * frameHeight
+	local markerHorizontalOffset = self.db.profile.markerHorizontalOffset * frameWidth
 
 	-- We probably don't want to overlap the power bar (rage, mana, energy, etc) so we need a compensation factor
 	local powerBarVertOffset
 	if self.db.profile.powerBarOffset and frame.powerBar and frame.powerBar:IsShown() then
-		powerBarVertOffset = frame.powerBar:GetHeight() + 2 -- Add 2 to not overlap the powerBar border
+		local pbHeight = frame.powerBar:GetHeight()
+		if issecretvalue and issecretvalue(pbHeight) then
+			pbHeight = 8
+		end
+		powerBarVertOffset = pbHeight + 2 -- Add 2 to not overlap the powerBar border
 	else
 		powerBarVertOffset = 0
 	end
@@ -93,6 +104,12 @@ function EnhancedRaidFrames:UpdateTargetMarker(frame, setAppearance)
 
 	-- Get target marker on unit
 	local index = GetRaidTargetIndex(frame.unit)
+
+	-- GetRaidTargetIndex can return a secret number in Midnight — skip if tainted
+	if issecretvalue and index and issecretvalue(index) then
+		self:ClearTargetMarker(frame)
+		return
+	end
 
 	if index and index >= 1 and index <= 8 then
 		-- Get the full texture path for the marker

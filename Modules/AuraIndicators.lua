@@ -82,13 +82,24 @@ function EnhancedRaidFrames:SetIndicatorAppearance(frame)
 
 		-- Set the indicator frame position
 		local PAD = 1
-		local indicatorVerticalOffset = floor((self.db.profile["indicator-" .. i].indicatorVerticalOffset * frame:GetHeight()) + 0.5)
-		local indicatorHorizontalOffset = floor((self.db.profile["indicator-" .. i].indicatorHorizontalOffset * frame:GetWidth()) + 0.5)
+		-- Frame dimensions can be secret numbers in Midnight — fall back to safe defaults
+		local frameHeight = frame:GetHeight()
+		local frameWidth = frame:GetWidth()
+		if issecretvalue and (issecretvalue(frameHeight) or issecretvalue(frameWidth)) then
+			frameHeight = 36
+			frameWidth = 72
+		end
+		local indicatorVerticalOffset = floor((self.db.profile["indicator-" .. i].indicatorVerticalOffset * frameHeight) + 0.5)
+		local indicatorHorizontalOffset = floor((self.db.profile["indicator-" .. i].indicatorHorizontalOffset * frameWidth) + 0.5)
 
 		-- We probably don't want to overlap the power bar (rage, mana, energy, etc) so we need a compensation factor
 		local powerBarVertOffset
 		if self.db.profile.powerBarOffset and frame.powerBar and frame.powerBar:IsShown() then
-			powerBarVertOffset = frame.powerBar:GetHeight() + 2 -- Add 2 to not overlap the powerBar border
+			local pbHeight = frame.powerBar:GetHeight()
+			if issecretvalue and issecretvalue(pbHeight) then
+				pbHeight = 8
+			end
+			powerBarVertOffset = pbHeight + 2 -- Add 2 to not overlap the powerBar border
 		else
 			powerBarVertOffset = 0
 		end
@@ -154,6 +165,14 @@ function EnhancedRaidFrames:SetMouseBehavior(frame)
 		if hasPropagation then
 			indicatorFrame:EnableMouse(true)
 			indicatorFrame:SetMouseClickEnabled(false)
+			-- Explicit propagation so parent frame keeps hover continuity for
+			-- @mouseover macros and C_ClickBindings (XML attribute may be reset by EnableMouse)
+			if indicatorFrame.SetPropagateMouseClicks then
+				indicatorFrame:SetPropagateMouseClicks(true)
+			end
+			if indicatorFrame.SetPropagateMouseMotion then
+				indicatorFrame:SetPropagateMouseMotion(true)
+			end
 		else
 			-- Classic fallback: disable mouse entirely so clicks pass to the parent frame
 			indicatorFrame:EnableMouse(false)
@@ -230,7 +249,7 @@ function EnhancedRaidFrames:ProcessIndicator(indicatorFrame, unit)
 		end
 
 		-- Only start our ticker and cooldown animation if the aura has a duration
-		if indicatorFrame.thisAura.expirationTime and indicatorFrame.thisAura.expirationTime ~= 0 and 
+			if indicatorFrame.thisAura.expirationTime and indicatorFrame.thisAura.expirationTime ~= 0 and
 				indicatorFrame.thisAura.duration and indicatorFrame.thisAura.duration ~= 0 then
 			self:StartUpdateTicker(indicatorFrame) -- Start our update ticker
 			self:SetCooldownAnimation(indicatorFrame) -- Set the cooldown animation
@@ -456,7 +475,7 @@ function EnhancedRaidFrames:UpdateIndicatorIcon(indicatorFrame)
 		local auraIdentifier = self.auraStrings[i][1] --show the icon for the first auraString position
 
 		if not self.iconCache[auraIdentifier] then
-			-- Check our iconCache for the name. 
+				-- Check our iconCache for the name.
 			-- Note: The icon cache is pre-populated with generic "poison", "curse", "disease", "magic", and "bleed" debuff icons.
 			local icon
 			-- Check if we can use the new API introduced in 11.0, Classic and Classic_Era may not support it
@@ -465,7 +484,7 @@ function EnhancedRaidFrames:UpdateIndicatorIcon(indicatorFrame)
 			else
 				icon = select(3, GetSpellInfo(auraIdentifier)) -- Query the game for the icon
 			end
-			
+
 			if icon then
 				self.iconCache[auraIdentifier] = icon --cache our icon if we found one
 				indicatorFrame.Icon:SetTexture(icon)
@@ -740,8 +759,12 @@ function EnhancedRaidFrames:GenerateAuraStrings()
 
 	for i = 1, 9 do
 		local rawStrings = {}
+		local indicatorDB = self.db.profile["indicator-" .. i]
+		if not indicatorDB or not indicatorDB.auras then
+			break
+		end
 		-- Split the user input into individual strings based on new lines
-		for rawString in self.db.profile["indicator-" .. i].auras:gmatch("[^\n]+") do
+		for rawString in indicatorDB.auras:gmatch("[^\n]+") do
 			table.insert(rawStrings, rawString)
 		end
 
