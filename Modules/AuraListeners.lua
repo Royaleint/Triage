@@ -79,13 +79,11 @@ function EnhancedRaidFrames:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	if not self.ShouldContinue(parentFrame) then
 		return
 	end
-	
 	-- Create a listener frame for the unit if we don't happen to have one yet, or we're forcing a re-creation
 	if not parentFrame.ERF_auraListenerFrame or forceRefresh then
 		self:CreateAuraListener(parentFrame)
 		payload.isFullUpdate = true -- Force a full update if we're forcing a refresh
 	end
-	
 	-- Create the main table for the unit
 	if not parentFrame.ERF_unitAuras then
 		parentFrame.ERF_unitAuras = {}
@@ -95,7 +93,6 @@ function EnhancedRaidFrames:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	-- Flag to determine if we need to run an update on the indicators since we only care about select auras
 	-- This should filter out a lot of unnecessary updates from triggering an indicator update
 	local shouldRunUpdate = false
-	
 	-- If we get a full update signal, reset the table and rescan all auras for the unit
 	if payload.isFullUpdate then
 		-- Clear out the table
@@ -176,16 +173,11 @@ function EnhancedRaidFrames:addToAuraTable(parentFrame, auraData)
 		return false
 	end
 
-	-- Inject bleed debuff types into our auraData, courtesy of LibDispel
-	if not self.isWoWClassicEra and not self.isWoWClassic then
-		-- Check if the aura is harmful and if it's a known bleed (as defined by LibDispel)
-		if auraData.isHarmful and LibDispel:GetBleedList()[auraData.spellId] then
-			auraData.dispelName = "Bleed"
-		end
-	end
-	
+	-- Note: bleed debuff injection removed — LibDispel does not export a bleed spell ID list.
+	-- DispelList.Bleed only indicates if the player can dispel bleeds (Evoker Cauterizing Flame).
+	-- Bleed detection via a maintained spell ID table is a candidate for a future release.
 	-- Quickly check if we're watching for this aura, and ignore if we aren't
-	-- It's important to use the 4th argument in string.find to turn off pattern matching, 
+		-- It's important to use the 4th argument in string.find to turn off pattern matching,
 	-- otherwise strings with parentheses in them will fail to be found
 	if self.allAuras:find(" " .. auraData.name:lower() .. " ", 1, true)
 			or self.allAuras:find(auraData.spellId, 1, true)
@@ -252,7 +244,7 @@ function EnhancedRaidFrames:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 				auraData.name, auraData.icon, auraData.applications, auraData.dispelName, auraData.duration, auraData.expirationTime,
 				auraData.sourceUnit, _, _, auraData.spellId, _, _, _, _, auraData.timeMod = UnitAura(unit, auraIndex, filter)
 			else
-				-- For wow classic we use LibClassicDurations instead of UnitAura() because by default the 
+					-- For wow classic we use LibClassicDurations instead of UnitAura() because by default the
 				-- game doesn't provide any aura duration information.
 				auraData.name, auraData.icon, auraData.applications, auraData.dispelName, auraData.duration, auraData.expirationTime,
 				auraData.sourceUnit, _, _, auraData.spellId, _, _, _, _, auraData.timeMod = self.UnitAuraWrapper(unit, auraIndex, filter)

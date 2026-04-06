@@ -40,9 +40,9 @@ function EnhancedRaidFrames:CreateProfileImportExportOptions()
 					return L["ImportWarning"]
 				end,
 				validate = false,
-				set = function(self, input)
-					EnhancedRaidFrames:DeserializeAndDecompressProfile(input)
-				end,
+					set = function(_, input)
+						EnhancedRaidFrames:DeserializeAndDecompressProfile(input)
+					end,
 				get = function()
 					return EnhancedRaidFrames:SerializeAndCompressProfile()
 				end,

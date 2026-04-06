@@ -38,7 +38,6 @@ function EnhancedRaidFrames.ShouldContinue(frame, skipVisibilityCheck)
 			and not frame.unit:find("party", 1, true)) then
 		return false
 	end
-	
 	-- Check that we have a frame and that it is visible
 	if not skipVisibilityCheck then
 		-- Don't do any work if the raid frames aren't shown
