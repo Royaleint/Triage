@@ -1,5 +1,8 @@
 std = "none"
 max_line_length = false
+exclude_files = {
+    "Libs/**",
+}
 
 globals = {
     -- Addon global (intentionally written)
@@ -14,9 +17,8 @@ globals = {
 
 read_globals = {
     -- Lua builtins
-    "_G",
     "next", "pairs", "ipairs", "type", "select", "unpack",
-    "tonumber", "tostring", "print", "format",
+    "tonumber", "tostring", "print", "format", "assert",
     "tinsert", "tremove", "wipe",
     "strsplit", "strlower", "strtrim", "strfind", "strmatch",
     "time", "date",
@@ -24,18 +26,24 @@ read_globals = {
     "error", "pcall",
     "rawget", "rawset",
     "setmetatable", "getmetatable",
-    "floor",
+    "floor", "sort",
 
     -- WoW project constants
     "WOW_PROJECT_ID",
     "WOW_PROJECT_CLASSIC",
     "WOW_PROJECT_MISTS_CLASSIC",
+    "WOW_PROJECT_MAINLINE",
+    "WOW_PROJECT_BURNING_CRUSADE_CLASSIC",
+    "WOW_PROJECT_CATACLYSM_CLASSIC",
+    "BOOKTYPE_SPELL",
+    "BOOKTYPE_PET",
 
     -- WoW frames / UI globals
     "CreateFrame",
     "CreateColor",
     "UIParent",
     "GameTooltip",
+    "GameMenuFrame",
     "GameFontNormal",
     "GameFontNormalSmall",
     "GameFontHighlight",
@@ -46,6 +54,26 @@ read_globals = {
     "InCombatLockdown",
     "hooksecurefunc",
     "issecretvalue",
+    "GetBuildInfo",
+    "GetInventoryItemLink",
+    "GetInventorySlotInfo",
+    "GetNumSpellTabs",
+    "GetPlayerMapPosition",
+    "GetSpellBookItemName",
+    "GetSpellInfo",
+    "GetSpellTabInfo",
+    "HideUIPanel",
+    "IsItemInRange",
+    "UnitCanAssist",
+    "UnitCanAttack",
+    "UnitClass",
+    "UnitExists",
+    "UnitGUID",
+    "UnitIsDeadOrGhost",
+    "UnitIsVisible",
+    "UnitRace",
+    "CheckInteractDistance",
+    "debugprofilestop",
 
     -- WoW color constants
     "NORMAL_FONT_COLOR",
@@ -64,11 +92,16 @@ read_globals = {
     -- WoW C_ namespaces
     "C_Spell",
     "C_UnitAuras",
+    "C_Item",
+    "C_Map",
+    "C_SpellBook",
+    "C_Timer",
 
     -- Raid frame globals
     "CompactRaidFrameContainer",
     "CompactRaidFrameContainer_ApplyToFrames",
     "CompactPartyFrame",
+    "CompactUnitFrame_UpdateCenterStatusIcon",
     "CompactUnitFrame_UpdateInRange",
     "CompactUnitFrame_UpdatePrivateAuras",
     "UnitFrame_UpdateTooltip",
@@ -91,6 +124,31 @@ read_globals = {
 
     -- Ace3 / Libraries
     "LibStub",
+
+    -- Other WoW globals used by vendored libraries
+    "AceGUIWidgetLSMlists",
+    "AuraUtil",
+    "CopyTable",
+    "Enum",
+    "Item",
+    "RAID_FRAMES_LABEL",
+
+    _G = {
+        fields = {
+            EnhancedRaidFrames = {
+                read_only = false,
+                other_fields = true,
+            },
+            EnhancedRaidFramesDB = {
+                read_only = false,
+                other_fields = true,
+            },
+            SlashCmdList = {
+                read_only = false,
+                other_fields = true,
+            },
+        },
+    },
 }
 
 ignore = {
