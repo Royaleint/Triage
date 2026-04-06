@@ -1,0 +1,49 @@
+name: Bug Report
+description: Report a bug or Lua error
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: game-version
+    attributes:
+      label: Game Version
+      description: Which WoW client are you playing on?
+      options:
+        - Retail (Midnight 12.0+)
+        - Classic Era
+        - Pandaria Classic
+    validations:
+      required: true
+
+  - type: input
+    id: addon-version
+    attributes:
+      label: Triage Version
+      description: Check in-game with /triage or in the addon list
+      placeholder: e.g. 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the bug. Include steps to reproduce if possible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: error
+    attributes:
+      label: Lua Error (if any)
+      description: Paste the full error text from BugSack or the error frame
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Group type (party/raid), class/spec, other addons that might interact, screenshots, etc.
+    validations:
+      required: false

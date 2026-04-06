@@ -1,0 +1,33 @@
+name: Feature Request
+description: Suggest a new feature or improvement
+labels: ["enhancement"]
+body:
+  - type: dropdown
+    id: game-version
+    attributes:
+      label: Game Version
+      description: Which client would this apply to?
+      multiple: true
+      options:
+        - Retail (Midnight 12.0+)
+        - Classic Era
+        - Pandaria Classic
+        - All versions
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What would you like?
+      description: Describe the feature and why it would be useful.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, examples from other addons, etc.
+    validations:
+      required: false
