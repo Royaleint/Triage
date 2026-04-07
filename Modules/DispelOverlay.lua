@@ -93,29 +93,17 @@ function EnhancedRaidFrames:UpdateDispelOverlay(frame)
 		return
 	end
 
+	-- Find the highest-priority dispel type the player can handle
+	-- Priority order: Magic > Curse > Disease > Poison > Bleed
 	local myDispels = LibDispel:GetMyDispelTypes()
 	local bestType = nil
 
-	if self.db.profile.dispelOverlay.priorityOnly then
-		-- Priority mode: show highest-priority type the player can dispel
-		for _, dispelType in ipairs(PRIORITY_ORDER) do
-			if myDispels[dispelType] then
-				local pt = frame.dispels[dispelType]
-				if pt and pt:Size() > 0 then
-					bestType = dispelType
-					break
-				end
-			end
-		end
-	else
-		-- Any mode: show if the player can dispel ANY present debuff type
-		for _, dispelType in ipairs(PRIORITY_ORDER) do
-			if myDispels[dispelType] then
-				local pt = frame.dispels[dispelType]
-				if pt and pt:Size() > 0 then
-					bestType = dispelType
-					break
-				end
+	for _, dispelType in ipairs(PRIORITY_ORDER) do
+		if myDispels[dispelType] then
+			local pt = frame.dispels[dispelType]
+			if pt and pt:Size() > 0 then
+				bestType = dispelType
+				break
 			end
 		end
 	end
@@ -138,10 +126,23 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 	local color = debuffColors[dispelType] or debuffColors["None"]
 	local alpha = self.db.profile.dispelOverlay.borderAlpha
 
-	if self.db.profile.dispelOverlay.colorByType then
-		SetBorderColor(overlay, color.r, color.g, color.b, alpha)
+	local glowStyle = self.db.profile.dispelOverlay.glowStyle
+
+	-- Border: show edges for "border" and "both", hide for "pulse" only
+	if glowStyle == "border" or glowStyle == "both" then
+		if self.db.profile.dispelOverlay.colorByType then
+			SetBorderColor(overlay, color.r, color.g, color.b, alpha)
+		else
+			SetBorderColor(overlay, 1, 1, 1, alpha)
+		end
+		for _, edge in ipairs(overlay.edges) do
+			edge:Show()
+		end
 	else
-		SetBorderColor(overlay, 1, 1, 1, alpha)
+		-- Pulse only — hide edges
+		for _, edge in ipairs(overlay.edges) do
+			edge:Hide()
+		end
 	end
 
 	overlay:Show()
@@ -150,8 +151,7 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 	local previousType = overlay.currentDispelType
 	overlay.currentDispelType = dispelType
 
-	-- Glow effect
-	local glowStyle = self.db.profile.dispelOverlay.glowStyle
+	-- Glow: show for "pulse" and "both", hide for "border" only
 	if glowStyle == "pulse" or glowStyle == "both" then
 		-- Only trigger glow on new dispel appearance, not every update
 		if not previousType then
@@ -161,7 +161,7 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 				ActionButton_ShowOverlayGlow(overlay)
 			end
 		end
-	elseif glowStyle == "border" then
+	else
 		-- Border only — ensure glow is off
 		if ActionButtonSpellAlertManager and ActionButtonSpellAlertManager.HideAlert then
 			ActionButtonSpellAlertManager:HideAlert(overlay)

@@ -156,16 +156,17 @@ function EnhancedRaidFrames:OnEnable()
 		if frame.ERF_targetMarkerFrame then
 			self:UpdateTargetMarker(frame)
 		end
-		-- Clear dispel overlay on unit reassignment
-		if frame.ERF_dispelOverlay then
-			self:HideDispelOverlay(frame)
-		end
 	end)
 
 	-- Hook aura updates to refresh dispel overlay (Retail only — frame.dispels doesn't exist on Classic)
+	-- No explicit hide on SetUnit — the aura hook handles it. Blizzard's SetUnit calls UpdateAll
+	-- which calls UpdateAuras before our SetUnit hook runs, so hiding here would blank valid overlays.
 	if not self.isWoWClassicEra and not self.isWoWClassic then
 		if CompactUnitFrame_UpdateAuras then
 			self:SecureHook("CompactUnitFrame_UpdateAuras", function(frame)
+				if not self.ShouldContinue(frame, true) then
+					return
+				end
 				self:UpdateDispelOverlay(frame)
 			end)
 		end

@@ -229,13 +229,13 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 	if not self.isWoWClassicEra and not self.isWoWClassic then
 		generalOptions.args.dispelOverlayHeader = {
 			type = "header",
-			name = "Dispel Overlay",
+			name = L["Dispel Overlay"],
 			order = 50,
 		}
 		generalOptions.args.dispelOverlayEnabled = {
 			type = "toggle",
-			name = "Enable Dispel Overlay",
-			desc = "Show a colored border and glow around raid frames when you can dispel a debuff on that unit.",
+			name = L["Enable Dispel Overlay"],
+			desc = L["dispelOverlayEnabled_desc"],
 			get = function()
 				return self.db.profile.dispelOverlay.enabled
 			end,
@@ -246,28 +246,10 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 			width = THIRD_WIDTH,
 			order = 51,
 		}
-		generalOptions.args.dispelOverlayPriority = {
-			type = "select",
-			name = "Display Mode",
-			desc = "Any Dispellable: highlight whenever you can dispel any debuff type.\nPriority Only: highlight only the highest-priority dispel type (Magic > Curse > Disease > Poison > Bleed).",
-			values = { [false] = "Any Dispellable", [true] = "Priority Only" },
-			get = function()
-				return self.db.profile.dispelOverlay.priorityOnly
-			end,
-			set = function(_, value)
-				self.db.profile.dispelOverlay.priorityOnly = value
-				self:RefreshConfig()
-			end,
-			disabled = function()
-				return not self.db.profile.dispelOverlay.enabled
-			end,
-			width = THIRD_WIDTH,
-			order = 52,
-		}
 		generalOptions.args.dispelOverlayColorByType = {
 			type = "toggle",
-			name = "Color by Debuff Type",
-			desc = "When enabled, the border color matches the debuff type (blue for Magic, purple for Curse, etc). When disabled, the border is white.",
+			name = L["Color by Debuff Type"],
+			desc = L["dispelOverlayColorByType_desc"],
 			get = function()
 				return self.db.profile.dispelOverlay.colorByType
 			end,
@@ -283,9 +265,9 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 		generalOptions.args.dispelOverlayGlowStyle = {
 			type = "select",
-			name = "Glow Style",
-			desc = "Border Only: colored edge border.\nPulse Only: pulsing glow animation.\nBoth: colored border with pulsing glow on first appearance.",
-			values = { ["border"] = "Border Only", ["pulse"] = "Pulse Only", ["both"] = "Both" },
+			name = L["Glow Style"],
+			desc = L["dispelOverlayGlowStyle_desc"],
+			values = { ["border"] = L["Border Only"], ["pulse"] = L["Pulse Only"], ["both"] = L["Both"] },
 			get = function()
 				return self.db.profile.dispelOverlay.glowStyle
 			end,
@@ -301,8 +283,8 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 		generalOptions.args.dispelOverlayAlpha = {
 			type = "range",
-			name = "Border Opacity",
-			desc = "How visible the dispel border is.",
+			name = L["Border Opacity"],
+			desc = L["dispelOverlayBorderAlpha_desc"],
 			isPercent = true,
 			min = 0.1,
 			max = 1,
@@ -322,8 +304,8 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 		generalOptions.args.dispelOverlayShowInParty = {
 			type = "toggle",
-			name = "Show in Party",
-			desc = "Show dispel overlay in party groups.",
+			name = L["Show in Party"],
+			desc = L["dispelOverlayShowInParty_desc"],
 			get = function()
 				return self.db.profile.dispelOverlay.showInParty
 			end,
@@ -339,8 +321,8 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 		generalOptions.args.dispelOverlayShowInRaid = {
 			type = "toggle",
-			name = "Show in Raid",
-			desc = "Show dispel overlay in raid groups.",
+			name = L["Show in Raid"],
+			desc = L["dispelOverlayShowInRaid_desc"],
 			get = function()
 				return self.db.profile.dispelOverlay.showInRaid
 			end,

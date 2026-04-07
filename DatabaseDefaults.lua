@@ -46,7 +46,6 @@ function EnhancedRaidFrames:CreateDefaults()
 		-------------------------------
 		dispelOverlay = {
 			enabled = true,
-			priorityOnly = false,
 			colorByType = true,
 			glowStyle = "both",     -- "border", "pulse", "both"
 			borderAlpha = 0.8,
