@@ -156,7 +156,20 @@ function EnhancedRaidFrames:OnEnable()
 		if frame.ERF_targetMarkerFrame then
 			self:UpdateTargetMarker(frame)
 		end
+		-- Clear dispel overlay on unit reassignment
+		if frame.ERF_dispelOverlay then
+			self:HideDispelOverlay(frame)
+		end
 	end)
+
+	-- Hook aura updates to refresh dispel overlay (Retail only — frame.dispels doesn't exist on Classic)
+	if not self.isWoWClassicEra and not self.isWoWClassic then
+		if CompactUnitFrame_UpdateAuras then
+			self:SecureHook("CompactUnitFrame_UpdateAuras", function(frame)
+				self:UpdateDispelOverlay(frame)
+			end)
+		end
+	end
 
 end
 
@@ -235,5 +248,6 @@ function EnhancedRaidFrames:RefreshConfig()
 		self:UpdateInRange(frame)
 		self:UpdateTargetMarker(frame, true)
 		self:UpdateStockAuraVisibility(frame)
+		self:UpdateDispelOverlay(frame)
 	end)
 end

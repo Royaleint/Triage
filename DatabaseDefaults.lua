@@ -41,6 +41,19 @@ function EnhancedRaidFrames:CreateDefaults()
 		customRange = 30,
 		rangeAlpha = 0.55,
 
+		-------------------------------
+		---- Dispel Overlay (Retail) ---
+		-------------------------------
+		dispelOverlay = {
+			enabled = true,
+			priorityOnly = false,
+			colorByType = true,
+			glowStyle = "both",     -- "border", "pulse", "both"
+			borderAlpha = 0.8,
+			showInParty = true,
+			showInRaid = true,
+		},
+
 		--------------------------------
 		---- Target Marker Settings ----
 		--------------------------------

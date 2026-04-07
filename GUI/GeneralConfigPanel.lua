@@ -225,5 +225,136 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 	}
 
+	-- Dispel Overlay settings (Retail only)
+	if not self.isWoWClassicEra and not self.isWoWClassic then
+		generalOptions.args.dispelOverlayHeader = {
+			type = "header",
+			name = "Dispel Overlay",
+			order = 50,
+		}
+		generalOptions.args.dispelOverlayEnabled = {
+			type = "toggle",
+			name = "Enable Dispel Overlay",
+			desc = "Show a colored border and glow around raid frames when you can dispel a debuff on that unit.",
+			get = function()
+				return self.db.profile.dispelOverlay.enabled
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.enabled = value
+				self:RefreshConfig()
+			end,
+			width = THIRD_WIDTH,
+			order = 51,
+		}
+		generalOptions.args.dispelOverlayPriority = {
+			type = "select",
+			name = "Display Mode",
+			desc = "Any Dispellable: highlight whenever you can dispel any debuff type.\nPriority Only: highlight only the highest-priority dispel type (Magic > Curse > Disease > Poison > Bleed).",
+			values = { [false] = "Any Dispellable", [true] = "Priority Only" },
+			get = function()
+				return self.db.profile.dispelOverlay.priorityOnly
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.priorityOnly = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 52,
+		}
+		generalOptions.args.dispelOverlayColorByType = {
+			type = "toggle",
+			name = "Color by Debuff Type",
+			desc = "When enabled, the border color matches the debuff type (blue for Magic, purple for Curse, etc). When disabled, the border is white.",
+			get = function()
+				return self.db.profile.dispelOverlay.colorByType
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.colorByType = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 53,
+		}
+		generalOptions.args.dispelOverlayGlowStyle = {
+			type = "select",
+			name = "Glow Style",
+			desc = "Border Only: colored edge border.\nPulse Only: pulsing glow animation.\nBoth: colored border with pulsing glow on first appearance.",
+			values = { ["border"] = "Border Only", ["pulse"] = "Pulse Only", ["both"] = "Both" },
+			get = function()
+				return self.db.profile.dispelOverlay.glowStyle
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.glowStyle = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 54,
+		}
+		generalOptions.args.dispelOverlayAlpha = {
+			type = "range",
+			name = "Border Opacity",
+			desc = "How visible the dispel border is.",
+			isPercent = true,
+			min = 0.1,
+			max = 1,
+			step = 0.05,
+			get = function()
+				return self.db.profile.dispelOverlay.borderAlpha
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.borderAlpha = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 55,
+		}
+		generalOptions.args.dispelOverlayShowInParty = {
+			type = "toggle",
+			name = "Show in Party",
+			desc = "Show dispel overlay in party groups.",
+			get = function()
+				return self.db.profile.dispelOverlay.showInParty
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.showInParty = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 56,
+		}
+		generalOptions.args.dispelOverlayShowInRaid = {
+			type = "toggle",
+			name = "Show in Raid",
+			desc = "Show dispel overlay in raid groups.",
+			get = function()
+				return self.db.profile.dispelOverlay.showInRaid
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.showInRaid = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 57,
+		}
+	end
+
 	return generalOptions
 end
