@@ -225,5 +225,118 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 	}
 
+	-- Dispel Overlay settings (Retail only)
+	if not self.isWoWClassicEra and not self.isWoWClassic then
+		generalOptions.args.dispelOverlayHeader = {
+			type = "header",
+			name = L["Dispel Overlay"],
+			order = 50,
+		}
+		generalOptions.args.dispelOverlayEnabled = {
+			type = "toggle",
+			name = L["Enable Dispel Overlay"],
+			desc = L["dispelOverlayEnabled_desc"],
+			get = function()
+				return self.db.profile.dispelOverlay.enabled
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.enabled = value
+				self:RefreshConfig()
+			end,
+			width = THIRD_WIDTH,
+			order = 51,
+		}
+		generalOptions.args.dispelOverlayColorByType = {
+			type = "toggle",
+			name = L["Color by Debuff Type"],
+			desc = L["dispelOverlayColorByType_desc"],
+			get = function()
+				return self.db.profile.dispelOverlay.colorByType
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.colorByType = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 53,
+		}
+		generalOptions.args.dispelOverlayGlowStyle = {
+			type = "select",
+			name = L["Glow Style"],
+			desc = L["dispelOverlayGlowStyle_desc"],
+			values = { ["border"] = L["Border Only"], ["pulse"] = L["Pulse Only"], ["both"] = L["Both"] },
+			get = function()
+				return self.db.profile.dispelOverlay.glowStyle
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.glowStyle = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 54,
+		}
+		generalOptions.args.dispelOverlayAlpha = {
+			type = "range",
+			name = L["Border Opacity"],
+			desc = L["dispelOverlayBorderAlpha_desc"],
+			isPercent = true,
+			min = 0.1,
+			max = 1,
+			step = 0.05,
+			get = function()
+				return self.db.profile.dispelOverlay.borderAlpha
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.borderAlpha = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 55,
+		}
+		generalOptions.args.dispelOverlayShowInParty = {
+			type = "toggle",
+			name = L["Show in Party"],
+			desc = L["dispelOverlayShowInParty_desc"],
+			get = function()
+				return self.db.profile.dispelOverlay.showInParty
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.showInParty = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 56,
+		}
+		generalOptions.args.dispelOverlayShowInRaid = {
+			type = "toggle",
+			name = L["Show in Raid"],
+			desc = L["dispelOverlayShowInRaid_desc"],
+			get = function()
+				return self.db.profile.dispelOverlay.showInRaid
+			end,
+			set = function(_, value)
+				self.db.profile.dispelOverlay.showInRaid = value
+				self:RefreshConfig()
+			end,
+			disabled = function()
+				return not self.db.profile.dispelOverlay.enabled
+			end,
+			width = THIRD_WIDTH,
+			order = 57,
+		}
+	end
+
 	return generalOptions
 end

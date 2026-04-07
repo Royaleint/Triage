@@ -224,6 +224,27 @@ L["glowRemainingSecs_desc1"] = "The amount of time (in seconds) remaining on the
 L["glowRemainingSecs_desc2"] = "A value of '0' means it will always glow"
 
 ----------------------------------------------------
+--------------- Dispel Overlay ---------------------
+----------------------------------------------------
+
+L["Dispel Overlay"] = true
+L["Enable Dispel Overlay"] = true
+L["dispelOverlayEnabled_desc"] = "Show a colored border and glow around raid frames when you can dispel a debuff on that unit."
+L["Color by Debuff Type"] = true
+L["dispelOverlayColorByType_desc"] = "When enabled, the border color matches the debuff type (blue for Magic, purple for Curse, etc). When disabled, the border is white."
+L["Glow Style"] = true
+L["dispelOverlayGlowStyle_desc"] = "Border Only: colored edge border. Pulse Only: pulsing glow animation. Both: colored border with pulsing glow on first appearance."
+L["Border Only"] = true
+L["Pulse Only"] = true
+L["Both"] = true
+L["Border Opacity"] = true
+L["dispelOverlayBorderAlpha_desc"] = "How visible the dispel border is."
+L["Show in Party"] = true
+L["dispelOverlayShowInParty_desc"] = "Show dispel overlay in party groups."
+L["Show in Raid"] = true
+L["dispelOverlayShowInRaid_desc"] = "Show dispel overlay in raid groups."
+
+----------------------------------------------------
 -------------------- Utilities ---------------------
 ----------------------------------------------------
 
