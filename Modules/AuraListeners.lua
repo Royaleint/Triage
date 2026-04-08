@@ -33,13 +33,17 @@ function EnhancedRaidFrames:CreateAuraListener(frame)
 		return
 	end
 
+	local listenerName = self:GetManagedChildFrameName(frame, "-ERF_auraListenerFrame")
+
 	-- To stop us from creating redundant frames we should try to re-capture them when possible.
-	if not _G[frame:GetName() .. "-ERF_auraListenerFrame"] then
-		frame.ERF_auraListenerFrame = CreateFrame("Frame", frame:GetName() .. "-ERF_auraListenerFrame", frame)
-	else
-		frame.ERF_auraListenerFrame = _G[frame:GetName() .. "-ERF_auraListenerFrame"]
+	if listenerName and _G[listenerName] then
+		frame.ERF_auraListenerFrame = _G[listenerName]
 		-- If we capture an old indicator frame, we should reattach it to the current unit frame.
 		frame.ERF_auraListenerFrame:SetParent(frame)
+	elseif frame.ERF_auraListenerFrame then
+		frame.ERF_auraListenerFrame:SetParent(frame)
+	else
+		frame.ERF_auraListenerFrame = CreateFrame("Frame", listenerName, frame)
 	end
 
 	-- Register the unit event

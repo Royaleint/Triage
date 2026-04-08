@@ -55,6 +55,23 @@ function EnhancedRaidFrames:GetManagedFrameEntry(frame)
 	return self.frameRegistry.entriesByFrame[frame]
 end
 
+--- Build a stable child-frame name when the parent frame is named.
+---@param frame table
+---@param suffix string
+---@return string|nil
+function EnhancedRaidFrames:GetManagedChildFrameName(frame, suffix)
+	if not frame or not suffix then
+		return nil
+	end
+
+	local frameName = frame:GetName()
+	if not frameName then
+		return nil
+	end
+
+	return frameName .. suffix
+end
+
 --- Return the current unit token for a managed frame.
 ---@param frame table
 ---@return string|nil
@@ -88,7 +105,7 @@ function EnhancedRaidFrames:IsSupportedUnitToken(unit, allowedUnitPrefixes)
 		return false
 	end
 
-	allowedUnitPrefixes = allowedUnitPrefixes or GROUP_UNIT_PREFIXES
+	allowedUnitPrefixes = allowedUnitPrefixes or REGISTRY_UNIT_PREFIXES
 
 	if unit == "player" then
 		return allowedUnitPrefixes.player == true

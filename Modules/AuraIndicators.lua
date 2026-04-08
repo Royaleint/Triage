@@ -18,18 +18,21 @@ local floor = math.floor
 --- Creates all of our indicator frames on their respective raid frames
 --- @param frame table @The raid frame to create indicators on
 function EnhancedRaidFrames:CreateIndicators(frame)
-	frame.ERF_indicatorFrames = {}
+	frame.ERF_indicatorFrames = frame.ERF_indicatorFrames or {}
 
 	-- Create indicators
 	for i = 1, 9 do
+		local indicatorName = self:GetManagedChildFrameName(frame, "-ERF_indicator-" .. i)
+
 		-- To stop us from creating redundant frames we should try to re-capture them when possible.
-		if not _G[frame:GetName() .. "-ERF_indicator-" .. i] then
-			frame.ERF_indicatorFrames[i] = CreateFrame("Button", frame:GetName() .. "-ERF_indicator-" .. i,
-					frame, "ERF_indicatorTemplate")
-		else
-			frame.ERF_indicatorFrames[i] = _G[frame:GetName() .. "-ERF_indicator-" .. i]
+		if indicatorName and _G[indicatorName] then
+			frame.ERF_indicatorFrames[i] = _G[indicatorName]
 			-- If we capture an old indicator frame, we should reattach it to the current unit frame.
 			frame.ERF_indicatorFrames[i]:SetParent(frame)
+		elseif frame.ERF_indicatorFrames[i] then
+			frame.ERF_indicatorFrames[i]:SetParent(frame)
+		else
+			frame.ERF_indicatorFrames[i] = CreateFrame("Button", indicatorName, frame, "ERF_indicatorTemplate")
 		end
 
 		-- Create local pointer for readability
