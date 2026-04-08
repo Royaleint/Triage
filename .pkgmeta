@@ -44,5 +44,6 @@ embedded-libraries:
   - LibRangeCheck-3.0
   - LibClassicDurations
   - LibDispel
+  - LibCustomGlow
   - LibDataBroker-1.1
   - LibDBIcon-1.0
