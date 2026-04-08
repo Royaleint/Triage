@@ -26,6 +26,7 @@ DatabaseDefaults.lua
 Overrides.lua
 
 # Utils
+Utils/FrameRegistry.lua
 Utils/Utilities.lua
 Utils/DatabaseMigration.lua
 

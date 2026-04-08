@@ -87,6 +87,11 @@ function EnhancedRaidFrames:UpdateTargetMarker(frame, setAppearance)
 		return
 	end
 
+	local unit = self:GetManagedFrameUnit(frame)
+	if not unit then
+		return
+	end
+
 	-- If our target marker doesn't exist, create it
 	if not frame.ERF_targetMarkerFrame then
 		self:CreateTargetMarker(frame)
@@ -103,7 +108,7 @@ function EnhancedRaidFrames:UpdateTargetMarker(frame, setAppearance)
 	end
 
 	-- Get target marker on unit
-	local index = GetRaidTargetIndex(frame.unit)
+	local index = GetRaidTargetIndex(unit)
 
 	-- GetRaidTargetIndex can return a secret number in Midnight — skip if tainted
 	if issecretvalue and index and issecretvalue(index) then
@@ -151,7 +156,7 @@ end
 
 --- Update the appearance of our target markers for all frames
 function EnhancedRaidFrames:UpdateAllTargetMarkers()
-	self.ApplyToAllFrames(function(frame)
+	self:ForEachManagedFrame(function(frame)
 		self:UpdateTargetMarker(frame)
 	end)
 end

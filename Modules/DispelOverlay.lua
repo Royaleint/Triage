@@ -168,6 +168,13 @@ end
 --- Check frame.dispels and update the overlay
 ---@param frame table @The compact unit frame
 function EnhancedRaidFrames:UpdateDispelOverlay(frame)
+	if not self.ShouldContinue(frame, true) then
+		if frame.ERF_dispelOverlay then
+			self:HideDispelOverlay(frame)
+		end
+		return
+	end
+
 	if not self.db.profile.dispelOverlay.enabled then
 		if frame.ERF_dispelOverlay then
 			self:HideDispelOverlay(frame)
@@ -278,7 +285,7 @@ end
 
 --- Update all dispel overlays on all frames
 function EnhancedRaidFrames:UpdateAllDispelOverlays()
-	self.ApplyToAllFrames(function(frame)
+	self:ForEachManagedFrame(function(frame)
 		self:UpdateDispelOverlay(frame)
 	end)
 end

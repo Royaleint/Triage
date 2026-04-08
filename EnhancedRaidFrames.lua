@@ -91,6 +91,9 @@ function EnhancedRaidFrames:OnEnable()
 	self:RegisterChatCommand("triage", "ChatCommand")
 	self:RegisterChatCommand("tri", "ChatCommand")
 
+	-- Sync the managed frame registry before the first config refresh/update pass.
+	self:RefreshManagedFrameRegistry()
+
 	-- Populate our starting config values
 	self:RefreshConfig()
 
@@ -99,11 +102,13 @@ function EnhancedRaidFrames:OnEnable()
 
 	-- (THROTTLED) Force a full update of all group member's auras when the group roster changes
 	self:RegisterBucketEvent("GROUP_ROSTER_UPDATE", 1, function() -- 1 second throttle to avoid lagging the game
+		self:RefreshManagedFrameRegistry()
 		self:UpdateAllAuras()
 	end)
 
 	-- Force a full update of all stock aura visibilities, target markers, and ranges when the group roster changes
 	self:RegisterEvent("GROUP_ROSTER_UPDATE", function()
+		self:RefreshManagedFrameRegistry()
 		self:UpdateAllStockAuraVisibility()
 		self:UpdateAllTargetMarkers()
 	end)
@@ -135,6 +140,7 @@ function EnhancedRaidFrames:OnEnable()
 	-- Without this, indicators and aura listeners become stale until the next GROUP_ROSTER_UPDATE
 	-- throttle interval (1 second) when frames are reassigned.
 	self:SecureHook("CompactUnitFrame_SetUnit", function(frame, unit)
+		self:UpdateManagedFrameUnit(frame, unit, "blizzard")
 		if not self.ShouldContinue(frame, true) then
 			return
 		end
@@ -243,7 +249,7 @@ function EnhancedRaidFrames:RefreshConfig()
 	self:UpdateAllAuras() -- Update all auras to reflect new settings
 	self:RefreshRangeTicker()
 	self:UpdateScale()
-	self.ApplyToAllFrames(function(frame)
+	self:ForEachManagedFrame(function(frame)
 		self:UpdateIndicators(frame, true)
 		self:UpdateBackgroundAlpha(frame)
 		self:UpdateInRange(frame)

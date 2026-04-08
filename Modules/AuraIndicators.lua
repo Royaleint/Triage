@@ -183,7 +183,7 @@ end
 --- Update all mouse behavior for all indicators
 --- This is used to update all indicators when the user changes the mouseoverCastCompat option
 function EnhancedRaidFrames:SetAllMouseBehavior()
-	self.ApplyToAllFrames(function(frame)
+	self:ForEachManagedFrame(function(frame)
 		self:SetMouseBehavior(frame)
 	end)
 end
@@ -197,6 +197,11 @@ end
 --- @param setAppearance boolean @Indicates if we should trigger reapply appearance settings to the indicators
 function EnhancedRaidFrames:UpdateIndicators(frame, setAppearance)
 	if not self.ShouldContinue(frame) then
+		return
+	end
+
+	local unit = self:GetManagedFrameUnit(frame)
+	if not unit then
 		return
 	end
 
@@ -215,7 +220,7 @@ function EnhancedRaidFrames:UpdateIndicators(frame, setAppearance)
 		if self.auraStrings[i][1] then
 			-- Check if we have at least 1 auraString for this location
 			-- This is the meat of our processing loop
-			self:ProcessIndicator(indicator, frame.unit)
+			self:ProcessIndicator(indicator, unit)
 		else
 			-- Clear the indicator frame
 			self:ClearIndicator(indicator)
@@ -639,21 +644,25 @@ function EnhancedRaidFrames:Tooltip_OnEnter(indicatorFrame, parentFrame)
 
 	-- Set the tooltip
 	if indicatorFrame.Icon:GetTexture() then
+		local unit = self:GetManagedFrameUnit(parentFrame)
+		if not unit then
+			return
+		end
 		-- Set the buff/debuff as tooltip and anchor to the cursor
 		GameTooltip:SetOwner(UIParent, self.db.profile["indicator-" .. i].tooltipLocation)
 		if thisAura.isHelpful then
 			if thisAura.auraInstanceID then
-				GameTooltip:SetUnitBuffByAuraInstanceID(parentFrame.unit, thisAura.auraInstanceID)
+				GameTooltip:SetUnitBuffByAuraInstanceID(unit, thisAura.auraInstanceID)
 			elseif thisAura.auraIndex then
 				-- The legacy way to set the tooltip for an aura
-				GameTooltip:SetUnitAura(parentFrame.unit, thisAura.auraIndex, "HELPFUL")
+				GameTooltip:SetUnitAura(unit, thisAura.auraIndex, "HELPFUL")
 			end
 		elseif thisAura.isHarmful then
 			if thisAura.auraInstanceID then
-				GameTooltip:SetUnitDebuffByAuraInstanceID(parentFrame.unit, thisAura.auraInstanceID)
+				GameTooltip:SetUnitDebuffByAuraInstanceID(unit, thisAura.auraInstanceID)
 			elseif thisAura.auraIndex then
 				-- The legacy way to set the tooltip for an aura
-				GameTooltip:SetUnitAura(parentFrame.unit, thisAura.auraIndex, "HARMFUL")
+				GameTooltip:SetUnitAura(unit, thisAura.auraIndex, "HARMFUL")
 
 			end
 		end

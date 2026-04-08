@@ -28,6 +28,11 @@ function EnhancedRaidFrames:CreateAuraListener(frame)
 		return
 	end
 
+	local unit = self:GetManagedFrameUnit(frame)
+	if not unit then
+		return
+	end
+
 	-- To stop us from creating redundant frames we should try to re-capture them when possible.
 	if not _G[frame:GetName() .. "-ERF_auraListenerFrame"] then
 		frame.ERF_auraListenerFrame = CreateFrame("Frame", frame:GetName() .. "-ERF_auraListenerFrame", frame)
@@ -39,7 +44,7 @@ function EnhancedRaidFrames:CreateAuraListener(frame)
 
 	-- Register the unit event
 	frame.ERF_auraListenerFrame:UnregisterAllEvents() -- Clear any existing events
-	frame.ERF_auraListenerFrame:RegisterUnitEvent("UNIT_AURA", frame.unit)
+	frame.ERF_auraListenerFrame:RegisterUnitEvent("UNIT_AURA", unit)
 
 	-- Assign the OnEvent callback for the listener frame
 	if not self.isWoWClassicEra and not self.isWoWClassic then
@@ -60,7 +65,7 @@ end
 function EnhancedRaidFrames:UpdateAllAuras()
 	-- Iterate over all raid frame units, forcing a full refresh and re-creating the listener frame
 	-- It is important that we re-create the listener frame for each unit to ensure that the listener is attached to the correct unit
-	self.ApplyToAllFrames(function(frame)
+	self:ForEachManagedFrame(function(frame)
 		if self.isWoWClassicEra or self.isWoWClassic then
 			self:UpdateUnitAuras_Classic(frame, true)
 		else
@@ -77,6 +82,10 @@ end
 ---@param forceRefresh boolean @Whether or not to force a full refresh
 function EnhancedRaidFrames:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	if not self.ShouldContinue(parentFrame) then
+		return
+	end
+	local unit = self:GetManagedFrameUnit(parentFrame)
+	if not unit then
 		return
 	end
 	-- Create a listener frame for the unit if we don't happen to have one yet, or we're forcing a re-creation
@@ -99,7 +108,7 @@ function EnhancedRaidFrames:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		parentFrame.ERF_unitAuras = {}
 		-- Iterate through all buffs and debuffs on the unit
 		for _, filter in pairs({ "HELPFUL", "HARMFUL" }) do
-			AuraUtil.ForEachAura(parentFrame.unit, filter, nil, function(auraData)
+			AuraUtil.ForEachAura(unit, filter, nil, function(auraData)
 				-- Add our auraData to the ERF_unitAuras table
 				local updateFlag = self:addToAuraTable(parentFrame, auraData)
 				if updateFlag then
@@ -123,7 +132,7 @@ function EnhancedRaidFrames:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	-- If one or more auras were updated, query their updated information and add it to the table
 	if payload.updatedAuraInstanceIDs then
 		for _, auraInstanceID in pairs(payload.updatedAuraInstanceIDs) do
-			local auraData = C_UnitAuras.GetAuraDataByAuraInstanceID(parentFrame.unit, auraInstanceID)
+			local auraData = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
 			-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
 			if auraData then
 				-- Add our auraData to the ERF_unitAuras table
@@ -214,7 +223,10 @@ function EnhancedRaidFrames:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 		return
 	end
 
-	local unit = parentFrame.unit
+	local unit = self:GetManagedFrameUnit(parentFrame)
+	if not unit then
+		return
+	end
 
 	-- Create a listener frame for the unit if we don't happen to have one yet, or we're forcing a re-creation
 	if not parentFrame.ERF_auraListenerFrame or forceRefresh then

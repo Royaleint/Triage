@@ -12,7 +12,7 @@ local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 
 --- Set the visibility on the stock buff/debuff frames
 function EnhancedRaidFrames:UpdateAllStockAuraVisibility()
-	self.ApplyToAllFrames(function(frame)
+	self:ForEachManagedFrame(function(frame)
 		self:UpdateStockAuraVisibility(frame)
 	end)
 
@@ -112,7 +112,7 @@ function EnhancedRaidFrames:UpdateInRange(frame, rangeChecker)
 	-- Custom range: use LibRangeCheck since Blizzard only checks the default 40yd boundary.
 	-- CompactUnitFrame_UpdateInRange only flips when Blizzard's UnitInRange state changes,
 	-- so crossing a custom threshold inside 40yd needs our own polling pass.
-	local effectiveUnit = frame.displayedUnit or frame.unit
+	local effectiveUnit = self:GetManagedFrameUnit(frame)
 	rangeChecker = rangeChecker or LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange)
 
 	if rangeChecker then
@@ -134,7 +134,7 @@ function EnhancedRaidFrames:UpdateAllRanges()
 		rangeChecker = LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange)
 	end
 
-	self.ApplyToAllFrames(function(frame)
+	self:ForEachManagedFrame(function(frame)
 		self:UpdateInRange(frame, rangeChecker)
 	end)
 end
