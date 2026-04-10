@@ -25,6 +25,8 @@ local NEXT_HEALTH_STATE = {
 	critical = "critical",
 }
 
+-- Spell IDs are identical across clients currently.
+-- Branch structure is intentional scaffolding for future per-client divergence.
 local PROJECT_PREVIEW_SPELLS
 if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 	PROJECT_PREVIEW_SPELLS = {

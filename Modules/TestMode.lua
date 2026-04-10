@@ -133,6 +133,8 @@ function EnhancedRaidFrames:HandleTestModeChatCommand(input)
 	local size = ParseSizeToken(token)
 	if size then
 		self:StartTestMode(size)
+	else
+		self:Print(("Invalid test size '%s'. Valid sizes: 5, 10, 25, 40."):format(token))
 	end
 
 	return true

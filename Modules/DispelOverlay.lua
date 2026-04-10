@@ -223,7 +223,7 @@ function EnhancedRaidFrames:UpdateDispelOverlay(frame)
 	end
 
 	-- Respect party/raid toggle
-	local inRaid = frame.ERF_isTestFrame and self.testModeState and self.testModeState.size > 5 or IsInRaid()
+	local inRaid = (frame.ERF_isTestFrame and self.testModeState and self.testModeState.size > 5) or IsInRaid()
 	if inRaid and not self.db.profile.dispelOverlay.showInRaid then
 		self:HideDispelOverlay(frame)
 		return
