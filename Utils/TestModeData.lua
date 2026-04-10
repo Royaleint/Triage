@@ -25,6 +25,39 @@ local NEXT_HEALTH_STATE = {
 	critical = "critical",
 }
 
+local PROJECT_PREVIEW_SPELLS
+if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+	PROJECT_PREVIEW_SPELLS = {
+		helpful = 17,
+		harmful = {
+			Magic = 118,
+			Curse = 1714,
+			Poison = 2818,
+			Disease = 15007,
+		},
+	}
+elseif WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC then
+	PROJECT_PREVIEW_SPELLS = {
+		helpful = 17,
+		harmful = {
+			Magic = 118,
+			Curse = 1714,
+			Poison = 2818,
+			Disease = 15007,
+		},
+	}
+else
+	PROJECT_PREVIEW_SPELLS = {
+		helpful = 17,
+		harmful = {
+			Magic = 118,
+			Curse = 1714,
+			Poison = 2818,
+			Disease = 15007,
+		},
+	}
+end
+
 local MASTER_MEMBER_SEEDS = {
 	{name = "Aelwyn", classFile = "WARRIOR", specID = 73, role = "TANK", dispelType = nil, healthState = "full"},
 	{name = "Brenna", classFile = "PRIEST", specID = 257, role = "HEALER", dispelType = "Magic", healthState = "injured"},
@@ -77,28 +110,48 @@ local function CopyAuraTemplate(auraTemplate, expirationTime)
 	return aura
 end
 
+local function GetSpellNameAndIcon(spellId, fallbackIcon)
+	if C_Spell and C_Spell.GetSpellName then
+		local spellName = C_Spell.GetSpellName(spellId)
+		local spellIcon = C_Spell.GetSpellTexture and C_Spell.GetSpellTexture(spellId)
+		if spellName then
+			return spellName:lower(), spellIcon or fallbackIcon
+		end
+	end
+
+	local spellName, _, spellIcon = GetSpellInfo(spellId)
+	if spellName then
+		return spellName:lower(), spellIcon or fallbackIcon
+	end
+
+	return tostring(spellId), fallbackIcon
+end
+
 local function GetAuraTemplatesForSeed(seed)
+	local helpfulName, helpfulIcon = GetSpellNameAndIcon(PROJECT_PREVIEW_SPELLS.helpful, 136090)
 	local helpfulAura = {
-		name = "test inspiration",
-		icon = 136090,
+		name = helpfulName,
+		icon = helpfulIcon,
 		applications = 0,
 		duration = 18,
 		sourceUnit = "player",
-		spellId = 17,
+		spellId = PROJECT_PREVIEW_SPELLS.helpful,
 		timeMod = 1,
 		isHelpful = true,
 	}
 
 	local templates = {helpfulAura}
 	if seed.dispelType then
+		local harmfulSpellId = PROJECT_PREVIEW_SPELLS.harmful[seed.dispelType]
+		local harmfulName, harmfulIcon = GetSpellNameAndIcon(harmfulSpellId, 136182)
 		templates[#templates + 1] = {
-			name = "test " .. seed.dispelType:lower(),
-			icon = 136182,
+			name = harmfulName,
+			icon = harmfulIcon,
 			applications = 1,
 			dispelName = seed.dispelType,
 			duration = 22,
 			sourceUnit = "boss1",
-			spellId = 100000 + #templates,
+			spellId = harmfulSpellId,
 			timeMod = 1,
 			isHarmful = true,
 		}
