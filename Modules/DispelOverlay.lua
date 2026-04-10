@@ -1,15 +1,22 @@
 -- Triage - Enhanced Raid Frames Reforged
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
+-- luacheck: globals UnitIsConnected
 
 local EnhancedRaidFrames = _G.EnhancedRaidFrames
 local LibDispel = LibStub("LibDispel-1.0")
+local LibCustomGlow = LibStub("LibCustomGlow-1.0")
+local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 
 -- Dispel type priority order (highest to lowest)
 local PRIORITY_ORDER = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
 
 -- Border thickness in pixels
 local BORDER_THICKNESS = 2
+local GLOW_ALPHA = 0.85
+local GLOW_UPDATE_INTERVAL = 0.2
+
+local StopGlow, GetGlowColor, EnsureGlow
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
@@ -46,6 +53,53 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 	end
 
 	overlay:Hide()
+	overlay:SetScript("OnHide", function(hiddenOverlay)
+		StopGlow(hiddenOverlay)
+	end)
+	overlay:SetScript("OnUpdate", function(hiddenOverlay, elapsed)
+		hiddenOverlay.elapsedSinceStateCheck = (hiddenOverlay.elapsedSinceStateCheck or 0) + elapsed
+		if hiddenOverlay.elapsedSinceStateCheck < GLOW_UPDATE_INTERVAL then
+			return
+		end
+
+		hiddenOverlay.elapsedSinceStateCheck = 0
+		if not hiddenOverlay.currentDispelType then
+			return
+		end
+
+		if not EnhancedRaidFrames.ShouldContinue(frame, true) then
+			EnhancedRaidFrames:HideDispelOverlay(frame)
+			return
+		end
+
+		local glowStyle = EnhancedRaidFrames.db.profile.dispelOverlay.glowStyle
+		if glowStyle ~= "pulse" and glowStyle ~= "both" then
+			StopGlow(hiddenOverlay)
+			return
+		end
+
+		local unit = frame.displayedUnit or frame.unit
+		if not unit or not UnitExists(unit) or not UnitIsConnected(unit) or UnitIsDeadOrGhost(unit) then
+			StopGlow(hiddenOverlay)
+			return
+		end
+
+		local range = EnhancedRaidFrames.db.profile.customRangeCheck and EnhancedRaidFrames.db.profile.customRange or 40
+		local rangeChecker = LibRangeCheck:GetFriendMaxChecker(range, InCombatLockdown())
+			or LibRangeCheck:GetFriendMinChecker(range, InCombatLockdown())
+		if rangeChecker and not rangeChecker(unit) then
+			StopGlow(hiddenOverlay)
+			return
+		end
+
+		local debuffColors = LibDispel:GetDebuffTypeColor()
+		local color = debuffColors[hiddenOverlay.currentDispelType] or debuffColors["None"]
+		local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
+		local glowState = useTypeColor and hiddenOverlay.currentDispelType or "neutral"
+		local glowColor = GetGlowColor(useTypeColor, color)
+
+		EnsureGlow(frame, hiddenOverlay, hiddenOverlay.currentDispelType, glowColor, glowState)
+	end)
 	frame.ERF_dispelOverlay = overlay
 end
 
@@ -59,6 +113,56 @@ local function SetBorderColor(overlay, r, g, b, a)
 	for _, edge in ipairs(overlay.edges) do
 		edge:SetColorTexture(r, g, b, a)
 	end
+end
+
+--- Return the LibCustomGlow color for the current overlay settings
+---@param useTypeColor boolean @Whether to color by dispel type
+---@param color table @LibDispel color table
+---@return table
+GetGlowColor = function(useTypeColor, color)
+	if useTypeColor and color then
+		return {color.r, color.g, color.b, GLOW_ALPHA}
+	end
+
+	return {1, 1, 1, GLOW_ALPHA}
+end
+
+--- Stop and clear the current glow state on an overlay
+---@param overlay table @The overlay frame
+StopGlow = function(overlay)
+	LibCustomGlow.ButtonGlow_Stop(overlay)
+	overlay.glowVisible = nil
+	overlay.currentGlowState = nil
+	overlay.currentGlowWidth = nil
+	overlay.currentGlowHeight = nil
+end
+
+--- Ensure the overlay glow matches the current dispel type and frame size
+---@param frame table @The compact unit frame
+---@param overlay table @The overlay frame
+---@param dispelType string @The debuff type to display
+---@param glowColor table @RGBA color array for LibCustomGlow
+---@param glowState string @State key used to detect color changes
+EnsureGlow = function(frame, overlay, dispelType, glowColor, glowState)
+	local width, height = frame:GetSize()
+	local needsRefresh = not overlay.glowVisible
+		or overlay.currentGlowState ~= glowState
+		or overlay.currentDispelType ~= dispelType
+		or overlay.currentGlowWidth ~= width
+		or overlay.currentGlowHeight ~= height
+
+	if not needsRefresh then
+		return
+	end
+
+	-- ProcGlow uses Retail-only FlipBook animations and is intentionally unused here.
+	-- ButtonGlow is the compatible LibCustomGlow path across Retail, Classic Era, and Pandaria Classic.
+	LibCustomGlow.ButtonGlow_Stop(overlay)
+	LibCustomGlow.ButtonGlow_Start(overlay, glowColor)
+	overlay.glowVisible = true
+	overlay.currentGlowState = glowState
+	overlay.currentGlowWidth = width
+	overlay.currentGlowHeight = height
 end
 
 --- Check frame.dispels and update the overlay
@@ -125,12 +229,13 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 	local debuffColors = LibDispel:GetDebuffTypeColor()
 	local color = debuffColors[dispelType] or debuffColors["None"]
 	local alpha = self.db.profile.dispelOverlay.borderAlpha
+	local useTypeColor = self.db.profile.dispelOverlay.colorByType
 
 	local glowStyle = self.db.profile.dispelOverlay.glowStyle
 
 	-- Border: show edges for "border" and "both", hide for "pulse" only
 	if glowStyle == "border" or glowStyle == "both" then
-		if self.db.profile.dispelOverlay.colorByType then
+		if useTypeColor then
 			SetBorderColor(overlay, color.r, color.g, color.b, alpha)
 		else
 			SetBorderColor(overlay, 1, 1, 1, alpha)
@@ -147,28 +252,16 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 
 	overlay:Show()
 
-	-- Track current type for glow management
-	local previousType = overlay.currentDispelType
-	overlay.currentDispelType = dispelType
-
 	-- Glow: show for "pulse" and "both", hide for "border" only
 	if glowStyle == "pulse" or glowStyle == "both" then
-		-- Only trigger glow on new dispel appearance, not every update
-		if not previousType then
-			if ActionButtonSpellAlertManager and ActionButtonSpellAlertManager.ShowAlert then
-				ActionButtonSpellAlertManager:ShowAlert(overlay)
-			elseif ActionButton_ShowOverlayGlow then
-				ActionButton_ShowOverlayGlow(overlay)
-			end
-		end
+		local glowState = useTypeColor and dispelType or "neutral"
+		local glowColor = GetGlowColor(useTypeColor, color)
+		EnsureGlow(frame, overlay, dispelType, glowColor, glowState)
 	else
-		-- Border only — ensure glow is off
-		if ActionButtonSpellAlertManager and ActionButtonSpellAlertManager.HideAlert then
-			ActionButtonSpellAlertManager:HideAlert(overlay)
-		elseif ActionButton_HideOverlayGlow then
-			ActionButton_HideOverlayGlow(overlay)
-		end
+		StopGlow(overlay)
 	end
+
+	overlay.currentDispelType = dispelType
 end
 
 --- Hide the dispel overlay and remove glow
@@ -180,11 +273,7 @@ function EnhancedRaidFrames:HideDispelOverlay(frame)
 	overlay:Hide()
 	overlay.currentDispelType = nil
 
-	if ActionButtonSpellAlertManager and ActionButtonSpellAlertManager.HideAlert then
-		ActionButtonSpellAlertManager:HideAlert(overlay)
-	elseif ActionButton_HideOverlayGlow then
-		ActionButton_HideOverlayGlow(overlay)
-	end
+	StopGlow(overlay)
 end
 
 --- Update all dispel overlays on all frames
