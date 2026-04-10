@@ -2,6 +2,7 @@
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 -- luacheck: globals RAID_CLASS_COLORS DEAD PLAYER_OFFLINE
+-- luacheck: globals LOCALIZED_CLASS_NAMES_MALE LOCALIZED_CLASS_NAMES_FEMALE
 
 local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
@@ -10,6 +11,9 @@ local FRAME_HEIGHT = 42
 local POWER_BAR_HEIGHT = 5
 local COLUMN_SPACING = 10
 local ROW_SPACING = 6
+local FLOATING_TEXT_DURATION = 1.5
+local HEAL_ANIMATION_DURATION = 0.2
+local SIMULATED_HEAL_FRACTION = 0.15
 local HEALTH_STATE_COLORS = {
 	full = {0.18, 0.72, 0.33},
 	injured = {0.86, 0.72, 0.2},
@@ -17,6 +21,8 @@ local HEALTH_STATE_COLORS = {
 	dead = {0.38, 0.38, 0.38},
 	offline = {0.28, 0.28, 0.28},
 }
+
+local RefreshSingleTestModeFrame
 
 local function GetClassColor(classFile)
 	local classColors = RAID_CLASS_COLORS
@@ -31,6 +37,25 @@ local function GetGroupLayout(size)
 	local rows = math.min(size, 5)
 	local columns = math.ceil(size / 5)
 	return columns, rows
+end
+
+local function GetLocalizedClassName(classFile)
+	return (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[classFile])
+		or (LOCALIZED_CLASS_NAMES_FEMALE and LOCALIZED_CLASS_NAMES_FEMALE[classFile])
+		or classFile
+		or ""
+end
+
+local function UpdateMemberHealthState(member)
+	local percent = member.maxHealth > 0 and member.currentHealth / member.maxHealth or 0
+	member.status = "alive"
+	if percent >= 0.95 then
+		member.healthState = "full"
+	elseif percent >= 0.45 then
+		member.healthState = "injured"
+	else
+		member.healthState = "critical"
+	end
 end
 
 local function UpdateFrameVisuals(frame)
@@ -59,9 +84,111 @@ local function UpdateFrameVisuals(frame)
 	frame:SetAlpha(member.status == "offline" and 0.7 or 1)
 end
 
+local function StopPreviewAnimations(frame)
+	frame.ERF_healAnimation = nil
+	frame.ERF_floatingTextState = nil
+	frame:SetScript("OnUpdate", nil)
+end
+
+local function PreviewFrame_OnUpdate(frame, elapsed)
+	local hasAnimation = false
+
+	if frame.ERF_healAnimation then
+		local animation = frame.ERF_healAnimation
+		animation.elapsed = animation.elapsed + elapsed
+
+		local progress = math.min(animation.elapsed / animation.duration, 1)
+		local value = animation.startValue + ((animation.endValue - animation.startValue) * progress)
+		frame.ERF_healthBar:SetValue(value)
+
+		if progress >= 1 then
+			frame.ERF_healthBar:SetValue(animation.endValue)
+			frame.ERF_healAnimation = nil
+		else
+			hasAnimation = true
+		end
+	end
+
+	if frame.ERF_floatingTextState then
+		local textState = frame.ERF_floatingTextState
+		textState.elapsed = textState.elapsed + elapsed
+
+		local progress = math.min(textState.elapsed / textState.duration, 1)
+		local alpha = 1 - progress
+		frame.ERF_floatingText:SetAlpha(alpha)
+		frame.ERF_floatingText:ClearAllPoints()
+		frame.ERF_floatingText:SetPoint("CENTER", frame, "CENTER", 0, 8 + (progress * 12))
+
+		if progress >= 1 then
+			frame.ERF_floatingText:Hide()
+			frame.ERF_floatingTextState = nil
+		else
+			hasAnimation = true
+		end
+	end
+
+	if not hasAnimation then
+		StopPreviewAnimations(frame)
+	end
+end
+
+local function ShowFloatingHealText(frame, amount)
+	frame.ERF_floatingText:SetText(amount)
+	frame.ERF_floatingText:SetTextColor(0.2, 1, 0.35, 1)
+	frame.ERF_floatingText:SetAlpha(1)
+	frame.ERF_floatingText:ClearAllPoints()
+	frame.ERF_floatingText:SetPoint("CENTER", frame, "CENTER", 0, 8)
+	frame.ERF_floatingText:Show()
+
+	frame.ERF_floatingTextState = {
+		elapsed = 0,
+		duration = FLOATING_TEXT_DURATION,
+	}
+	frame:SetScript("OnUpdate", PreviewFrame_OnUpdate)
+end
+
+local function ShowPreviewTooltip(frame)
+	local member = frame.ERF_testData
+	if not member then
+		return
+	end
+
+	local classR, classG, classB = GetClassColor(member.classFile)
+	GameTooltip:SetOwner(frame, "ANCHOR_RIGHT")
+	GameTooltip:ClearLines()
+	GameTooltip:AddLine(member.displayName, 1, 1, 1)
+	GameTooltip:AddLine(GetLocalizedClassName(member.classFile), classR, classG, classB)
+	GameTooltip:AddLine(member.currentHealth .. " / " .. member.maxHealth, 0.85, 0.85, 0.85)
+	GameTooltip:Show()
+end
+
+local function HandlePreviewFrameClick(frame)
+	local member = frame.ERF_testData
+	if not member or member.status ~= "alive" then
+		return
+	end
+
+	local healAmount = math.floor(member.maxHealth * SIMULATED_HEAL_FRACTION + 0.5)
+	local startValue = member.currentHealth
+	member.currentHealth = math.min(member.maxHealth, member.currentHealth + healAmount)
+	UpdateMemberHealthState(member)
+
+	frame.ERF_healAnimation = {
+		startValue = startValue,
+		endValue = member.currentHealth,
+		duration = HEAL_ANIMATION_DURATION,
+		elapsed = 0,
+	}
+
+	ShowFloatingHealText(frame, healAmount)
+	RefreshSingleTestModeFrame(EnhancedRaidFrames, frame, false)
+end
+
 local function CreatePreviewFrame(frameName)
 	local frame = CreateFrame("Button", frameName, nil)
 	frame:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
+	frame:EnableMouse(true)
+	frame:RegisterForClicks("AnyUp")
 	frame:Hide()
 
 	frame.background = frame:CreateTexture(nil, "BACKGROUND")
@@ -79,6 +206,7 @@ local function CreatePreviewFrame(frameName)
 	frame.ERF_healthBar:SetPoint("TOPRIGHT", -1, -1)
 	frame.ERF_healthBar:SetHeight(FRAME_HEIGHT - POWER_BAR_HEIGHT - 3)
 	frame.ERF_healthBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	frame.healthBar = frame.ERF_healthBar
 
 	frame.powerBar = CreateFrame("StatusBar", nil, frame)
 	frame.powerBar:SetPoint("BOTTOMLEFT", 1, 1)
@@ -91,9 +219,13 @@ local function CreatePreviewFrame(frameName)
 	frame.ERF_nameText:SetPoint("TOPLEFT", 4, -4)
 	frame.ERF_nameText:SetPoint("TOPRIGHT", -4, -4)
 	frame.ERF_nameText:SetJustifyH("LEFT")
+	frame.name = frame.ERF_nameText
 
 	frame.ERF_statusText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
 	frame.ERF_statusText:SetPoint("CENTER", frame.ERF_healthBar, "CENTER", 0, 0)
+
+	frame.ERF_floatingText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	frame.ERF_floatingText:Hide()
 
 	frame.ERF_borderTop = frame:CreateTexture(nil, "ARTWORK")
 	frame.ERF_borderTop:SetPoint("TOPLEFT")
@@ -118,6 +250,16 @@ local function CreatePreviewFrame(frameName)
 	frame.ERF_borderRight:SetPoint("BOTTOMRIGHT")
 	frame.ERF_borderRight:SetWidth(1)
 	frame.ERF_borderRight:SetColorTexture(0.22, 0.22, 0.22, 1)
+
+	frame:SetScript("OnEnter", function()
+		ShowPreviewTooltip(frame)
+	end)
+	frame:SetScript("OnLeave", function()
+		GameTooltip:Hide()
+	end)
+	frame:SetScript("OnClick", function()
+		HandlePreviewFrameClick(frame)
+	end)
 
 	return frame
 end
@@ -160,6 +302,15 @@ function EnhancedRaidFrames:AcquireTestModeFrame()
 	return CreatePreviewFrame(frameName)
 end
 
+RefreshSingleTestModeFrame = function(self, frame, setAppearance)
+	UpdateFrameVisuals(frame)
+	self:UpdateBackgroundAlpha(frame)
+	self:UpdateIndicators(frame, setAppearance)
+	self:UpdateTargetMarker(frame, setAppearance)
+	self:UpdateDispelOverlay(frame)
+	self:UpdateInRange(frame)
+end
+
 --- Update preview-frame visuals from the current session data.
 function EnhancedRaidFrames:RefreshTestModeFrames()
 	if not self.testModeState or not self.testModeState.active then
@@ -167,12 +318,7 @@ function EnhancedRaidFrames:RefreshTestModeFrames()
 	end
 
 	for _, frame in ipairs(self.testModeFrames.activeFrames) do
-		UpdateFrameVisuals(frame)
-		self:UpdateBackgroundAlpha(frame)
-		self:UpdateIndicators(frame, true)
-		self:UpdateTargetMarker(frame, true)
-		self:UpdateDispelOverlay(frame)
-		self:UpdateInRange(frame)
+		RefreshSingleTestModeFrame(self, frame, true)
 	end
 end
 
@@ -242,6 +388,8 @@ function EnhancedRaidFrames:HideTestModeFrames()
 		frame.ERF_testData = nil
 		frame.ERF_unitAuras = nil
 		frame.ERF_statusText:SetText("")
+		frame.ERF_floatingText:Hide()
+		StopPreviewAnimations(frame)
 		pool.inactiveFrames[#pool.inactiveFrames + 1] = frame
 	end
 

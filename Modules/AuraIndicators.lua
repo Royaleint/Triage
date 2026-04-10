@@ -48,11 +48,11 @@ function EnhancedRaidFrames:CreateIndicators(frame)
 				self:Tooltip_OnEnter(indicatorFrame, frame)
 			end)
 			indicatorFrame:SetScript("OnLeave", function()
-				GameTooltip:Hide()
-				-- Restore the parent frame's unit tooltip when leaving an indicator
 				if frame.ERF_isTestFrame then
 					return
 				end
+				GameTooltip:Hide()
+				-- Restore the parent frame's unit tooltip when leaving an indicator
 				if frame:IsMouseOver() then
 					UnitFrame_UpdateTooltip(frame)
 				end
@@ -649,7 +649,6 @@ function EnhancedRaidFrames:Tooltip_OnEnter(indicatorFrame, parentFrame)
 	end
 
 	if parentFrame.ERF_isTestFrame then
-		GameTooltip:Hide()
 		return
 	end
 
