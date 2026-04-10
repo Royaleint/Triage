@@ -1,6 +1,7 @@
 -- Triage - Enhanced Raid Frames Reforged
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
+-- luacheck: globals IsInGroup IsInRaid
 
 -- Create a local handle to our addon table
 ---@type EnhancedRaidFrames
@@ -221,6 +222,59 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				end,
 				width = THIRD_WIDTH,
 				order = 43,
+			},
+			testModeHeader = {
+				type = "header",
+				name = L["Test Mode"],
+				order = 60,
+			},
+			testModeDescription = {
+				type = "description",
+				name = L["testModeDescription_desc"],
+				fontSize = "medium",
+				order = 61,
+			},
+			testModeSize = {
+				type = "select",
+				name = L["Preview Group Size"],
+				desc = L["testModeSize_desc"],
+				values = { [5] = "5", [10] = "10", [25] = "25", [40] = "40" },
+				get = function()
+					return self:GetLastTestModeSize()
+				end,
+				set = function(_, value)
+					self.db.profile.testModeLastSize = value
+				end,
+				width = THIRD_WIDTH,
+				order = 62,
+			},
+			testModeToggle = {
+				type = "execute",
+				name = function()
+					if self:IsTestModeActive() then
+						return L["Disable Test Mode"]
+					end
+					return L["Enable Test Mode"]
+				end,
+				desc = L["testModeToggle_desc"],
+				func = function()
+					if self:IsTestModeActive() then
+						self:StopTestMode()
+					else
+						self:StartTestMode(self:GetLastTestModeSize())
+					end
+				end,
+				disabled = function()
+					return InCombatLockdown() or (not self:IsTestModeActive() and (IsInGroup() or IsInRaid()))
+				end,
+				width = THIRD_WIDTH,
+				order = 63,
+			},
+			testModeLabel = {
+				type = "description",
+				name = L["testModeLabel_desc"],
+				fontSize = "medium",
+				order = 64,
 			},
 		}
 	}

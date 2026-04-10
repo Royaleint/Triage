@@ -115,6 +115,15 @@ L["customRangeCheck_desc"] = "Changes the default 40 yard out-of-range distance 
 L["Out-of-Range Opacity"] = true
 L["rangeAlpha_desc"] = "The opacity percentage of the raid frame when out-of-range"
 
+L["Test Mode"] = true
+L["testModeDescription_desc"] = "Spawn synthetic preview frames without joining a real group."
+L["Preview Group Size"] = true
+L["testModeSize_desc"] = "The number of synthetic preview members to show."
+L["Enable Test Mode"] = true
+L["Disable Test Mode"] = true
+L["testModeToggle_desc"] = "Toggle synthetic preview frames on or off."
+L["testModeLabel_desc"] = "Frames simulate interaction — not real spell targets."
+
 ----------------------------------------------------
 ---------------- Target Marker Panel ---------------
 ----------------------------------------------------

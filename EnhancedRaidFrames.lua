@@ -35,6 +35,9 @@ function EnhancedRaidFrames:OnInitialize()
 
 	-- Register callbacks for profile switching
 	local function onProfileUpdate()
+		if self:IsTestModeActive() then
+			self:StopTestMode(true)
+		end
 		self:MigrateDatabase()
 		self:RefreshConfig()
 		local LDBIcon = LibStub("LibDBIcon-1.0", true)
@@ -211,7 +214,7 @@ function EnhancedRaidFrames:OnDisable()
 		self.rangeTicker = nil
 	end
 
-	self:StopTestMode()
+	self:StopTestMode(true)
 end
 
 -------------------------------------------------------------------------

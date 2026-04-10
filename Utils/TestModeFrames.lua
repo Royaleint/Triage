@@ -378,6 +378,8 @@ function EnhancedRaidFrames:HideTestModeFrames()
 		return
 	end
 
+	GameTooltip:Hide()
+
 	local pool = self.testModeFrames
 	for _, frame in ipairs(pool.activeFrames) do
 		self:UnregisterManagedFrame(frame)

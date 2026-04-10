@@ -36,6 +36,9 @@ function EnhancedRaidFrames:CreateDefaults()
 			hide = false,
 		},
 
+		-- Test Mode
+		testModeLastSize = 5,
+
 		-- Out-of-Range Options
 		customRangeCheck = false,
 		customRange = 30,

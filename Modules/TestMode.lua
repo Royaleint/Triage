@@ -8,6 +8,10 @@ local EnhancedRaidFrames = _G.EnhancedRaidFrames
 local DEFAULT_TEST_MODE_SIZE = 5
 local TEST_MODE_ROTATION_INTERVAL = 8
 
+local function IsInRealGroup()
+	return IsInGroup() or IsInRaid()
+end
+
 local function ParseSizeToken(token)
 	local size = tonumber(token)
 	if EnhancedRaidFrames:IsValidTestModeSize(size) then
@@ -17,6 +21,17 @@ local function ParseSizeToken(token)
 	return nil
 end
 
+--- Return the persisted preview roster size.
+---@return number
+function EnhancedRaidFrames:GetLastTestModeSize()
+	local size = self.db and self.db.profile and self.db.profile.testModeLastSize or DEFAULT_TEST_MODE_SIZE
+	if self:IsValidTestModeSize(size) then
+		return size
+	end
+
+	return DEFAULT_TEST_MODE_SIZE
+end
+
 --- Return true when preview mode is active.
 ---@return boolean
 function EnhancedRaidFrames:IsTestModeActive()
@@ -24,7 +39,8 @@ function EnhancedRaidFrames:IsTestModeActive()
 end
 
 --- Stop preview mode and release all synthetic frames.
-function EnhancedRaidFrames:StopTestMode()
+---@param suppressRefresh boolean|nil
+function EnhancedRaidFrames:StopTestMode(suppressRefresh)
 	if not self.testModeState then
 		return
 	end
@@ -40,32 +56,39 @@ function EnhancedRaidFrames:StopTestMode()
 
 	self:HideTestModeFrames()
 	self.testModeState = nil
+
+	if not suppressRefresh then
+		self:RefreshManagedFrameRegistry()
+		self:RefreshConfig()
+	end
 end
 
 --- Start preview mode for the requested synthetic roster size.
 ---@param size number|nil
 function EnhancedRaidFrames:StartTestMode(size)
 	size = size or DEFAULT_TEST_MODE_SIZE
-	if not self:IsValidTestModeSize(size) or InCombatLockdown() then
+	if not self:IsValidTestModeSize(size) or InCombatLockdown() or IsInRealGroup() then
 		return
 	end
 
-	self:StopTestMode()
+	self:StopTestMode(true)
 
 	local session = self:CreateTestModeSession(size)
 	if not session then
 		return
 	end
 
+	self.testModeExitFrame = self.testModeExitFrame or CreateFrame("Frame")
 	self.testModeState = {
 		active = true,
 		size = size,
 		session = session,
-		exitFrame = self.testModeState and self.testModeState.exitFrame or CreateFrame("Frame"),
+		exitFrame = self.testModeExitFrame,
 	}
+	self.db.profile.testModeLastSize = size
 
 	self.testModeState.exitFrame:SetScript("OnEvent", function()
-		if IsInGroup() or IsInRaid() or InCombatLockdown() then
+		if IsInRealGroup() or InCombatLockdown() then
 			self:StopTestMode()
 		end
 	end)
@@ -92,7 +115,25 @@ function EnhancedRaidFrames:HandleTestModeChatCommand(input)
 		return false
 	end
 
-	local size = ParseSizeToken(rest) or DEFAULT_TEST_MODE_SIZE
-	self:StartTestMode(size)
+	local token = rest:match("^(%S*)") or ""
+	if token == "off" then
+		self:StopTestMode()
+		return true
+	end
+
+	if token == "" then
+		if self:IsTestModeActive() then
+			self:StopTestMode()
+		else
+			self:StartTestMode(self:GetLastTestModeSize())
+		end
+		return true
+	end
+
+	local size = ParseSizeToken(token)
+	if size then
+		self:StartTestMode(size)
+	end
+
 	return true
 end
