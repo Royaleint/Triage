@@ -21,6 +21,24 @@ local StopGlow, GetGlowColor, EnsureGlow
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+local function GetPreviewDispelType(frame)
+	local previewData = frame.ERF_testData
+	if not previewData or previewData.status ~= "alive" or not previewData.inRange then
+		return nil
+	end
+
+	if not previewData.dispelType then
+		return nil
+	end
+
+	local myDispels = LibDispel:GetMyDispelTypes()
+	if not myDispels[previewData.dispelType] then
+		return nil
+	end
+
+	return previewData.dispelType
+end
+
 --- Create the dispel overlay on a raid frame (edge border + glow host)
 ---@param frame table @The compact unit frame
 function EnhancedRaidFrames:CreateDispelOverlay(frame)
@@ -75,6 +93,23 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 		local glowStyle = EnhancedRaidFrames.db.profile.dispelOverlay.glowStyle
 		if glowStyle ~= "pulse" and glowStyle ~= "both" then
 			StopGlow(hiddenOverlay)
+			return
+		end
+
+		if frame.ERF_isTestFrame then
+			local previewType = GetPreviewDispelType(frame)
+			if not previewType then
+				StopGlow(hiddenOverlay)
+				return
+			end
+
+			local debuffColors = LibDispel:GetDebuffTypeColor()
+			local color = debuffColors[previewType] or debuffColors["None"]
+			local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
+			local glowState = useTypeColor and previewType or "neutral"
+			local glowColor = GetGlowColor(useTypeColor, color)
+
+			EnsureGlow(frame, hiddenOverlay, previewType, glowColor, glowState)
 			return
 		end
 
@@ -188,13 +223,23 @@ function EnhancedRaidFrames:UpdateDispelOverlay(frame)
 	end
 
 	-- Respect party/raid toggle
-	local inRaid = IsInRaid()
+	local inRaid = frame.ERF_isTestFrame and self.testModeState and self.testModeState.size > 5 or IsInRaid()
 	if inRaid and not self.db.profile.dispelOverlay.showInRaid then
 		self:HideDispelOverlay(frame)
 		return
 	end
 	if not inRaid and not self.db.profile.dispelOverlay.showInParty then
 		self:HideDispelOverlay(frame)
+		return
+	end
+
+	if frame.ERF_isTestFrame then
+		local previewType = GetPreviewDispelType(frame)
+		if previewType then
+			self:ShowDispelOverlay(frame, previewType)
+		else
+			self:HideDispelOverlay(frame)
+		end
 		return
 	end
 

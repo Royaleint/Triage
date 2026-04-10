@@ -31,6 +31,10 @@ end
 --- This function hooks the "OnShow" event of the stock buff/debuff frames.
 ---@param frame table @The frame to set the visibility on
 function EnhancedRaidFrames:UpdateStockAuraVisibility(frame)
+	if frame.ERF_isTestFrame then
+		return
+	end
+
 	if not self.ShouldContinue(frame) then
 		return
 	end
@@ -73,6 +77,10 @@ end
 --- We can't hide the private aura frames directly, so we'll hide their anchor frames instead.
 ---@param frame table @The frame to set the visibility on
 function EnhancedRaidFrames:UpdatePrivateAuraVisOverrides(frame)
+	if frame.ERF_isTestFrame then
+		return
+	end
+
 	if not self.ShouldContinue(frame) then
 		return
 	end
@@ -98,6 +106,26 @@ end
 ---@param rangeChecker function|nil @Optional cached LibRangeCheck checker for this update pass
 function EnhancedRaidFrames:UpdateInRange(frame, rangeChecker)
 	if not self.ShouldContinue(frame, true) then
+		return
+	end
+
+	if frame.ERF_isTestFrame then
+		local previewData = frame.ERF_testData
+		if not previewData then
+			frame:SetAlpha(1)
+			return
+		end
+
+		if not self.db.profile.customRangeCheck then
+			frame:SetAlpha(previewData.status == "offline" and 0.7 or 1)
+			return
+		end
+
+		if previewData.status ~= "alive" or not previewData.inRange then
+			frame:SetAlpha(self.db.profile.rangeAlpha)
+		else
+			frame:SetAlpha(1)
+		end
 		return
 	end
 
@@ -176,6 +204,9 @@ function EnhancedRaidFrames:UpdateScale()
 		end
 		if CompactPartyFrame then
 			CompactPartyFrame:SetScale(self.db.profile.frameScale)
+		end
+		if self.testModeFrames and self.testModeFrames.container then
+			self.testModeFrames.container:SetScale(self.db.profile.frameScale)
 		end
 	end
 end

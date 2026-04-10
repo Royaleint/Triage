@@ -168,6 +168,11 @@ function EnhancedRaidFrames:RefreshTestModeFrames()
 
 	for _, frame in ipairs(self.testModeFrames.activeFrames) do
 		UpdateFrameVisuals(frame)
+		self:UpdateBackgroundAlpha(frame)
+		self:UpdateIndicators(frame, true)
+		self:UpdateTargetMarker(frame, true)
+		self:UpdateDispelOverlay(frame)
+		self:UpdateInRange(frame)
 	end
 end
 
@@ -217,6 +222,8 @@ function EnhancedRaidFrames:ShowTestModeFrames(session)
 
 		pool.activeFrames[#pool.activeFrames + 1] = frame
 	end
+
+	self:RefreshTestModeFrames()
 end
 
 --- Tear down and release all preview frames back into the pool.

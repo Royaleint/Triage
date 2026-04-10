@@ -108,7 +108,12 @@ function EnhancedRaidFrames:UpdateTargetMarker(frame, setAppearance)
 	end
 
 	-- Get target marker on unit
-	local index = GetRaidTargetIndex(unit)
+	local index
+	if frame.ERF_isTestFrame and frame.ERF_testData then
+		index = frame.ERF_testData.raidTargetIndex
+	else
+		index = GetRaidTargetIndex(unit)
+	end
 
 	-- GetRaidTargetIndex can return a secret number in Midnight — skip if tainted
 	if issecretvalue and index and issecretvalue(index) then

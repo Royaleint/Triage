@@ -19,10 +19,27 @@ end
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+local function SyncPreviewAuras(parentFrame)
+	if not parentFrame or not parentFrame.ERF_isTestFrame or not parentFrame.ERF_testData then
+		return false
+	end
+
+	parentFrame.ERF_unitAuras = parentFrame.ERF_testData.auras or {}
+	EnhancedRaidFrames:UpdateIndicators(parentFrame)
+	return true
+end
+
 
 --- Creates a listener for the UNIT_AURA event attached to a specified raid frame
 ---@param frame table @The raid frame to create the listener for
 function EnhancedRaidFrames:CreateAuraListener(frame)
+	if frame.ERF_isTestFrame then
+		if frame.ERF_auraListenerFrame then
+			frame.ERF_auraListenerFrame:UnregisterAllEvents()
+		end
+		return
+	end
+
 	-- Skip the visibility check in ShouldContinue() as we need the listener to exist even if the frame is hidden
 	if not self.ShouldContinue(frame, true) then
 		return
@@ -70,6 +87,9 @@ function EnhancedRaidFrames:UpdateAllAuras()
 	-- Iterate over all raid frame units, forcing a full refresh and re-creating the listener frame
 	-- It is important that we re-create the listener frame for each unit to ensure that the listener is attached to the correct unit
 	self:ForEachManagedFrame(function(frame)
+		if SyncPreviewAuras(frame) then
+			return
+		end
 		if self.isWoWClassicEra or self.isWoWClassic then
 			self:UpdateUnitAuras_Classic(frame, true)
 		else
@@ -85,6 +105,10 @@ end
 ---@param payload table @The payload from the UNIT_AURA event
 ---@param forceRefresh boolean @Whether or not to force a full refresh
 function EnhancedRaidFrames:UpdateUnitAuras(parentFrame, payload, forceRefresh)
+	if SyncPreviewAuras(parentFrame) then
+		return
+	end
+
 	if not self.ShouldContinue(parentFrame) then
 		return
 	end
@@ -223,6 +247,10 @@ end
 ---@param parentFrame table @The raid frame to update
 ---@param forceRefresh boolean @Whether or not to force a full refresh
 function EnhancedRaidFrames:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
+	if SyncPreviewAuras(parentFrame) then
+		return
+	end
+
 	if not self.ShouldContinue(parentFrame) then
 		return
 	end
