@@ -6,21 +6,17 @@
 
 local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
-local FRAME_WIDTH = 88
-local FRAME_HEIGHT = 42
-local POWER_BAR_HEIGHT = 5
-local COLUMN_SPACING = 10
-local ROW_SPACING = 6
+local FRAME_WIDTH = 72
+local FRAME_HEIGHT = 36
+local POWER_BAR_HEIGHT = 8
+local COLUMN_SPACING = 2
+local ROW_SPACING = 2
 local FLOATING_TEXT_DURATION = 1.5
 local HEAL_ANIMATION_DURATION = 0.2
 local SIMULATED_HEAL_FRACTION = 0.15
-local HEALTH_STATE_COLORS = {
-	full = {0.18, 0.72, 0.33},
-	injured = {0.86, 0.72, 0.2},
-	critical = {0.85, 0.22, 0.22},
-	dead = {0.38, 0.38, 0.38},
-	offline = {0.28, 0.28, 0.28},
-}
+local DEAD_OFFLINE_COLOR = 0.5
+local DEAD_POWER_ALPHA = 0.35
+local OFFLINE_POWER_ALPHA = 0.2
 
 local RefreshSingleTestModeFrame
 
@@ -33,6 +29,24 @@ local function GetClassColor(classFile)
 	return 1, 1, 1
 end
 
+local function GetCompactHealthColor()
+	local color = rawget(_G, "COMPACT_UNIT_FRAME_FRIENDLY_HEALTH_COLOR")
+	if color and color.GetRGB then
+		return color:GetRGB()
+	end
+
+	return 0, 1, 0
+end
+
+local function GetCompactHealthBackgroundColor()
+	local color = rawget(_G, "COMPACT_UNIT_FRAME_FRIENDLY_HEALTH_COLOR_BG")
+	if color and color.GetRGB then
+		return color:GetRGB()
+	end
+
+	return 0.22, 0.22, 0.22
+end
+
 local function GetGroupLayout(size)
 	local rows = math.min(size, 5)
 	local columns = math.ceil(size / 5)
@@ -41,9 +55,48 @@ end
 
 local function GetLocalizedClassName(classFile)
 	return (LOCALIZED_CLASS_NAMES_MALE and LOCALIZED_CLASS_NAMES_MALE[classFile])
-		or (LOCALIZED_CLASS_NAMES_FEMALE and LOCALIZED_CLASS_NAMES_FEMALE[classFile])
-		or classFile
-		or ""
+			or (LOCALIZED_CLASS_NAMES_FEMALE and LOCALIZED_CLASS_NAMES_FEMALE[classFile])
+			or classFile
+			or ""
+end
+
+local function SaveTestModeContainerPosition(container)
+	local profile = EnhancedRaidFrames.db and EnhancedRaidFrames.db.profile
+	if not profile or not profile.testModePosition then
+		return
+	end
+
+	profile.testModePosition.left = container:GetLeft()
+	profile.testModePosition.top = container:GetTop()
+end
+
+local function ApplyTestModeContainerPosition(container)
+	local profile = EnhancedRaidFrames.db and EnhancedRaidFrames.db.profile
+	local position = profile and profile.testModePosition
+
+	container:ClearAllPoints()
+	if position and position.left and position.top then
+		container:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", position.left, position.top)
+	else
+		container:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+	end
+end
+
+local function StartContainerDrag(container)
+	if not container then
+		return
+	end
+
+	container:StartMoving()
+end
+
+local function StopContainerDrag(container)
+	if not container then
+		return
+	end
+
+	container:StopMovingOrSizing()
+	SaveTestModeContainerPosition(container)
 end
 
 local function UpdateMemberHealthState(member)
@@ -66,12 +119,38 @@ local function UpdateFrameVisuals(frame)
 
 	frame.ERF_nameText:SetText(member.displayName)
 	frame.ERF_healthBar:SetMinMaxValues(0, member.maxHealth)
-	frame.ERF_healthBar:SetValue(member.currentHealth)
+	if not frame.ERF_healAnimation then
+		frame.ERF_healthBar:SetValue(member.currentHealth)
+	end
 	frame.powerBar:SetMinMaxValues(0, member.maxPower)
 	frame.powerBar:SetValue(member.currentPower)
 
-	local color = HEALTH_STATE_COLORS[member.healthState] or HEALTH_STATE_COLORS.full
-	frame.ERF_healthBar:SetStatusBarColor(color[1], color[2], color[3], 1)
+	local backgroundR, backgroundG, backgroundB = GetCompactHealthBackgroundColor()
+	local healthR, healthG, healthB = GetCompactHealthColor()
+	local healthTexture = frame.ERF_healthBar:GetStatusBarTexture()
+	local powerTexture = frame.powerBar:GetStatusBarTexture()
+	local powerAlpha = 1
+
+	frame.background:SetVertexColor(backgroundR, backgroundG, backgroundB, 1)
+	if member.classFile then
+		healthR, healthG, healthB = GetClassColor(member.classFile)
+	end
+
+	frame.ERF_nameText:SetTextColor(1, 1, 1, 1)
+	if member.status == "dead" or member.status == "offline" then
+		healthR, healthG, healthB = DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR
+		frame.ERF_nameText:SetTextColor(DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, 1)
+		powerAlpha = member.status == "dead" and DEAD_POWER_ALPHA or OFFLINE_POWER_ALPHA
+	end
+
+	frame.ERF_healthBar:SetStatusBarColor(healthR, healthG, healthB, 1)
+	if healthTexture and healthTexture.SetDesaturated then
+		healthTexture:SetDesaturated(member.status == "dead" or member.status == "offline")
+	end
+	if powerTexture and powerTexture.SetDesaturated then
+		powerTexture:SetDesaturated(member.status == "dead" or member.status == "offline")
+	end
+	frame.powerBar:SetAlpha(powerAlpha)
 
 	if member.status == "dead" then
 		frame.ERF_statusText:SetText(DEAD or "")
@@ -80,8 +159,6 @@ local function UpdateFrameVisuals(frame)
 	else
 		frame.ERF_statusText:SetText("")
 	end
-
-	frame:SetAlpha(member.status == "offline" and 0.7 or 1)
 end
 
 local function StopPreviewAnimations(frame)
@@ -162,7 +239,16 @@ local function ShowPreviewTooltip(frame)
 	GameTooltip:Show()
 end
 
-local function HandlePreviewFrameClick(frame)
+local function HandlePreviewFrameClick(frame, button)
+	if button ~= "LeftButton" then
+		return
+	end
+
+	if frame.ERF_suppressNextClick then
+		frame.ERF_suppressNextClick = nil
+		return
+	end
+
 	local member = frame.ERF_testData
 	if not member or member.status ~= "alive" then
 		return
@@ -188,68 +274,52 @@ local function CreatePreviewFrame(frameName)
 	local frame = CreateFrame("Button", frameName, nil)
 	frame:SetSize(FRAME_WIDTH, FRAME_HEIGHT)
 	frame:EnableMouse(true)
-	frame:RegisterForClicks("AnyUp")
+	frame:RegisterForClicks("LeftButtonUp")
+	frame:RegisterForDrag("LeftButton")
 	frame:Hide()
 
 	frame.background = frame:CreateTexture(nil, "BACKGROUND")
 	frame.background:SetAllPoints()
-	frame.background:SetColorTexture(0.06, 0.06, 0.06, 0.95)
+	frame.background:SetAtlas("raidframe-hp-bg-white")
+	frame.background:SetVertexColor(0.22, 0.22, 0.22, 1)
 
 	frame.ERF_healthBackground = frame:CreateTexture(nil, "BORDER")
-	frame.ERF_healthBackground:SetPoint("TOPLEFT", 1, -1)
-	frame.ERF_healthBackground:SetPoint("TOPRIGHT", -1, -1)
-	frame.ERF_healthBackground:SetHeight(FRAME_HEIGHT - POWER_BAR_HEIGHT - 3)
-	frame.ERF_healthBackground:SetColorTexture(0.13, 0.13, 0.13, 1)
+	frame.ERF_healthBackground:SetAllPoints(frame.background)
+	frame.ERF_healthBackground:SetColorTexture(0, 0, 0, 0)
 
 	frame.ERF_healthBar = CreateFrame("StatusBar", nil, frame)
 	frame.ERF_healthBar:SetPoint("TOPLEFT", 1, -1)
-	frame.ERF_healthBar:SetPoint("TOPRIGHT", -1, -1)
-	frame.ERF_healthBar:SetHeight(FRAME_HEIGHT - POWER_BAR_HEIGHT - 3)
-	frame.ERF_healthBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	frame.ERF_healthBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1 + POWER_BAR_HEIGHT)
+	frame.ERF_healthBar:SetStatusBarTexture("RaidFrame-Hp-Fill")
+	frame.ERF_healthBar:GetStatusBarTexture():SetDrawLayer("BORDER")
 	frame.healthBar = frame.ERF_healthBar
 
 	frame.powerBar = CreateFrame("StatusBar", nil, frame)
-	frame.powerBar:SetPoint("BOTTOMLEFT", 1, 1)
-	frame.powerBar:SetPoint("BOTTOMRIGHT", -1, 1)
+	frame.powerBar:SetPoint("TOPLEFT", frame.ERF_healthBar, "BOTTOMLEFT", 0, -2)
+	frame.powerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
 	frame.powerBar:SetHeight(POWER_BAR_HEIGHT)
-	frame.powerBar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+	frame.powerBar:SetStatusBarTexture("_RaidFrame-Resource-Fill")
+	frame.powerBar:GetStatusBarTexture():SetDrawLayer("BORDER")
 	frame.powerBar:SetStatusBarColor(0.18, 0.4, 0.84, 1)
+	frame.powerBar.background = frame.powerBar:CreateTexture(nil, "BACKGROUND", nil, 2)
+	frame.powerBar.background:SetAllPoints()
+	frame.powerBar.background:SetAtlas("_RaidFrame-Resource-Background")
+	frame.powerBar.background:SetVertexColor(0.8, 0.8, 0.8, 1)
 
-	frame.ERF_nameText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	frame.ERF_nameText:SetPoint("TOPLEFT", 4, -4)
-	frame.ERF_nameText:SetPoint("TOPRIGHT", -4, -4)
+	frame.ERF_nameText = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	frame.ERF_nameText:SetPoint("LEFT", frame, "LEFT", 5, 1)
+	frame.ERF_nameText:SetPoint("RIGHT", frame, "RIGHT", -3, 1)
+	frame.ERF_nameText:SetHeight(12)
 	frame.ERF_nameText:SetJustifyH("LEFT")
 	frame.name = frame.ERF_nameText
 
-	frame.ERF_statusText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	frame.ERF_statusText:SetPoint("CENTER", frame.ERF_healthBar, "CENTER", 0, 0)
+	frame.ERF_statusText = frame:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+	frame.ERF_statusText:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 3, (FRAME_HEIGHT / 3) - 2)
+	frame.ERF_statusText:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, (FRAME_HEIGHT / 3) - 2)
+	frame.ERF_statusText:SetJustifyH("CENTER")
 
 	frame.ERF_floatingText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	frame.ERF_floatingText:Hide()
-
-	frame.ERF_borderTop = frame:CreateTexture(nil, "ARTWORK")
-	frame.ERF_borderTop:SetPoint("TOPLEFT")
-	frame.ERF_borderTop:SetPoint("TOPRIGHT")
-	frame.ERF_borderTop:SetHeight(1)
-	frame.ERF_borderTop:SetColorTexture(0.22, 0.22, 0.22, 1)
-
-	frame.ERF_borderBottom = frame:CreateTexture(nil, "ARTWORK")
-	frame.ERF_borderBottom:SetPoint("BOTTOMLEFT")
-	frame.ERF_borderBottom:SetPoint("BOTTOMRIGHT")
-	frame.ERF_borderBottom:SetHeight(1)
-	frame.ERF_borderBottom:SetColorTexture(0.22, 0.22, 0.22, 1)
-
-	frame.ERF_borderLeft = frame:CreateTexture(nil, "ARTWORK")
-	frame.ERF_borderLeft:SetPoint("TOPLEFT")
-	frame.ERF_borderLeft:SetPoint("BOTTOMLEFT")
-	frame.ERF_borderLeft:SetWidth(1)
-	frame.ERF_borderLeft:SetColorTexture(0.22, 0.22, 0.22, 1)
-
-	frame.ERF_borderRight = frame:CreateTexture(nil, "ARTWORK")
-	frame.ERF_borderRight:SetPoint("TOPRIGHT")
-	frame.ERF_borderRight:SetPoint("BOTTOMRIGHT")
-	frame.ERF_borderRight:SetWidth(1)
-	frame.ERF_borderRight:SetColorTexture(0.22, 0.22, 0.22, 1)
 
 	frame:SetScript("OnEnter", function()
 		ShowPreviewTooltip(frame)
@@ -257,8 +327,19 @@ local function CreatePreviewFrame(frameName)
 	frame:SetScript("OnLeave", function()
 		GameTooltip:Hide()
 	end)
-	frame:SetScript("OnClick", function()
-		HandlePreviewFrameClick(frame)
+	frame:SetScript("OnClick", function(_, button)
+		HandlePreviewFrameClick(frame, button)
+	end)
+	frame:SetScript("OnDragStart", function()
+		frame.ERF_draggingPreview = true
+		StartContainerDrag(frame:GetParent())
+	end)
+	frame:SetScript("OnDragStop", function()
+		if frame.ERF_draggingPreview then
+			frame.ERF_suppressNextClick = true
+		end
+		frame.ERF_draggingPreview = nil
+		StopContainerDrag(frame:GetParent())
 	end)
 
 	return frame
@@ -271,12 +352,27 @@ function EnhancedRaidFrames:InitializeTestModeFrames()
 	end
 
 	local container = CreateFrame("Frame", "ERFTestModeContainer", UIParent)
-	container:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+	container:EnableMouse(true)
+	container:SetMovable(true)
+	container:SetClampedToScreen(true)
 	container:Hide()
 
 	container.background = container:CreateTexture(nil, "BACKGROUND")
 	container.background:SetAllPoints()
-	container.background:SetColorTexture(0, 0, 0, 0.35)
+	container.background:SetColorTexture(0, 0, 0, 0)
+	container:SetScript("OnMouseDown", function(_, button)
+		if button == "LeftButton" then
+			StartContainerDrag(container)
+		end
+	end)
+	container:SetScript("OnMouseUp", function(_, button)
+		if button == "LeftButton" then
+			StopContainerDrag(container)
+		end
+	end)
+	container:SetScript("OnHide", function()
+		StopContainerDrag(container)
+	end)
 
 	self.testModeFrames = {
 		container = container,
@@ -335,6 +431,7 @@ function EnhancedRaidFrames:ShowTestModeFrames(session)
 
 	container:SetScale(self.db and self.db.profile.frameScale or 1)
 	container:SetSize(width, height)
+	ApplyTestModeContainerPosition(container)
 	container:Show()
 
 	for _, frame in ipairs(pool.activeFrames) do
@@ -359,9 +456,9 @@ function EnhancedRaidFrames:ShowTestModeFrames(session)
 		frame.ERF_isTestFrame = true
 		frame.ERF_testData = member
 		frame.ERF_unitAuras = member.auras
+		frame.ERF_suppressNextClick = nil
+		frame.ERF_draggingPreview = nil
 
-		local classR, classG, classB = GetClassColor(member.classFile)
-		frame.ERF_nameText:SetTextColor(classR, classG, classB, 1)
 		UpdateFrameVisuals(frame)
 		self:RegisterManagedFrame(frame, frame.unit, "test")
 		frame:Show()
@@ -389,6 +486,8 @@ function EnhancedRaidFrames:HideTestModeFrames()
 		frame.ERF_isTestFrame = nil
 		frame.ERF_testData = nil
 		frame.ERF_unitAuras = nil
+		frame.ERF_suppressNextClick = nil
+		frame.ERF_draggingPreview = nil
 		frame.ERF_statusText:SetText("")
 		frame.ERF_floatingText:Hide()
 		StopPreviewAnimations(frame)

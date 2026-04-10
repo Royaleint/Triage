@@ -183,6 +183,23 @@ function EnhancedRaidFrames:OnEnable()
 
 end
 
+--- Open the standalone Triage config window.
+function EnhancedRaidFrames:OpenConfigWindow()
+	AceConfigDialog:Open("Triage")
+
+	local openFrames = AceConfigDialog.OpenFrames
+	local frameWidget = openFrames and openFrames["Triage"]
+	if not frameWidget or not frameWidget.frame then
+		return
+	end
+
+	frameWidget.frame:SetClampedToScreen(true)
+	if self.db and self.db.profile and self.db.profile.configWindowStatus then
+		frameWidget:SetStatusTable(self.db.profile.configWindowStatus)
+		frameWidget:ApplyStatus()
+	end
+end
+
 --- Open the Triage settings panel or handle slash subcommands.
 ---@param input string|nil
 function EnhancedRaidFrames:ChatCommand(input)
@@ -195,15 +212,8 @@ function EnhancedRaidFrames:ChatCommand(input)
 		self:Print("Cannot open settings during combat.")
 		return
 	end
-	-- Use Ace3's internal ID map to get the correct category ID for this client
-	local categoryID = AceConfigDialog.BlizOptionsIDMap and AceConfigDialog.BlizOptionsIDMap["Triage"]
-	if categoryID then
-		Settings.OpenToCategory(categoryID)
-		-- Settings.OpenToCategory can show the Game Menu behind the settings panel
-		if GameMenuFrame and GameMenuFrame:IsShown() then
-			HideUIPanel(GameMenuFrame)
-		end
-	end
+
+	self:OpenConfigWindow()
 end
 
 --- Called when our addon is manually being disabled during a running session.

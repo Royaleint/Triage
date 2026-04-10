@@ -38,6 +38,8 @@ function EnhancedRaidFrames:CreateDefaults()
 
 		-- Test Mode
 		testModeLastSize = 5,
+		testModePosition = {},
+		configWindowStatus = {},
 
 		-- Out-of-Range Options
 		customRangeCheck = false,
