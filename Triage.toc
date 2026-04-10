@@ -29,6 +29,8 @@ Overrides.lua
 Utils/FrameRegistry.lua
 Utils/Utilities.lua
 Utils/DatabaseMigration.lua
+Utils/TestModeData.lua
+Utils/TestModeFrames.lua
 
 # Aura Indicators
 Modules/AuraListeners.lua
@@ -39,6 +41,9 @@ Modules/TargetMarkers.lua
 
 # Dispel Overlay (Retail only — version-gated in code)
 Modules/DispelOverlay.lua
+
+# Test Mode
+Modules/TestMode.lua
 
 # Templates
 XML\IndicatorTemplate.xml

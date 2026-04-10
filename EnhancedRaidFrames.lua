@@ -180,8 +180,14 @@ function EnhancedRaidFrames:OnEnable()
 
 end
 
---- Open the Triage settings panel
-function EnhancedRaidFrames:ChatCommand()
+--- Open the Triage settings panel or handle slash subcommands.
+---@param input string|nil
+function EnhancedRaidFrames:ChatCommand(input)
+	input = input or ""
+	if self:HandleTestModeChatCommand(input) then
+		return
+	end
+
 	if InCombatLockdown() then
 		self:Print("Cannot open settings during combat.")
 		return
@@ -204,6 +210,8 @@ function EnhancedRaidFrames:OnDisable()
 		self:CancelTimer(self.rangeTicker)
 		self.rangeTicker = nil
 	end
+
+	self:StopTestMode()
 end
 
 -------------------------------------------------------------------------
