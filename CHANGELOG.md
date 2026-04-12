@@ -22,6 +22,10 @@ broke and a new feature that didn't exist before.
   any raid frame where you can dispel a debuff. Color matches the
   debuff type. Works for every class with a dispel, not just healers.
   Six settings to tune it how you like.
+- **Test Mode** — `/triage test` spawns 5/10/25/40 synthetic preview
+  frames so you can tune the addon without joining a group. Indicators,
+  target markers, dispel overlay, range fade, tooltips, and simulated
+  healing all render on the preview frames.
 - Minimap button for quick settings access
 - Blizzard's stock buff/debuff icons now show alongside indicators
   by default (you can still turn them off)
