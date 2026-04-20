@@ -48,21 +48,33 @@ externals:
   Libs/AceSerializer-3.0: https://repos.wowace.com/wow/ace3/trunk/AceSerializer-3.0
   Libs/AceTimer-3.0: https://repos.wowace.com/wow/ace3/trunk/AceTimer-3.0
 
-  # WowAce-hosted libs (URL slugs match CurseForge slugs)
-  Libs/AceGUI-3.0-SharedMediaWidgets: https://repos.wowace.com/wow/ace-gui-3-0-sharedmediawidgets/trunk
+  # WowAce-hosted libs (URLs verified to return SVN-valid 301; slug matches CF)
+  Libs/AceGUI-3.0-SharedMediaWidgets: https://repos.wowace.com/wow/ace-gui-3-0-shared-media-widgets/trunk
   Libs/LibSharedMedia-3.0: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
-  Libs/LibDualSpec-1.0: https://repos.wowace.com/wow/libdualspec-1-0/trunk
-  Libs/LibRangeCheck-3.0: https://repos.wowace.com/wow/librangecheck-3-0/trunk/LibRangeCheck-3.0
   Libs/LibDataBroker-1.1: https://repos.wowace.com/wow/libdatabroker-1-1
   Libs/LibDBIcon-1.0: https://repos.wowace.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
 
-  # GitHub-only libs (no CurseForge project relation declared by packager)
+  # GitHub-hosted libs (not on WowAce SVN; CF presence verified — use curse-slug
+  # to declare the CurseForge project relation explicitly)
+  Libs/LibDualSpec-1.0:
+    url: https://github.com/Adirelle/LibDualSpec-1.0.git
+    branch: master
+    curse-slug: libdualspec-1-0
+  Libs/LibRangeCheck-3.0:
+    url: https://github.com/mitchnull/LibRangeCheck-3.0.git
+    branch: main
+    curse-slug: librangecheck-3-0
   Libs/LibDeflate:
     url: https://github.com/SafeteeWoW/LibDeflate.git
-    branch: master
+    branch: main
+    curse-slug: libdeflate
   Libs/LibClassicDurations:
     url: https://github.com/rgd87/LibClassicDurations.git
     branch: master
+    curse-slug: libclassicdurations
+
+  # GitHub-hosted libs without verified CurseForge presence — no curse-slug,
+  # packager will skip the CF relation declaration (libs still get packaged)
   Libs/LibDispel:
     url: https://github.com/tukui-org/LibDispel.git
     branch: main
