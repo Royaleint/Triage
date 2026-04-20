@@ -1,15 +1,5 @@
 # Triage Changelog
 
-## v1.0.1 — Packaging fix
-
-Same code as v1.0.0, repackaged so CurseForge stops rejecting it. v1.0.0
-shipped to Wago and GitHub but failed CurseForge upload because of an
-unused embedded library (AceTab) that didn't have a CurseForge entry.
-Removed AceTab from the packaging — it wasn't used by anything in Triage.
-
-If you got v1.0.0 from Wago, this is just a no-op cleanup. If you're
-installing from CurseForge, this is your first version.
-
 ## v1.0.0 — ERF Reforged
 
 Triage picks up where Enhanced Raid Frames left off. Everything that

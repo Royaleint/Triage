@@ -20,34 +20,52 @@ ignore:
   - "!CHANGELOG.md"
   - Triage_Dev
 
-embedded-libraries:
-  - LibStub
-  - CallbackHandler-1.0
-  - AceAddon-3.0
-  - AceBucket-3.0
-  - AceComm-3.0
-  - AceConfig-3.0
-  - AceConsole-3.0
-  - AceDB-3.0
-  - AceDBOptions-3.0
-  - AceEvent-3.0
-  - AceGUI-3.0
-  - AceHook-3.0
-  - AceLocale-3.0
-  - AceSerializer-3.0
-  # AceTab-3.0 removed in v1.0.0 — vendored unused (inherited from ERF) and
-  # CurseForge rejects the auto-derived slug 'acetab-3.0' (errorCode 1018,
-  # not a valid CurseForge project — AceTab lives only on WowAce).
-  # Re-add for TRI-014 (autocomplete) IF using the Tab-key pattern; verify
-  # the correct CurseForge slug or use an externals override before re-enabling.
-  - AceTimer-3.0
-  - AceGUI-3.0-SharedMediaWidgets
-  - LibSharedMedia-3.0
-  - LibDeflate
-  - LibDualSpec-1.0
-  - LibRangeCheck-3.0
-  - LibClassicDurations
-  - LibDispel
-  - LibCustomGlow
-  - LibDataBroker-1.1
-  - LibDBIcon-1.0
+# Externals migration (v1.0.0): switched from `embedded-libraries` to `externals`
+# because the packager auto-derives CurseForge slugs from `embedded-libraries`
+# entry names keeping dots (e.g. `libdualspec-1.0`), while CurseForge stores
+# slugs with hyphens (e.g. `libdualspec-1-0`). External URLs let us name the
+# slug correctly via the URL path. Matches Homestead's pattern.
+#
+# AceTab-3.0 was vendored from ERF but unused — removed entirely. Re-add via
+# externals + curse-slug override if TRI-014 (autocomplete) uses the Tab-key
+# pattern.
+
+externals:
+  # Core Ace3
+  Libs/LibStub: https://repos.wowace.com/wow/libstub/trunk
+  Libs/CallbackHandler-1.0: https://repos.wowace.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+  Libs/AceAddon-3.0: https://repos.wowace.com/wow/ace3/trunk/AceAddon-3.0
+  Libs/AceBucket-3.0: https://repos.wowace.com/wow/ace3/trunk/AceBucket-3.0
+  Libs/AceComm-3.0: https://repos.wowace.com/wow/ace3/trunk/AceComm-3.0
+  Libs/AceConfig-3.0: https://repos.wowace.com/wow/ace3/trunk/AceConfig-3.0
+  Libs/AceConsole-3.0: https://repos.wowace.com/wow/ace3/trunk/AceConsole-3.0
+  Libs/AceDB-3.0: https://repos.wowace.com/wow/ace3/trunk/AceDB-3.0
+  Libs/AceDBOptions-3.0: https://repos.wowace.com/wow/ace3/trunk/AceDBOptions-3.0
+  Libs/AceEvent-3.0: https://repos.wowace.com/wow/ace3/trunk/AceEvent-3.0
+  Libs/AceGUI-3.0: https://repos.wowace.com/wow/ace3/trunk/AceGUI-3.0
+  Libs/AceHook-3.0: https://repos.wowace.com/wow/ace3/trunk/AceHook-3.0
+  Libs/AceLocale-3.0: https://repos.wowace.com/wow/ace3/trunk/AceLocale-3.0
+  Libs/AceSerializer-3.0: https://repos.wowace.com/wow/ace3/trunk/AceSerializer-3.0
+  Libs/AceTimer-3.0: https://repos.wowace.com/wow/ace3/trunk/AceTimer-3.0
+
+  # WowAce-hosted libs (URL slugs match CurseForge slugs)
+  Libs/AceGUI-3.0-SharedMediaWidgets: https://repos.wowace.com/wow/ace-gui-3-0-sharedmediawidgets/trunk
+  Libs/LibSharedMedia-3.0: https://repos.wowace.com/wow/libsharedmedia-3-0/trunk/LibSharedMedia-3.0
+  Libs/LibDualSpec-1.0: https://repos.wowace.com/wow/libdualspec-1-0/trunk
+  Libs/LibRangeCheck-3.0: https://repos.wowace.com/wow/librangecheck-3-0/trunk/LibRangeCheck-3.0
+  Libs/LibDataBroker-1.1: https://repos.wowace.com/wow/libdatabroker-1-1
+  Libs/LibDBIcon-1.0: https://repos.wowace.com/wow/libdbicon-1-0/trunk/LibDBIcon-1.0
+
+  # GitHub-only libs (no CurseForge project relation declared by packager)
+  Libs/LibDeflate:
+    url: https://github.com/SafeteeWoW/LibDeflate.git
+    branch: master
+  Libs/LibClassicDurations:
+    url: https://github.com/rgd87/LibClassicDurations.git
+    branch: master
+  Libs/LibDispel:
+    url: https://github.com/tukui-org/LibDispel.git
+    branch: main
+  Libs/LibCustomGlow:
+    url: https://github.com/Stanzilla/LibCustomGlow.git
+    branch: master
