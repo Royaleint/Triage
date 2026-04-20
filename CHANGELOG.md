@@ -15,7 +15,7 @@ broke and a new feature that didn't exist before.
 - Target marker icons on raid frames
 - Frame scaling
 - Per-spec profiles with import/export
-- Full Classic Era and Pandaria Classic support
+- Classic Era and Pandaria Classic builds ship alongside Retail — community testing welcome.
 
 ### What's new
 - **Dispel Overlay** — a colored border and glow lights up around
