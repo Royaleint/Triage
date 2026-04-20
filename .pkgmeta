@@ -35,7 +35,11 @@ embedded-libraries:
   - AceHook-3.0
   - AceLocale-3.0
   - AceSerializer-3.0
-  - AceTab-3.0
+  # AceTab-3.0 removed in v1.0.0 — vendored unused (inherited from ERF) and
+  # CurseForge rejects the auto-derived slug 'acetab-3.0' (errorCode 1018,
+  # not a valid CurseForge project — AceTab lives only on WowAce).
+  # Re-add for TRI-014 (autocomplete) IF using the Tab-key pattern; verify
+  # the correct CurseForge slug or use an externals override before re-enabling.
   - AceTimer-3.0
   - AceGUI-3.0-SharedMediaWidgets
   - LibSharedMedia-3.0

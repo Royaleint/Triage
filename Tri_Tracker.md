@@ -113,6 +113,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Status:** Backlog
 - **Source:** Original — no competitor has this.
 - **Summary:** Real-time spell name validation and autocomplete in aura config fields. Validates against C_Spell.GetSpellInfo(), supports spell IDs and fuzzy matching ("rejuv" → "Rejuvenation"). Warning icon on typos. Eliminates the most common config error across all raid frame addons.
+- **Notes:** AceTab-3.0 was removed from vendoring in v1.0.0 (was inherited unused from ERF; CurseForge slug `acetab-3.0` invalid). If implementing via the Tab-key autocomplete pattern, re-vendor AceTab-3.0 with the correct CurseForge externals override or use an alternative pattern (Blizzard's `AutoCompleteEditBoxTemplate`, AceGUI editbox + live `OnTextChanged` suggestions, or LibAdvancedAutoComplete).
 
 ### TRI-015 First-run experience — spec detection, welcome flow, progressive disclosure
 - **Type:** Feature
