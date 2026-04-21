@@ -24,10 +24,35 @@ jobs:
 
       - name: Extract current version changelog
         run: |
-          # Extract the first version section from CHANGELOG.md
-          # Grabs everything from the first ## heading to the next --- separator
-          awk '/^## v/{if(found) exit; found=1} found' CHANGELOG.md > RELEASE_NOTES.md
-          echo "--- Extracted release notes ---"
+          # Determine the tag to extract notes for. For tag-push triggers,
+          # github.ref_name is the tag (e.g. v1.0.0). For workflow_dispatch,
+          # prefer the manual input, fall back to github.ref_name.
+          TAG="${{ inputs.tag }}"
+          [ -z "$TAG" ] && TAG="${{ github.ref_name }}"
+          echo "Extracting release notes for tag: $TAG"
+
+          # Extract the section matching the tag's heading.
+          # CHANGELOG headings look like: `## v1.0.0 — ERF Reforged`
+          # Match `## $TAG` at start of line, optionally followed by space+title.
+          # Stop at the next `## v` heading (next version section).
+          awk -v tag="$TAG" \
+            'BEGIN{re="^## "tag"($| )"} \
+             $0 ~ re {found=1; print; next} \
+             /^## v/{if(found) exit} \
+             found' CHANGELOG.md > RELEASE_NOTES.md
+
+          # Fail loudly if no matching section was found — pushing a tag
+          # without a corresponding CHANGELOG entry is a release-process bug
+          # that should block the release rather than silently extract the
+          # top entry (which previously caused v0.0.2 to ship with v1.0.0
+          # release notes).
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "ERROR: No CHANGELOG.md section found for tag '$TAG'." >&2
+            echo "Expected a heading like '## $TAG' or '## $TAG — title'." >&2
+            exit 1
+          fi
+
+          echo "--- Extracted release notes for $TAG ---"
           cat RELEASE_NOTES.md
 
       - name: Package and Release (Retail)
