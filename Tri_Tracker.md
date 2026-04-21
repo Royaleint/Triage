@@ -372,6 +372,15 @@ Active and queued work for the Triage addon. Completed items live in
   - Created 14 GitHub issues (#17-#31) to sync backlog with repo issues; created `quick-win` label.
   - Cleaned up 3 stale remote branches (Triage, BawrLabs, Homestead) and 1 stale local branch (Homestead).
   - Reviewed Claude Code releases v2.1.92-v2.1.98 against all CLAUDE.md files — no updates needed.
+- **Session progress (2026-04-20, v1.0.0 release):**
+  - **Triage v1.0.0 — ERF Reforged shipped to all three platforms:** GitHub Release, CurseForge (project 1504503), Wago (5NR82vK3). Final tag at commit `fd11afb` (workflow run 24696631355, success). Per-game-version zips: Retail (12.0.1), Classic Era (1.15.8), Pandaria Classic (5.5.3).
+  - **AceTab-3.0 removed** from vendoring — was inherited from ERF but unused, and CurseForge rejected the auto-derived slug `acetab-3.0`. See `.pkgmeta` comment for re-add guidance if TRI-014 wants the Tab-key autocomplete pattern.
+  - **`.pkgmeta` migrated from `embedded-libraries:` to `externals:`** matching Homestead's pattern. Root cause of v1.0.0 CurseForge failures: BigWigs packager auto-derives CF slugs from `embedded-libraries` entry names keeping dots (e.g. `libdualspec-1.0`), but CurseForge stores slugs with hyphens (e.g. `libdualspec-1-0`). External URLs let us name the slug correctly via the URL path. Hybrid approach: WowAce SVN for libs hosted there, GitHub for libs that aren't (LibDualSpec-1.0, LibRangeCheck-3.0, LibDeflate, LibClassicDurations, LibDispel, LibCustomGlow). `curse-slug` overrides set for GitHub libs with confirmed CF presence.
+  - **Workflow `awk` extractor bug fixed** (`.github/workflows/release.yml`) — previously grabbed top CHANGELOG section regardless of pushed tag (caused v0.0.2 to ship with v1.0.0 release notes). Now matches the section heading by tag and fails loudly if no matching section exists.
+  - **CHANGELOG `Classic Era + Pandaria Classic` claim softened** to "ships alongside Retail — community testing welcome" per locked decision.
+  - **GitHub repo secrets configured by Rawb:** `CF_API_KEY` and `WAGO_API_TOKEN` (without these, all upload attempts silently produced empty release notes; the failure mode that hid the AceTab/embedded-libraries issue).
+  - **Cleanup:** v0.0.2 GitHub Release + tag deleted; v1.0.1 tag (interim packaging-fix attempt) deleted; v1.0.0 re-tagged at the cleanup HEAD.
+  - **Open from this session — TRI-003 follow-up:** uncommitted changes to `Modules/DispelOverlay.lua` and `Localizations/enUS.lua` (Blizzard dispel highlight atlas integration) restored from stash to Triage main working tree. Needs Argus review + worktree migration before merge. Saved for a future session.
 - **Pending (next session):**
   - Fresh in-game Retail verification of the merged TRI-003, TRI-004, and TRI-007 work.
   - Run click-casting spike A1-A5 in-game (Retail).
@@ -379,9 +388,10 @@ Active and queued work for the Triage addon. Completed items live in
   - Run click-casting spike A6-A7 on Classic Era.
   - Urgency glow data source investigation (Spike C).
   - In-game test dispel overlay on a dispel class.
-  - CurseForge first-upload moderation — current status still unconfirmed from session sources.
+  - **TRI-003 follow-up commit + Argus review** (Blizzard dispel highlight atlas integration; uncommitted on Triage main).
+  - Verify CurseForge v1.0.0 moderation status (web UI).
+  - Clean up Wago duplicate v1.0.0 + v1.0.1 entries (web UI — old failed-release artifacts).
   - Update announcement drafts for expanded v1.0 scope.
-  - Clean up v0.0.1-test tag/release after CurseForge approves.
   - Remove stale worktrees (`tri-003-colored-dispel-glow`, `tri-004-frame-registry`) after in-game verification.
   - Classic Era testing (community-assisted).
 - **ERF Midnight compatibility analysis (2026-03-25):**
