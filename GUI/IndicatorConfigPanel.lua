@@ -92,15 +92,18 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						name = L["General"],
 						order = 1,
 					},
-					mineOnly = {
-						type = "toggle",
-						name = L["Mine Only"],
-						desc = L["mineOnly_desc"],
+					casterFilter = {
+						type = "select",
+						name = L["Caster Filter"],
+						desc = L["casterFilter_desc"],
+						style = "dropdown",
+						values = { ["all"] = L["All Casters"], ["mine"] = L["Mine Only"], ["notMine"] = L["Not Mine"] },
+						sorting = { [1] = "all", [2] = "mine", [3] = "notMine" },
 						get = function()
-							return self.db.profile["indicator-" .. i].mineOnly
+							return self.db.profile["indicator-" .. i].casterFilter
 						end,
 						set = function(_, value)
-							self.db.profile["indicator-" .. i].mineOnly = value
+							self.db.profile["indicator-" .. i].casterFilter = value
 							self:RefreshConfig()
 						end,
 						width = THIRD_WIDTH,

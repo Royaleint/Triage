@@ -252,9 +252,12 @@ function EnhancedRaidFrames:ProcessIndicator(indicatorFrame, unit)
 
 	-- Process our visuals
 	if indicatorFrame.thisAura then
-		-- Clear the frame if we're only showing missing auras or we're only showing our own auras and the aura isn't ours
+		-- Clear the frame if we're only showing missing auras or the caster filter rejects the source
+		local casterFilter = self.db.profile["indicator-" .. i].casterFilter
+		local sourceUnit = indicatorFrame.thisAura.sourceUnit
 		if self.db.profile["indicator-" .. i].missingOnly
-				or (self.db.profile["indicator-" .. i].mineOnly and indicatorFrame.thisAura.sourceUnit ~= "player") then
+				or (casterFilter == "mine" and sourceUnit ~= "player")
+				or (casterFilter == "notMine" and (sourceUnit == "player" or sourceUnit == nil)) then
 			self:ClearIndicator(indicatorFrame)
 			return
 		end
@@ -314,9 +317,12 @@ function EnhancedRaidFrames:FindActiveAndTrackedAura(indicatorFrame)
 					-- Check if the aura is a debuff and if the auraString matches one of the debuff type wildcards
 					or (aura.isHarmful and aura.dispelName and aura.dispelName:lower() == auraIdentifier) then
 
-				-- Check if we should only show our own auras
-				if not self.db.profile["indicator-" .. i].mineOnly
-						or (self.db.profile["indicator-" .. i].mineOnly and aura.sourceUnit == "player") then
+				-- Check the caster filter ("all" / "mine" / "notMine"). "notMine" also rejects
+				-- unknown sources (sourceUnit == nil) so server-side or stale auras don't match.
+				local casterFilter = self.db.profile["indicator-" .. i].casterFilter
+				if casterFilter == "all"
+						or (casterFilter == "mine" and aura.sourceUnit == "player")
+						or (casterFilter == "notMine" and aura.sourceUnit ~= nil and aura.sourceUnit ~= "player") then
 					-- Return once we find an aura that matches all of these conditions
 					return aura
 				end

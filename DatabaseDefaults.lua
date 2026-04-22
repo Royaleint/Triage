@@ -7,7 +7,7 @@
 local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
 -- Latest Database Version (<major>.<minor>)
-EnhancedRaidFrames.DATABASE_VERSION = 2.2
+EnhancedRaidFrames.DATABASE_VERSION = 2.3
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
@@ -83,7 +83,7 @@ function EnhancedRaidFrames:CreateDefaults()
 			auras = "",
 
 			-- Visibility and Behavior
-			mineOnly = false,
+			casterFilter = "all",
 			meOnly = false,
 			missingOnly = false,
 			showTooltip = true,

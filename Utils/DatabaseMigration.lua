@@ -48,6 +48,17 @@ function EnhancedRaidFrames:MigrateDatabase()
 			end
 		end
 
+		-- Added in database version 2.3
+		-- Convert per-indicator boolean `mineOnly` into the new 3-way `casterFilter`
+		-- ("all" | "mine" | "notMine"). Drop the old key once converted.
+		for i = 1, 9 do
+			local indicatorDB = self.db.profile["indicator-" .. i]
+			if indicatorDB and indicatorDB.mineOnly ~= nil then
+				indicatorDB.casterFilter = indicatorDB.mineOnly and "mine" or "all"
+				indicatorDB.mineOnly = nil
+			end
+		end
+
 		-- Reload our database object with the defaults post-migration
 		self:InitializeDatabase()
 
