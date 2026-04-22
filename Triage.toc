@@ -29,6 +29,7 @@ Overrides.lua
 Utils/FrameRegistry.lua
 Utils/Utilities.lua
 Utils/DatabaseMigration.lua
+Utils/TransformSpells.lua
 Utils/TestModeData.lua
 Utils/TestModeFrames.lua
 
