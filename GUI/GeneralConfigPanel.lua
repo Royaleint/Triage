@@ -191,8 +191,7 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				name = L["Select a Custom Distance"],
 				desc = L["customRangeCheck_desc"],
 				values = { [5] = L["Melee"], [10] = L["10 yards"], [15] = L["15 yards"], [20] = L["20 yards"],
-						   [25] = L["25 yards"], [30] = L["30 yards"], [35] = L["35 yards"], [40] = L["40 yards"],
-						   [45] = L["45 yards"], [50] = L["50 yards"], [55] = L["55 yards"], [60] = L["60 yards"] },
+						   [25] = L["25 yards"], [30] = L["30 yards"], [35] = L["35 yards"], [40] = L["40 yards"] },
 				get = function()
 					return self.db.profile.customRange
 				end,
@@ -280,8 +279,19 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 	}
 
-	-- Dispel Overlay settings (Retail only)
+	-- Retail-only extensions
 	if not self.isWoWClassicEra and not self.isWoWClassic then
+		-- Extended range options (Retail only) — Classic Era and Pandaria Classic
+		-- healer spells cap at or below 40yd, and LibRangeCheck has no reliable
+		-- checkers beyond that range on those clients. Exposing 45-60yd there
+		-- would produce a setting that silently does nothing and invite bug reports.
+		local customRangeValues = generalOptions.args.customRange.values
+		customRangeValues[45] = L["45 yards"]
+		customRangeValues[50] = L["50 yards"]
+		customRangeValues[55] = L["55 yards"]
+		customRangeValues[60] = L["60 yards"]
+
+		-- Dispel Overlay settings (Retail only)
 		generalOptions.args.dispelOverlayHeader = {
 			type = "header",
 			name = L["Dispel Overlay"],
