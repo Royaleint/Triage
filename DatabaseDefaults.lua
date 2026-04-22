@@ -105,6 +105,7 @@ function EnhancedRaidFrames:CreateDefaults()
 			showCountdownText = false,
 			showStackSize = true,
 			stackSizeLocation = "BOTTOMRIGHT",
+			countdownLocation = "CENTER",
 			textColor = { 1, 1, 1, 1 },
 			colorTextByTime = false,
 			colorTextByTime_low = 2,

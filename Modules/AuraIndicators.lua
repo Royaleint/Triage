@@ -419,31 +419,37 @@ function EnhancedRaidFrames:UpdateStackSizeText(indicatorFrame)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
+	-- Anchor the Countdown text based on its own location setting, independent
+	-- of the stack size. ClearAllPoints first so switching between corners
+	-- doesn't accumulate stale anchors on the FontString.
+	indicatorFrame.Countdown:ClearAllPoints()
+	local countdownLocation = self.db.profile["indicator-" .. i].countdownLocation
+	if countdownLocation == "TOPLEFT" then
+		indicatorFrame.Countdown:SetPoint("TOPLEFT", indicatorFrame, "TOPLEFT", 1, -1)
+	elseif countdownLocation == "TOPRIGHT" then
+		indicatorFrame.Countdown:SetPoint("TOPRIGHT", indicatorFrame, "TOPRIGHT", -1, -1)
+	elseif countdownLocation == "BOTTOMLEFT" then
+		indicatorFrame.Countdown:SetPoint("BOTTOMLEFT", indicatorFrame, "BOTTOMLEFT", 1, 1)
+	elseif countdownLocation == "BOTTOMRIGHT" then
+		indicatorFrame.Countdown:SetPoint("BOTTOMRIGHT", indicatorFrame, "BOTTOMRIGHT", -1, 1)
+	else -- "CENTER"
+		indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 0, 0)
+	end
+
 	-- Set the stack count text
 	if self.db.profile["indicator-" .. i].showStackSize and thisAura.applications and thisAura.applications > 1 then
-		-- Set the position of the stack size text based on the user's choice
-		-- Since space is limited, we have to move the countdown text to make room for the stack size text
+		indicatorFrame.StackSize:ClearAllPoints()
 		if self.db.profile["indicator-" .. i].stackSizeLocation == "TOPLEFT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("TOPLEFT", indicatorFrame, "TOPLEFT", -3, 2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 1, -1)
 		elseif self.db.profile["indicator-" .. i].stackSizeLocation == "TOPRIGHT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("TOPRIGHT", indicatorFrame, "TOPRIGHT", 4, 2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", -1, -1)
 		elseif self.db.profile["indicator-" .. i].stackSizeLocation == "BOTTOMLEFT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("BOTTOMLEFT", indicatorFrame, "BOTTOMLEFT", -3, -2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 1, 1)
 		elseif self.db.profile["indicator-" .. i].stackSizeLocation == "BOTTOMRIGHT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("BOTTOMRIGHT", indicatorFrame, "BOTTOMRIGHT", 4, -2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", -1, 1)
 		end
 		indicatorFrame.StackSize:SetText(thisAura.applications)
 	else
-		-- Reset the position of the countdown text and clear our stack size text
-		indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 0, 0)
 		indicatorFrame.StackSize:SetText("")
 	end
 end
