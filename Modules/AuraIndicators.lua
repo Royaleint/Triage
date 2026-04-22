@@ -423,14 +423,13 @@ function EnhancedRaidFrames:UpdateStackSizeText(indicatorFrame)
 	-- of the stack size. ClearAllPoints first so switching between corners
 	-- doesn't accumulate stale anchors on the FontString.
 	indicatorFrame.Countdown:ClearAllPoints()
-	local countdownLocation = self.db.profile["indicator-" .. i].countdownLocation
-	if countdownLocation == "TOPLEFT" then
+	if self.db.profile["indicator-" .. i].countdownLocation == "TOPLEFT" then
 		indicatorFrame.Countdown:SetPoint("TOPLEFT", indicatorFrame, "TOPLEFT", 1, -1)
-	elseif countdownLocation == "TOPRIGHT" then
+	elseif self.db.profile["indicator-" .. i].countdownLocation == "TOPRIGHT" then
 		indicatorFrame.Countdown:SetPoint("TOPRIGHT", indicatorFrame, "TOPRIGHT", -1, -1)
-	elseif countdownLocation == "BOTTOMLEFT" then
+	elseif self.db.profile["indicator-" .. i].countdownLocation == "BOTTOMLEFT" then
 		indicatorFrame.Countdown:SetPoint("BOTTOMLEFT", indicatorFrame, "BOTTOMLEFT", 1, 1)
-	elseif countdownLocation == "BOTTOMRIGHT" then
+	elseif self.db.profile["indicator-" .. i].countdownLocation == "BOTTOMRIGHT" then
 		indicatorFrame.Countdown:SetPoint("BOTTOMRIGHT", indicatorFrame, "BOTTOMRIGHT", -1, 1)
 	else -- "CENTER"
 		indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 0, 0)
