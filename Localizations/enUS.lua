@@ -68,6 +68,10 @@ L["25 yards"] = true
 L["30 yards"] = true
 L["35 yards"] = true
 L["40 yards"] = true
+L["45 yards"] = true
+L["50 yards"] = true
+L["55 yards"] = true
+L["60 yards"] = true
 
 ----------------------------------------------------
 ------------------- General Panel ------------------
