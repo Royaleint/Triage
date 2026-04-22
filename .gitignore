@@ -1,5 +1,5 @@
 # Dev-only documents and working files
-Triage_Dev/
+# Triage_Dev/ is tracked (excluded from CurseForge via .pkgmeta)
 AGENTS.md
 CLAUDE.md
 
