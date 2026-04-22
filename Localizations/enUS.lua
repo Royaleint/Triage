@@ -115,6 +115,9 @@ L["customRangeCheck_desc"] = "Changes the default 40 yard out-of-range distance 
 L["Out-of-Range Opacity"] = true
 L["rangeAlpha_desc"] = "The opacity percentage of the raid frame when out-of-range"
 
+L["Keep Indicators Visible Out of Range"] = true
+L["keepIndicatorsVisible_desc"] = "Keep aura indicators at full opacity when the raid frame fades out of range. Requires Override Default Distance to be enabled."
+
 L["Test Mode"] = true
 L["testModeDescription_desc"] = "Spawn synthetic preview frames without joining a real group."
 L["Preview Group Size"] = true

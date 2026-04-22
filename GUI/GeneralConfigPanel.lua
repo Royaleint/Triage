@@ -223,6 +223,20 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				width = THIRD_WIDTH,
 				order = 43,
 			},
+			keepIndicatorsVisible = {
+				type = "toggle",
+				name = L["Keep Indicators Visible Out of Range"],
+				desc = L["keepIndicatorsVisible_desc"],
+				get = function()
+					return self.db.profile.keepIndicatorsVisible
+				end,
+				set = function(_, value)
+					self.db.profile.keepIndicatorsVisible = value
+					self:RefreshConfig()
+				end,
+				width = THIRD_WIDTH,
+				order = 44,
+			},
 			testModeHeader = {
 				type = "header",
 				name = L["Test Mode"],

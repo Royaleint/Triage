@@ -45,6 +45,7 @@ function EnhancedRaidFrames:CreateDefaults()
 		customRangeCheck = false,
 		customRange = 30,
 		rangeAlpha = 0.55,
+		keepIndicatorsVisible = false,
 
 		-------------------------------
 		---- Dispel Overlay (Retail) ---
