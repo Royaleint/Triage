@@ -15,6 +15,7 @@ local PRIORITY_ORDER = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
 local BORDER_THICKNESS = 2
 local GLOW_ALPHA = 0.85
 local GLOW_UPDATE_INTERVAL = 0.2
+local BLIZZARD_DISPEL_HIGHLIGHT_ATLAS = "RaidFrame-DispelHighlight"
 
 local StopGlow, GetGlowColor, EnsureGlow
 
@@ -49,6 +50,11 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 	local overlay = CreateFrame("Frame", nil, frame)
 	overlay:SetAllPoints()
 	overlay:SetFrameLevel(frame:GetFrameLevel() + 2)
+
+	overlay.blizzardBorder = overlay:CreateTexture(nil, "OVERLAY")
+	overlay.blizzardBorder:SetAtlas(BLIZZARD_DISPEL_HIGHLIGHT_ATLAS)
+	overlay.blizzardBorder:SetAllPoints()
+	overlay.blizzardBorder:Hide()
 
 	-- Programmatic 4-edge border
 	overlay.edges = {}
@@ -159,7 +165,7 @@ GetGlowColor = function(useTypeColor, color)
 		return {color.r, color.g, color.b, GLOW_ALPHA}
 	end
 
-	return {1, 1, 1, GLOW_ALPHA}
+	return nil
 end
 
 --- Stop and clear the current glow state on an overlay
@@ -288,18 +294,24 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 	-- Border: show edges for "border" and "both", hide for "pulse" only
 	if glowStyle == "border" or glowStyle == "both" then
 		if useTypeColor then
+			overlay.blizzardBorder:Hide()
 			SetBorderColor(overlay, color.r, color.g, color.b, alpha)
+			for _, edge in ipairs(overlay.edges) do
+				edge:Show()
+			end
 		else
-			SetBorderColor(overlay, 1, 1, 1, alpha)
-		end
-		for _, edge in ipairs(overlay.edges) do
-			edge:Show()
+			for _, edge in ipairs(overlay.edges) do
+				edge:Hide()
+			end
+			overlay.blizzardBorder:SetAlpha(alpha)
+			overlay.blizzardBorder:Show()
 		end
 	else
 		-- Pulse only — hide edges
 		for _, edge in ipairs(overlay.edges) do
 			edge:Hide()
 		end
+		overlay.blizzardBorder:Hide()
 	end
 
 	overlay:Show()
