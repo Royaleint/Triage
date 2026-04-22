@@ -9,5 +9,5 @@ is created with the history footer template; entries will be appended as Triage 
 move from `Tri_Tracker.md` to here on completion.)*
 
 ---
-Pre-split history: Royaleint/BawrLabs@<CUTOVER-SHA>:BACKLOG.md
-Archaeology: `git log -S "<ITEM-ID>" -- BACKLOG.md` at that SHA
+Pre-split history: Royaleint/BawrLabs@2951ea8:BACKLOG.md
+Archaeology: `git log -S "<ITEM-ID>" -- BACKLOG.md` at commit 2951ea8^ (the commit before BACKLOG.md was deleted)
