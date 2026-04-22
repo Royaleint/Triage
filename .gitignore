@@ -1,5 +1,9 @@
 # Dev-only documents and working files
-# Triage_Dev/ is tracked (excluded from CurseForge via .pkgmeta)
+# Triage_Dev/ is ignored for new scratch files, but specific plans and
+# research docs are explicitly tracked (git keeps tracking files already
+# in the index even when the path matches gitignore). Excluded from
+# CurseForge packaging via .pkgmeta regardless.
+Triage_Dev/
 AGENTS.md
 CLAUDE.md
 
