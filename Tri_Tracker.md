@@ -425,6 +425,13 @@ Active and queued work for the Triage addon. Completed items live in
   - **GitHub repo secrets configured by Rawb:** `CF_API_KEY` and `WAGO_API_TOKEN` (without these, all upload attempts silently produced empty release notes; the failure mode that hid the AceTab/embedded-libraries issue).
   - **Cleanup:** v0.0.2 GitHub Release + tag deleted; v1.0.1 tag (interim packaging-fix attempt) deleted; v1.0.0 re-tagged at the cleanup HEAD.
   - **Open from this session — TRI-003 follow-up:** uncommitted changes to `Modules/DispelOverlay.lua` and `Localizations/enUS.lua` (Blizzard dispel highlight atlas integration) restored from stash to Triage main working tree. Needs Argus review + worktree migration before merge. Saved for a future session.
+- **Session progress (2026-04-21, post-12.0.5 launch):**
+  - **12.0.5 live.** Two login-time Lua errors surfaced immediately. Shipped hotfixes as TRI-027 (`Libs/embeds.xml` stale `AceTab-3.0` include removed — commit `378360a`) and TRI-028 (`Overrides.lua` existence guard for `CompactUnitFrame_UpdatePrivateAuras` SecureHook — commit `1f36640`). Merged to main as `3ba6b3e`, Argus Gate 1 passed, Rawb Gate 2 passed on Retail (no errors on login/zone/roster).
+  - **12.0.5 private-aura removal confirmed.** `/dump CompactUnitFrame_UpdatePrivateAuras` returned `nil` — Blizzard removed the free-standing global and moved private-aura handling to the `CompactUnitPrivateAuraAnchorMixin:SetUnit` path. Filed TRI-029 to retire or rework the now-dead `UpdatePrivateAuraVisOverrides` polish code. Guard stays either way.
+  - **TRI-003 atlas follow-up rescued.** The parked Blizzard dispel highlight atlas work from Session 24 (uncommitted for 8 days) preserved on new branch `tri-003-atlas-followup` at commit `2e73752`. Filed TRI-032 to track Gate 1 + in-game re-verify.
+  - **Comms items filed.** 17 organic CurseForge downloads since v1.0.0 with zero announcement push — filed TRI-030 (publish announcement, refresh Session 16-17 drafts) and TRI-031 (replace placeholder Soyier CF screenshots after TRI-003/004/007 Gate 2 passes). Both under a new `Release & Comms` Backlog subsection.
+  - **Worktree cleanup.** Removed 3 merged worktrees (`tri-003-colored-dispel-glow`, `tri-004-frame-registry`, `tri-027-login-errors`) and 4 stale branches (the three above plus `fix/remove-acetab`). `stu-034-tracker-split` worktree held per Rawb (Category C — 1 real unmerged cutover-SHA commit).
+  - **Studio-side impact:** Stop and PreCompact hooks were broken project-agnostically (relative paths + Windows-path-mangling regex). Fixed in BawrLabs this session — session heartbeat now fires correctly across all projects.
 - **Pending (next session):**
   - Fresh in-game Retail verification of the merged TRI-003, TRI-004, and TRI-007 work.
   - Run click-casting spike A1-A5 in-game (Retail).
@@ -432,12 +439,14 @@ Active and queued work for the Triage addon. Completed items live in
   - Run click-casting spike A6-A7 on Classic Era.
   - Urgency glow data source investigation (Spike C).
   - In-game test dispel overlay on a dispel class.
-  - **TRI-003 follow-up commit + Argus review** (Blizzard dispel highlight atlas integration; uncommitted on Triage main).
+  - **TRI-032** — Gate 1 (Argus) and in-game re-verify for the atlas neutral-fallback work on branch `tri-003-atlas-followup` (`2e73752`).
+  - **TRI-029** — decide whether to rework or delete `UpdatePrivateAuraVisOverrides` (now confirmed dead on 12.0.5 via `/dump`).
+  - **TRI-030** — refresh Session 16-17 announcement drafts against current state, then publish (CurseForge, Reddit, GitHub).
+  - **TRI-031** — swap placeholder Soyier CF screenshots after TRI-003/004/007 Gate 2 passes.
   - Verify CurseForge v1.0.0 moderation status (web UI).
   - Clean up Wago duplicate v1.0.0 + v1.0.1 entries (web UI — old failed-release artifacts).
-  - Update announcement drafts for expanded v1.0 scope.
-  - Remove stale worktrees (`tri-003-colored-dispel-glow`, `tri-004-frame-registry`) after in-game verification.
   - Classic Era testing (community-assisted).
+  - Clean up `.worktrees/stu-034-tracker-split` after deciding whether to merge or drop the one-commit `fix/stu-034-cutover-sha` (Tri_Completed footer placeholder `<CUTOVER-SHA>` → `2951ea8`).
 - **ERF Midnight compatibility analysis (2026-03-25):**
   - Full analysis at `BawrLabs/projects/erf-midnight-compatibility-analysis.md`
   - Not a rewrite — port plus two structural fixes (overlay mouse model rework, frame lifecycle hooks) and one verification gate (aura matching under C_Secrets)
