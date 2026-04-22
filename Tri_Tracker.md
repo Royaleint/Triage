@@ -21,6 +21,21 @@ Active and queued work for the Triage addon. Completed items live in
 
 ### Features
 
+### TRI-032 TRI-003 follow-up — Blizzard dispel highlight atlas for neutral fallback
+- **Type:** Feature (polish)
+- **Priority:** Medium
+- **Status:** Backlog — committed to branch, Gate 1 + in-game re-verify pending
+- **Source:** Session 24 (2026-04-13) locked decision during TRI-003 Gate 2 verification: when "Color by Debuff Type" is disabled, use Blizzard's stock dispel highlight atlas (`RaidFrame-DispelHighlight`) instead of a custom white border. Edits were parked uncommitted on Triage main through 2026-04-21 wrapup, at which point they were preserved on a dedicated branch.
+- **Acceptance criteria:** (1) With `Color by Debuff Type` disabled, raid frames with a dispellable debuff show Blizzard's native dispel highlight atlas and no custom glow. (2) With `Color by Debuff Type` enabled, behavior unchanged — colored border + type-colored glow. (3) Toggling the setting and `/reload`ing produces the correct visual in both states. (4) Setting tooltip text matches the new behavior (Blizzard's default highlight vs custom colored border/glow).
+- **Branch:** `tri-003-atlas-followup` at commit `2e73752` (`feat(overlay): use Blizzard dispel highlight atlas for neutral fallback`).
+- **Files touched:** `Modules/DispelOverlay.lua` (+15 / -5), `Localizations/enUS.lua` (+1 / -1).
+- **Next actions:**
+  1. Create worktree from the `tri-003-atlas-followup` branch when picking this back up (branch exists but no worktree yet).
+  2. Argus Gate 1 on the committed branch.
+  3. `/gate2-prep` merge to main after Gate 1 pass.
+  4. In-game Gate 2 on a dispel-capable class (druid, priest, paladin, shaman, monk, evoker, mage) — test both `Color by Debuff Type = off` (Blizzard atlas should appear) and `= on` (colored border should appear) with `/reload` between toggles.
+- **Notes:** Original TRI-003 scope (colored glow matching debuff type) shipped in v1.0.0 and is in Awaiting Release. This is a neutral-mode visual refinement discovered during that work's Gate 2 review, not a regression.
+
 ### TRI-001 Boss frames as raid-style compact frames
 - **Type:** Feature
 - **Priority:** High
@@ -191,7 +206,36 @@ Active and queued work for the Triage addon. Completed items live in
 
 ### Maintenance
 
-*(None — TRI-004 is currently Awaiting Gate 2.)*
+### TRI-029 Retire or rework UpdatePrivateAuraVisOverrides (dead on 12.0.5)
+- **Type:** Maintenance
+- **Priority:** Low
+- **Status:** Backlog
+- **Source:** TRI-028 follow-up (2026-04-21). Confirmed via `/dump CompactUnitFrame_UpdatePrivateAuras` → `nil` on live 12.0.5.
+- **Context:** Midnight 12.0.5 removed the free-standing `CompactUnitFrame_UpdatePrivateAuras` global. Private-aura handling moved to `CompactUnitPrivateAuraAnchorMixin:SetUnit` (CompactUnitFrame.lua:2711 in our Blizzard source extraction). TRI-028's existence guard prevents the error but leaves `UpdatePrivateAuraVisOverrides` permanently unreachable on Retail — the polish behavior that hides private-aura anchors when `showDebuffs` is off no longer runs.
+- **Acceptance criteria:** Decide between (a) reworking `UpdatePrivateAuraVisOverrides` against the current `PrivateAuraAnchors` / mixin path so the polish works again on 12.0.5, or (b) deleting `UpdatePrivateAuraVisOverrides` and its call site as permanently dead code. Document the choice. Existence guard in `Overrides.lua:22` stays either way.
+- **Notes:** Low priority — polish feature for a niche setting most users don't change. File if someone reports private auras visibly leaking through `showDebuffs = false`.
+
+### Release & Comms
+
+### TRI-030 Publish Triage v1.0.0 announcement
+- **Type:** Communications
+- **Priority:** Medium
+- **Status:** Backlog — drafts ready, awaiting Rawb go
+- **Source:** Session 2026-04-21. 17 organic CurseForge downloads since v1.0.0 launch (2026-04-20) with zero announcement push. Signal that ERF-redirect discovery is working; announcement would amplify reach.
+- **Scope:** Refresh announcement drafts (CurseForge news post, Reddit, GitHub issues) written in Session 16-17 against current state — v1.0.0 shipped, CurseForge moderation cleared, placeholder Soyier photos stand on the listing, TRI-003/004/007 merged but pending Gate 2.
+- **Voice:** Rawb's voice, not Blizzard style (memory: author voice vs product voice). Reddit post keeps rough edges per anti-AI signal pattern. Tone per locked decision (2026-04-03): community revival, respectful continuation, full credit to Soyier.
+- **Owner at execution:** Everett.
+- **Notes:** Timing is Rawb's call — no urgency. Organic 17 is a bonus, not a deadline driver. Classic Era + Pandaria Classic framed as "ships alongside Retail — community testing welcome" per the locked v1.0.0 softening.
+
+### TRI-031 Replace placeholder Soyier photos on CurseForge listing
+- **Type:** Communications / Assets
+- **Priority:** Low
+- **Status:** Backlog — blocked on TRI-003/004/007 Gate 2
+- **Source:** Session 2026-04-21. Soyier's original ERF screenshots currently on the Triage CurseForge listing (intentional placeholder during the revival handoff — visual continuity signal for returning ERF users).
+- **Acceptance criteria:** (1) Original Triage screenshots captured showing current v1.0 features in-game (test mode preview, dispel overlay with colored glow, indicator grid, minimap button, settings panel). (2) CurseForge listing screenshots replaced. (3) Wago listing screenshots updated to match.
+- **Depends on:** TRI-003, TRI-004, TRI-007 Gate 2 pass. Screenshots should reflect verified-shipped behavior, not pre-Gate-2 state.
+- **Owner at execution:** Everett (listing updates) + Rawb (actual screenshots, since only Rawb has the in-game environment).
+- **Notes:** The placeholder is not a bug — it's continuity signal. Don't rush the swap; swap when we have the full set of verified-feature screenshots in hand, not piecemeal.
 
 ### Stale
 
@@ -457,4 +501,23 @@ Active and queued work for the Triage addon. Completed items live in
 
 ## Awaiting Release
 
-*(None.)*
+### TRI-027 Stale AceTab-3.0 XML include triggers LUA_WARNING on login
+- **Type:** Bug
+- **Priority:** High
+- **Status:** Awaiting Release (Gate 2 passed 2026-04-21)
+- **Source:** In-game report 2026-04-21.
+- **Symptom:** `4x LUA_WARNING: Triage/Libs/embeds.xml:22 Couldn't open Triage/AceTab-3.0/AceTab-3.0.xml` on login.
+- **Root cause:** v1.0.0 (2026-04-20) removed AceTab-3.0 from vendoring because CurseForge rejected the auto-derived slug and the library was unused. `.pkgmeta` was updated. `Libs/embeds.xml` line 22 was missed and still `<Include>`d the now-absent `AceTab-3.0\AceTab-3.0.xml`.
+- **Fix landed:** one-line delete in `Libs/embeds.xml`. Commit `378360a`. Merged to main as `3ba6b3e` (2026-04-21). Gate 1 passed (Argus, 5/5 lenses). Gate 2 passed in-game on Retail — no warning on fresh login.
+- **Worktree:** `.worktrees/tri-027-login-errors` (shared with TRI-028) — pending cleanup.
+
+### TRI-028 SecureHook on CompactUnitFrame_UpdatePrivateAuras errors when global is absent
+- **Type:** Bug
+- **Priority:** High
+- **Status:** Awaiting Release (Gate 2 passed 2026-04-21)
+- **Source:** In-game report 2026-04-21.
+- **Symptom:** Repeated `Triage/Overrides.lua:23: ... Attempting to hook a non existing target` errors on login, zone change, and group roster events.
+- **Root cause:** `Overrides.lua:22` called `self:SecureHook("CompactUnitFrame_UpdatePrivateAuras", ...)` guarded only by `IsHooked`, while sibling hooks at `EnhancedRaidFrames.lua:126` / `:136` already used the `if CompactUnitFrame_<name> and ...` existence-check pattern. Midnight 12.0.5 (live 2026-04-21) removed the free-standing global — confirmed via `/dump CompactUnitFrame_UpdatePrivateAuras` returning `nil`. Logic moved to `CompactUnitPrivateAuraAnchorMixin:SetUnit`.
+- **Fix landed:** one-line existence guard added to match sibling pattern. Commit `1f36640`. Merged to main as `3ba6b3e` (2026-04-21). Gate 1 passed (Argus, 5/5 lenses). Gate 2 passed in-game on Retail — no errors on login or zone change.
+- **Follow-up filed:** TRI-029 — retire or rework `UpdatePrivateAuraVisOverrides` (now confirmed dead code on 12.0.5). Guard stays regardless.
+- **Worktree:** `.worktrees/tri-027-login-errors` (shared with TRI-027) — pending cleanup.
