@@ -6,7 +6,7 @@ Triage continues the work of [Enhanced Raid Frames](https://github.com/brittyaze
 
 When Midnight changed the addon landscape, ERF's development ended. Triage picks up the foundation, ports it to WoW 12.0, fixes known issues, and will add a healing intelligence layer in future releases.
 
-## Features (v1.0: ERF Reforged)
+## Features (v1.0: Triage - Enhanced Raid Frames Reforged)
 
 - **9-position aura indicator grid:** configurable buff/debuff tracking on each raid frame
 - **Range checking:** custom range with configurable out-of-range alpha

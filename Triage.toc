@@ -1,4 +1,4 @@
-﻿## Interface: 11508, 50503, 120001
+﻿## Interface: 11508, 50503, 120005
 ## Title: Triage - Enhanced Raid Frames Reforged
 ## Notes: Enhanced Raid Frames, reforged for Midnight and still supporting Classic and Pandaria
 ## IconTexture: Interface\Icons\spell_holy_borrowedtime

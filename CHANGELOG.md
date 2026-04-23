@@ -1,6 +1,14 @@
 # Triage Changelog
 
-## [Unreleased]
+## v1.1.0
+
+### What's new
+- **Keep aura indicators visible when you step out of range.** New toggle under Out-of-Range. Handy for watching heals on someone you've walked past.
+- **Filter each indicator by who cast the aura.** The old Mine Only checkbox is now a three-way choice: All, Mine, or Not Mine. Two druids in a group can each watch the other's Rejuv to avoid overwriting.
+- **Place the countdown text in any corner.** The countdown now has its own location setting, separate from the stack count. Put them in opposite corners to show both without overlap.
+- **Move indicators in half-percent steps.** The position sliders are now twice as fine-grained.
+- **Set out-of-range distance up to 60 yards on Retail.** Useful for specs with talent-boosted heals. If none of your current spells reach the distance you pick, Triage tells you in chat instead of silently not fading.
+- **Track spells that change ID when they proc.** The Aura Watch List hint now explains the two-line trick for spells like Cenarion Ward.
 
 ### What's fixed
 - No more login warnings about a missing AceTab library. (The library
@@ -11,7 +19,7 @@
   function the overlay was attaching to. The overlay now checks whether
   the function exists before wiring up.)
 
-## v1.0.0 — ERF Reforged
+## v1.0.0 — Triage - Enhanced Raid Frames Reforged
 
 Triage picks up where Enhanced Raid Frames left off. Everything that
 worked before Midnight works again, with fixes for the things that
