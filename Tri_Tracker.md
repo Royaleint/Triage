@@ -12,12 +12,7 @@ Active and queued work for the Triage addon. Completed items live in
 
 ### Bugs
 
-### TRI-023 Transform spell tracking (Cenarion Ward, etc.)
-- **Type:** Bug / Feature (quick win)
-- **Priority:** High
-- **Status:** Backlog
-- **Source:** ERF #77.
-- **Summary:** Some spells change name on proc (Cenarion Ward → Cenarion Ward HoT). Indicator stops tracking when the aura name no longer matches. Options: lookup table of spell → proc name, spell ID tracking, or document workaround. Spell validation (TRI-014) should warn about known transform spells.
+*(None.)*
 
 ### Features
 
@@ -171,34 +166,6 @@ Active and queued work for the Triage addon. Completed items live in
 - **Status:** Backlog
 - **Source:** ERF #33.
 - **Summary:** Show multiple active matching auras at a single indicator position as stacked sub-icons (up to 4). Configurable direction (horizontal, vertical, grid). Alternative: cycle through matches on a timer. Default unchanged (first match). Partially overlaps with priority chains (TRI-009) — different use case (show everything vs show most important).
-
-### TRI-021 Extended range check beyond 40 yards
-- **Type:** Feature (quick win)
-- **Priority:** High
-- **Status:** Backlog
-- **Source:** ERF #130.
-- **Summary:** Range slider caps at 40yd but several Midnight healer spells are 45-46yd, causing false fades. Extend slider max to 60yd using LibRangeCheck-3.0's actual spell range data. Optionally auto-detect longest healing spell range. Primarily a UI slider limit change.
-
-### TRI-022 "Not mine" aura filter
-- **Type:** Feature (quick win)
-- **Priority:** Medium
-- **Status:** Backlog
-- **Source:** ERF #79.
-- **Summary:** Inverse of existing "mine only" filter — show an aura only if cast by someone else. Primary use: seeing other druids' Rejuvenation to avoid overwrites. Three-way toggle per position: All / Mine only / Not mine.
-
-### TRI-024 Finer indicator positioning increments
-- **Type:** Feature (quick win)
-- **Priority:** Low
-- **Status:** Backlog
-- **Source:** ERF #45, #47.
-- **Summary:** Position offsets use 1% increments — too coarse for precise alignment. Reduce to 0.5% or allow manual numeric input. Add per-indicator text anchor options for stack count and countdown text positioning within the icon.
-
-### TRI-025 Keep indicators visible when out of range
-- **Type:** Feature (quick win)
-- **Priority:** Low
-- **Status:** Backlog
-- **Source:** ERF #52.
-- **Summary:** When range fade is enabled, indicators fade with the health bar. Option to keep indicators at full alpha on faded frames so aura status is still visible at a glance. Simple per-profile toggle, default off.
 
 ### Data
 
@@ -432,7 +399,22 @@ Active and queued work for the Triage addon. Completed items live in
   - **Comms items filed.** 17 organic CurseForge downloads since v1.0.0 with zero announcement push — filed TRI-030 (publish announcement, refresh Session 16-17 drafts) and TRI-031 (replace placeholder Soyier CF screenshots after TRI-003/004/007 Gate 2 passes). Both under a new `Release & Comms` Backlog subsection.
   - **Worktree cleanup.** Removed 3 merged worktrees (`tri-003-colored-dispel-glow`, `tri-004-frame-registry`, `tri-027-login-errors`) and 4 stale branches (the three above plus `fix/remove-acetab`). `stu-034-tracker-split` worktree held per Rawb (Category C — 1 real unmerged cutover-SHA commit).
   - **Studio-side impact:** Stop and PreCompact hooks were broken project-agnostically (relative paths + Windows-path-mangling regex). Fixed in BawrLabs this session — session heartbeat now fires correctly across all projects.
+- **Session progress (2026-04-23, v1.1.0 release):**
+  - **Triage v1.1.0 shipped to all three platforms:** GitHub Release at tag `v1.1.0` (commit `a90a59d`, workflow run 24814684602, 3m 28s). Per-client zips uploaded to CurseForge (project 1504503) and Wago (5NR82vK3): Retail (Interface 120005), Pandaria Classic (50503), Classic Era (11508). Retail TOC bumped 120001 → 120005 for 12.0.5.
+  - **Five quick-win features shipped** — all PRs reviewed through Argus Gate 1 and merged to main in sequence:
+    - TRI-021 extended custom range to 60yd on Retail (PR #36, commit `a3a9dfa`). Argus flagged silent-failure when `LibRangeCheck:GetFriendMinChecker` returns nil for the selected distance — fix: user-facing chat warning on both `customRangeCheck` and `customRange` `set` callbacks.
+    - TRI-022 three-way caster filter All / Mine / Not Mine (PR #37, commit `9eef674`). DB migration 2.2 → 2.3 converts `mineOnly` boolean to `casterFilter` string, idempotent. Full Argus PASS.
+    - TRI-023 transform-spell hint in Aura Watch List (PR #38, commits `a4d0dc9` + `bd6f4c5`). Landed as GUI hint + localization only; `TRANSFORM_SPELLS` lookup table shipped initially but removed per Argus feedback (no runtime consumer, ambiguous positional 4-tuple). Deferred to land with TRI-014 consumer.
+    - TRI-024 finer position steps (0.5%) + countdown text anchor dropdown (PR #39, commit `c4b59d9`). Also fixes a latent anchor-accumulation bug in `UpdateStackSizeText` by hoisting `Countdown:ClearAllPoints()` above the branches.
+    - TRI-025 keep-indicators-visible-out-of-range toggle (PR #40, commit `eef5944`). Uses `SetIgnoreParentAlpha` with a defensive method check; placed on the `SetIndicatorAppearance` / `RefreshConfig` path for mid-session toggle without `/reload`.
+  - **Merge conflict on PR #40 resolved locally** — PR #36's `customRangeUnavailable` key collided with PR #40's `keepIndicatorsVisible` strings in `Localizations/enUS.lua`. Both kept, merged at commit `5123958` and re-pushed.
+  - **Public v1.1.0 CHANGELOG rewritten** in imperative voice per Rawb feedback (outcome-first bullets, no jargon, no internal codenames, no file paths / SHAs). v1.0.0 heading expanded to "Triage - Enhanced Raid Frames Reforged" in both `CHANGELOG.md` and `README.md`.
+  - **TRI-027 and TRI-028 hotfixes** (previously Awaiting Release) shipped inside v1.1.0 alongside the five features.
+  - **Release:** `luacheck` 0 errors / 2 warnings (both in `Triage_Dev/` dev-only code, not shipped). Tag `v1.1.0` pushed, BigWigs packager workflow produced 4 assets (Retail zip, Mists zip, Classic zip, release.json) and uploaded to CF + Wago.
 - **Pending (next session):**
+  - **Gate 2 for v1.1.0 features** — run the per-PR in-game checks from Argus Gate 1 review: caster filter two-druid test, keep-indicators-visible toggle with `rangeAlpha`, countdown corner placement, 0.5% offset slider stepping, extended-range warning on DPS/tank spec, transform-spell hint renders in config panel.
+  - **Gate 2 for v1.1.0 DB migration** — load a pre-v1.1.0 profile with `mineOnly = true/false` and confirm 2.2 → 2.3 migration rewrites to `casterFilter = "mine" / "all"` and drops the old key.
+  - **Verify CurseForge v1.1.0 listing** — public changelog rendered correctly, all three client builds present.
   - Fresh in-game Retail verification of the merged TRI-003, TRI-004, and TRI-007 work.
   - Run click-casting spike A1-A5 in-game (Retail).
   - Run boss frame spike B1-B6 in-game (Retail).
@@ -441,7 +423,7 @@ Active and queued work for the Triage addon. Completed items live in
   - In-game test dispel overlay on a dispel class.
   - **TRI-032** — Gate 1 (Argus) and in-game re-verify for the atlas neutral-fallback work on branch `tri-003-atlas-followup` (`2e73752`).
   - **TRI-029** — decide whether to rework or delete `UpdatePrivateAuraVisOverrides` (now confirmed dead on 12.0.5 via `/dump`).
-  - **TRI-030** — refresh Session 16-17 announcement drafts against current state, then publish (CurseForge, Reddit, GitHub).
+  - **TRI-030** — refresh Session 16-17 announcement drafts against current state, then publish (CurseForge, Reddit, GitHub). v1.1.0 launch is a natural bundling moment.
   - **TRI-031** — swap placeholder Soyier CF screenshots after TRI-003/004/007 Gate 2 passes.
   - Verify CurseForge v1.0.0 moderation status (web UI).
   - Clean up Wago duplicate v1.0.0 + v1.0.1 entries (web UI — old failed-release artifacts).
@@ -510,23 +492,4 @@ Active and queued work for the Triage addon. Completed items live in
 
 ## Awaiting Release
 
-### TRI-027 Stale AceTab-3.0 XML include triggers LUA_WARNING on login
-- **Type:** Bug
-- **Priority:** High
-- **Status:** Awaiting Release (Gate 2 passed 2026-04-21)
-- **Source:** In-game report 2026-04-21.
-- **Symptom:** `4x LUA_WARNING: Triage/Libs/embeds.xml:22 Couldn't open Triage/AceTab-3.0/AceTab-3.0.xml` on login.
-- **Root cause:** v1.0.0 (2026-04-20) removed AceTab-3.0 from vendoring because CurseForge rejected the auto-derived slug and the library was unused. `.pkgmeta` was updated. `Libs/embeds.xml` line 22 was missed and still `<Include>`d the now-absent `AceTab-3.0\AceTab-3.0.xml`.
-- **Fix landed:** one-line delete in `Libs/embeds.xml`. Commit `378360a`. Merged to main as `3ba6b3e` (2026-04-21). Gate 1 passed (Argus, 5/5 lenses). Gate 2 passed in-game on Retail — no warning on fresh login.
-- **Worktree:** `.worktrees/tri-027-login-errors` — removed 2026-04-21 post-Gate 2.
-
-### TRI-028 SecureHook on CompactUnitFrame_UpdatePrivateAuras errors when global is absent
-- **Type:** Bug
-- **Priority:** High
-- **Status:** Awaiting Release (Gate 2 passed 2026-04-21)
-- **Source:** In-game report 2026-04-21.
-- **Symptom:** Repeated `Triage/Overrides.lua:23: ... Attempting to hook a non existing target` errors on login, zone change, and group roster events.
-- **Root cause:** `Overrides.lua:22` called `self:SecureHook("CompactUnitFrame_UpdatePrivateAuras", ...)` guarded only by `IsHooked`, while sibling hooks at `EnhancedRaidFrames.lua:126` / `:136` already used the `if CompactUnitFrame_<name> and ...` existence-check pattern. Midnight 12.0.5 (live 2026-04-21) removed the free-standing global — confirmed via `/dump CompactUnitFrame_UpdatePrivateAuras` returning `nil`. Logic moved to `CompactUnitPrivateAuraAnchorMixin:SetUnit`.
-- **Fix landed:** one-line existence guard added to match sibling pattern. Commit `1f36640`. Merged to main as `3ba6b3e` (2026-04-21). Gate 1 passed (Argus, 5/5 lenses). Gate 2 passed in-game on Retail — no errors on login or zone change.
-- **Follow-up filed:** TRI-029 — retire or rework `UpdatePrivateAuraVisOverrides` (now confirmed dead code on 12.0.5). Guard stays regardless.
-- **Worktree:** `.worktrees/tri-027-login-errors` — removed 2026-04-21 post-Gate 2.
+*(None — v1.1.0 released 2026-04-23.)*
