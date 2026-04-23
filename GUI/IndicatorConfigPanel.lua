@@ -218,7 +218,7 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						isPercent = true,
 						min = -1,
 						max = 1,
-						step = .01,
+						step = .005,
 						get = function()
 							return self.db.profile["indicator-" .. i].indicatorVerticalOffset
 						end,
@@ -236,7 +236,7 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						isPercent = true,
 						min = -1,
 						max = 1,
-						step = .01,
+						step = .005,
 						get = function()
 							return self.db.profile["indicator-" .. i].indicatorHorizontalOffset
 						end,
@@ -483,6 +483,26 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						end,
 						width = THIRD_WIDTH,
 						order = 5,
+					},
+					countdownLocation = {
+						type = "select",
+						name = L["Countdown Text Location"],
+						desc = L["countdownLocation_desc"],
+						style = "dropdown",
+						values = { ["TOPLEFT"] = L["Top-Left"], ["TOPRIGHT"] = L["Top-Right"], ["BOTTOMLEFT"] = L["Bottom-Left"], ["BOTTOMRIGHT"] = L["Bottom-Right"], ["CENTER"] = L["Center"] },
+						sorting = { [1] = "TOPLEFT", [2] = "TOPRIGHT", [3] = "CENTER", [4] = "BOTTOMLEFT", [5] = "BOTTOMRIGHT" },
+						get = function()
+							return self.db.profile["indicator-" .. i].countdownLocation
+						end,
+						set = function(_, value)
+							self.db.profile["indicator-" .. i].countdownLocation = value
+							self:RefreshConfig()
+						end,
+						disabled = function()
+							return not self.db.profile["indicator-" .. i].showCountdownText
+						end,
+						width = THIRD_WIDTH,
+						order = 6,
 					},
 					-------------------------------------------------
 					colorHeader = {
