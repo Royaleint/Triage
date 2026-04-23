@@ -84,6 +84,15 @@ function EnhancedRaidFrames:SetIndicatorAppearance(frame)
 		indicatorFrame:SetWidth(self.db.profile["indicator-" .. i].indicatorSize)
 		indicatorFrame:SetHeight(self.db.profile["indicator-" .. i].indicatorSize)
 
+		-- Keep indicators at full alpha when the parent raid frame fades out of range.
+		-- Only meaningful when Custom Range is enabled — Blizzard's default 40yd fade
+		-- uses a secret-tainted alpha path we can't override (see Overrides.lua
+		-- UpdateInRange). Defensive method check covers older clients that may lack
+		-- SetIgnoreParentAlpha.
+		if indicatorFrame.SetIgnoreParentAlpha then
+			indicatorFrame:SetIgnoreParentAlpha(self.db.profile.keepIndicatorsVisible)
+		end
+
 		--------------------------------------
 
 		-- Set the indicator frame position
