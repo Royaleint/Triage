@@ -171,8 +171,11 @@ L["bleedWildcard_desc"] = "any bleed debuffs (retail only)"
 
 L["Visibility and Behavior"] = true
 
+L["Caster Filter"] = true
+L["casterFilter_desc"] = "Filter the indicator by who cast the aura: any caster, only me, or only other players"
+L["All Casters"] = true
 L["Mine Only"] = true
-L["mineOnly_desc"] = "Only show buffs and debuffs cast by me"
+L["Not Mine"] = true
 
 L["Show On Me Only"] = true
 L["meOnly_desc"] = "Only only show this indicator on myself"
