@@ -119,6 +119,8 @@ L["customRangeCheck_desc"] = "Changes the default 40 yard out-of-range distance 
 L["Out-of-Range Opacity"] = true
 L["rangeAlpha_desc"] = "The opacity percentage of the raid frame when out-of-range"
 
+L["customRangeUnavailable"] = "No range checker available for %d yards with your current spells. Frames will stay visible until you learn a spell that reaches that range or pick a lower distance."
+
 L["Test Mode"] = true
 L["testModeDescription_desc"] = "Spawn synthetic preview frames without joining a real group."
 L["Preview Group Size"] = true

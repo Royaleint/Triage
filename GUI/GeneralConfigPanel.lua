@@ -9,9 +9,24 @@ local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
 -- Import libraries
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
+local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 
 -- Constants
 local THIRD_WIDTH = 1.25
+
+-- Warn the user when the selected custom range has no resolvable friend checker
+-- for their current spells. LibRangeCheck builds its checker list from spells
+-- the player actually knows, so picking 55 or 60yd on a spec without a spell
+-- that reaches that range returns nil and Overrides.lua falls back to full
+-- alpha — the frame never dims. Print a message so the behavior isn't silent.
+local function WarnIfNoRangeChecker(self)
+	if not self.db.profile.customRangeCheck then
+		return
+	end
+	if not LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange) then
+		self:Print(L["customRangeUnavailable"]:format(self.db.profile.customRange))
+	end
+end
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
@@ -182,6 +197,7 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				set = function(_, value)
 					self.db.profile.customRangeCheck = value
 					self:RefreshConfig()
+					WarnIfNoRangeChecker(self)
 				end,
 				width = THIRD_WIDTH,
 				order = 41,
@@ -198,6 +214,7 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				set = function(_, value)
 					self.db.profile.customRange = value
 					self:RefreshConfig()
+					WarnIfNoRangeChecker(self)
 				end,
 				disabled = function()
 					return not self.db.profile.customRangeCheck
