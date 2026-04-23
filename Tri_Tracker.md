@@ -518,7 +518,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Symptom:** `4x LUA_WARNING: Triage/Libs/embeds.xml:22 Couldn't open Triage/AceTab-3.0/AceTab-3.0.xml` on login.
 - **Root cause:** v1.0.0 (2026-04-20) removed AceTab-3.0 from vendoring because CurseForge rejected the auto-derived slug and the library was unused. `.pkgmeta` was updated. `Libs/embeds.xml` line 22 was missed and still `<Include>`d the now-absent `AceTab-3.0\AceTab-3.0.xml`.
 - **Fix landed:** one-line delete in `Libs/embeds.xml`. Commit `378360a`. Merged to main as `3ba6b3e` (2026-04-21). Gate 1 passed (Argus, 5/5 lenses). Gate 2 passed in-game on Retail — no warning on fresh login.
-- **Worktree:** `.worktrees/tri-027-login-errors` (shared with TRI-028) — pending cleanup.
+- **Worktree:** `.worktrees/tri-027-login-errors` — removed 2026-04-21 post-Gate 2.
 
 ### TRI-028 SecureHook on CompactUnitFrame_UpdatePrivateAuras errors when global is absent
 - **Type:** Bug
@@ -529,4 +529,4 @@ Active and queued work for the Triage addon. Completed items live in
 - **Root cause:** `Overrides.lua:22` called `self:SecureHook("CompactUnitFrame_UpdatePrivateAuras", ...)` guarded only by `IsHooked`, while sibling hooks at `EnhancedRaidFrames.lua:126` / `:136` already used the `if CompactUnitFrame_<name> and ...` existence-check pattern. Midnight 12.0.5 (live 2026-04-21) removed the free-standing global — confirmed via `/dump CompactUnitFrame_UpdatePrivateAuras` returning `nil`. Logic moved to `CompactUnitPrivateAuraAnchorMixin:SetUnit`.
 - **Fix landed:** one-line existence guard added to match sibling pattern. Commit `1f36640`. Merged to main as `3ba6b3e` (2026-04-21). Gate 1 passed (Argus, 5/5 lenses). Gate 2 passed in-game on Retail — no errors on login or zone change.
 - **Follow-up filed:** TRI-029 — retire or rework `UpdatePrivateAuraVisOverrides` (now confirmed dead code on 12.0.5). Guard stays regardless.
-- **Worktree:** `.worktrees/tri-027-login-errors` (shared with TRI-027) — pending cleanup.
+- **Worktree:** `.worktrees/tri-027-login-errors` — removed 2026-04-21 post-Gate 2.

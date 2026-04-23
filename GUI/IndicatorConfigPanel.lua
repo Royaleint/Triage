@@ -69,7 +69,10 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						self.PURPLE_COLOR:WrapTextInColorCode("Curse") .. self.WHITE_COLOR:WrapTextInColorCode(": " .. L["curseWildcard_desc"]) .. "\n" ..
 						self.BROWN_COLOR:WrapTextInColorCode("Disease") .. self.WHITE_COLOR:WrapTextInColorCode(": " .. L["diseaseWildcard_desc"]) .. "\n" ..
 						self.BLUE_COLOR:WrapTextInColorCode("Magic") .. self.WHITE_COLOR:WrapTextInColorCode(": " .. L["magicWildcard_desc"]) .. "\n" ..
-						self.PINK_COLOR:WrapTextInColorCode("Bleed") .. self.WHITE_COLOR:WrapTextInColorCode(": " .. L["bleedWildcard_desc"]) .. "\n",
+						self.PINK_COLOR:WrapTextInColorCode("Bleed") .. self.WHITE_COLOR:WrapTextInColorCode(": " .. L["bleedWildcard_desc"]) .. "\n" ..
+						"\n" ..
+						L["Transforming Spells"] .. ":\n" ..
+						self.WHITE_COLOR:WrapTextInColorCode(L["transformSpells_desc"]) .. "\n",
 				multiline = 7,
 				get = function()
 					return self.db.profile["indicator-" .. i].auras
@@ -92,15 +95,18 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						name = L["General"],
 						order = 1,
 					},
-					mineOnly = {
-						type = "toggle",
-						name = L["Mine Only"],
-						desc = L["mineOnly_desc"],
+					casterFilter = {
+						type = "select",
+						name = L["Caster Filter"],
+						desc = L["casterFilter_desc"],
+						style = "dropdown",
+						values = { ["all"] = L["All Casters"], ["mine"] = L["Mine Only"], ["notMine"] = L["Not Mine"] },
+						sorting = { [1] = "all", [2] = "mine", [3] = "notMine" },
 						get = function()
-							return self.db.profile["indicator-" .. i].mineOnly
+							return self.db.profile["indicator-" .. i].casterFilter
 						end,
 						set = function(_, value)
-							self.db.profile["indicator-" .. i].mineOnly = value
+							self.db.profile["indicator-" .. i].casterFilter = value
 							self:RefreshConfig()
 						end,
 						width = THIRD_WIDTH,
@@ -212,7 +218,7 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						isPercent = true,
 						min = -1,
 						max = 1,
-						step = .01,
+						step = .005,
 						get = function()
 							return self.db.profile["indicator-" .. i].indicatorVerticalOffset
 						end,
@@ -230,7 +236,7 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						isPercent = true,
 						min = -1,
 						max = 1,
-						step = .01,
+						step = .005,
 						get = function()
 							return self.db.profile["indicator-" .. i].indicatorHorizontalOffset
 						end,
@@ -477,6 +483,26 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 						end,
 						width = THIRD_WIDTH,
 						order = 5,
+					},
+					countdownLocation = {
+						type = "select",
+						name = L["Countdown Text Location"],
+						desc = L["countdownLocation_desc"],
+						style = "dropdown",
+						values = { ["TOPLEFT"] = L["Top-Left"], ["TOPRIGHT"] = L["Top-Right"], ["BOTTOMLEFT"] = L["Bottom-Left"], ["BOTTOMRIGHT"] = L["Bottom-Right"], ["CENTER"] = L["Center"] },
+						sorting = { [1] = "TOPLEFT", [2] = "TOPRIGHT", [3] = "CENTER", [4] = "BOTTOMLEFT", [5] = "BOTTOMRIGHT" },
+						get = function()
+							return self.db.profile["indicator-" .. i].countdownLocation
+						end,
+						set = function(_, value)
+							self.db.profile["indicator-" .. i].countdownLocation = value
+							self:RefreshConfig()
+						end,
+						disabled = function()
+							return not self.db.profile["indicator-" .. i].showCountdownText
+						end,
+						width = THIRD_WIDTH,
+						order = 6,
 					},
 					-------------------------------------------------
 					colorHeader = {

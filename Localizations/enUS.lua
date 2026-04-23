@@ -68,6 +68,10 @@ L["25 yards"] = true
 L["30 yards"] = true
 L["35 yards"] = true
 L["40 yards"] = true
+L["45 yards"] = true
+L["50 yards"] = true
+L["55 yards"] = true
+L["60 yards"] = true
 
 ----------------------------------------------------
 ------------------- General Panel ------------------
@@ -118,6 +122,8 @@ L["rangeAlpha_desc"] = "The opacity percentage of the raid frame when out-of-ran
 L["Keep Indicators Visible Out of Range"] = true
 L["keepIndicatorsVisible_desc"] = "Keep aura indicators at full opacity when the raid frame fades out of range. Requires Override Default Distance to be enabled."
 
+L["customRangeUnavailable"] = "No range checker available for %d yards with your current spells. Frames will stay visible until you learn a spell that reaches that range or pick a lower distance."
+
 L["Test Mode"] = true
 L["testModeDescription_desc"] = "Spawn synthetic preview frames without joining a real group."
 L["Preview Group Size"] = true
@@ -166,10 +172,16 @@ L["diseaseWildcard_desc"] = "any disease debuffs"
 L["magicWildcard_desc"] = "any magic debuffs"
 L["bleedWildcard_desc"] = "any bleed debuffs (retail only)"
 
+L["Transforming Spells"] = true
+L["transformSpells_desc"] = "Some spells change name when they proc (e.g. Cenarion Ward becomes Cenarion Ward HoT). Add both forms on separate lines so the indicator stays active through both phases."
+
 L["Visibility and Behavior"] = true
 
+L["Caster Filter"] = true
+L["casterFilter_desc"] = "Filter the indicator by who cast the aura: any caster, only me, or only other players"
+L["All Casters"] = true
 L["Mine Only"] = true
-L["mineOnly_desc"] = "Only show buffs and debuffs cast by me"
+L["Not Mine"] = true
 
 L["Show On Me Only"] = true
 L["meOnly_desc"] = "Only only show this indicator on myself"
@@ -218,6 +230,9 @@ L["countdownTextSize_desc"] = "The size of the countdown text (in pixels)"
 
 L["Stack Size Location"] = true
 L["stackSizeLocation_desc"] = "The location of the stack size text within the indicator"
+
+L["Countdown Text Location"] = true
+L["countdownLocation_desc"] = "The location of the countdown text within the indicator"
 
 L["Text Color"] = true
 L["textColor_desc1"] = "The color used for the countdown text"

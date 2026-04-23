@@ -9,9 +9,24 @@ local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
 -- Import libraries
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
+local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 
 -- Constants
 local THIRD_WIDTH = 1.25
+
+-- Warn the user when the selected custom range has no resolvable friend checker
+-- for their current spells. LibRangeCheck builds its checker list from spells
+-- the player actually knows, so picking 55 or 60yd on a spec without a spell
+-- that reaches that range returns nil and Overrides.lua falls back to full
+-- alpha — the frame never dims. Print a message so the behavior isn't silent.
+local function WarnIfNoRangeChecker(self)
+	if not self.db.profile.customRangeCheck then
+		return
+	end
+	if not LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange) then
+		self:Print(L["customRangeUnavailable"]:format(self.db.profile.customRange))
+	end
+end
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
@@ -182,6 +197,7 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				set = function(_, value)
 					self.db.profile.customRangeCheck = value
 					self:RefreshConfig()
+					WarnIfNoRangeChecker(self)
 				end,
 				width = THIRD_WIDTH,
 				order = 41,
@@ -198,6 +214,7 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 				set = function(_, value)
 					self.db.profile.customRange = value
 					self:RefreshConfig()
+					WarnIfNoRangeChecker(self)
 				end,
 				disabled = function()
 					return not self.db.profile.customRangeCheck
@@ -293,8 +310,19 @@ function EnhancedRaidFrames:CreateGeneralOptions()
 		}
 	}
 
-	-- Dispel Overlay settings (Retail only)
+	-- Retail-only extensions
 	if not self.isWoWClassicEra and not self.isWoWClassic then
+		-- Extended range options (Retail only) — Classic Era and Pandaria Classic
+		-- healer spells cap at or below 40yd, and LibRangeCheck has no reliable
+		-- checkers beyond that range on those clients. Exposing 45-60yd there
+		-- would produce a setting that silently does nothing and invite bug reports.
+		local customRangeValues = generalOptions.args.customRange.values
+		customRangeValues[45] = L["45 yards"]
+		customRangeValues[50] = L["50 yards"]
+		customRangeValues[55] = L["55 yards"]
+		customRangeValues[60] = L["60 yards"]
+
+		-- Dispel Overlay settings (Retail only)
 		generalOptions.args.dispelOverlayHeader = {
 			type = "header",
 			name = L["Dispel Overlay"],

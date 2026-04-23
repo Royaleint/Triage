@@ -261,9 +261,12 @@ function EnhancedRaidFrames:ProcessIndicator(indicatorFrame, unit)
 
 	-- Process our visuals
 	if indicatorFrame.thisAura then
-		-- Clear the frame if we're only showing missing auras or we're only showing our own auras and the aura isn't ours
+		-- Clear the frame if we're only showing missing auras or the caster filter rejects the source
+		local casterFilter = self.db.profile["indicator-" .. i].casterFilter
+		local sourceUnit = indicatorFrame.thisAura.sourceUnit
 		if self.db.profile["indicator-" .. i].missingOnly
-				or (self.db.profile["indicator-" .. i].mineOnly and indicatorFrame.thisAura.sourceUnit ~= "player") then
+				or (casterFilter == "mine" and sourceUnit ~= "player")
+				or (casterFilter == "notMine" and (sourceUnit == "player" or sourceUnit == nil)) then
 			self:ClearIndicator(indicatorFrame)
 			return
 		end
@@ -323,9 +326,12 @@ function EnhancedRaidFrames:FindActiveAndTrackedAura(indicatorFrame)
 					-- Check if the aura is a debuff and if the auraString matches one of the debuff type wildcards
 					or (aura.isHarmful and aura.dispelName and aura.dispelName:lower() == auraIdentifier) then
 
-				-- Check if we should only show our own auras
-				if not self.db.profile["indicator-" .. i].mineOnly
-						or (self.db.profile["indicator-" .. i].mineOnly and aura.sourceUnit == "player") then
+				-- Check the caster filter ("all" / "mine" / "notMine"). "notMine" also rejects
+				-- unknown sources (sourceUnit == nil) so server-side or stale auras don't match.
+				local casterFilter = self.db.profile["indicator-" .. i].casterFilter
+				if casterFilter == "all"
+						or (casterFilter == "mine" and aura.sourceUnit == "player")
+						or (casterFilter == "notMine" and aura.sourceUnit ~= nil and aura.sourceUnit ~= "player") then
 					-- Return once we find an aura that matches all of these conditions
 					return aura
 				end
@@ -428,31 +434,36 @@ function EnhancedRaidFrames:UpdateStackSizeText(indicatorFrame)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
+	-- Anchor the Countdown text based on its own location setting, independent
+	-- of the stack size. ClearAllPoints first so switching between corners
+	-- doesn't accumulate stale anchors on the FontString.
+	indicatorFrame.Countdown:ClearAllPoints()
+	if self.db.profile["indicator-" .. i].countdownLocation == "TOPLEFT" then
+		indicatorFrame.Countdown:SetPoint("TOPLEFT", indicatorFrame, "TOPLEFT", 1, -1)
+	elseif self.db.profile["indicator-" .. i].countdownLocation == "TOPRIGHT" then
+		indicatorFrame.Countdown:SetPoint("TOPRIGHT", indicatorFrame, "TOPRIGHT", -1, -1)
+	elseif self.db.profile["indicator-" .. i].countdownLocation == "BOTTOMLEFT" then
+		indicatorFrame.Countdown:SetPoint("BOTTOMLEFT", indicatorFrame, "BOTTOMLEFT", 1, 1)
+	elseif self.db.profile["indicator-" .. i].countdownLocation == "BOTTOMRIGHT" then
+		indicatorFrame.Countdown:SetPoint("BOTTOMRIGHT", indicatorFrame, "BOTTOMRIGHT", -1, 1)
+	else -- "CENTER"
+		indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 0, 0)
+	end
+
 	-- Set the stack count text
 	if self.db.profile["indicator-" .. i].showStackSize and thisAura.applications and thisAura.applications > 1 then
-		-- Set the position of the stack size text based on the user's choice
-		-- Since space is limited, we have to move the countdown text to make room for the stack size text
+		indicatorFrame.StackSize:ClearAllPoints()
 		if self.db.profile["indicator-" .. i].stackSizeLocation == "TOPLEFT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("TOPLEFT", indicatorFrame, "TOPLEFT", -3, 2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 1, -1)
 		elseif self.db.profile["indicator-" .. i].stackSizeLocation == "TOPRIGHT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("TOPRIGHT", indicatorFrame, "TOPRIGHT", 4, 2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", -1, -1)
 		elseif self.db.profile["indicator-" .. i].stackSizeLocation == "BOTTOMLEFT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("BOTTOMLEFT", indicatorFrame, "BOTTOMLEFT", -3, -2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 1, 1)
 		elseif self.db.profile["indicator-" .. i].stackSizeLocation == "BOTTOMRIGHT" then
-			indicatorFrame.StackSize:ClearAllPoints()
 			indicatorFrame.StackSize:SetPoint("BOTTOMRIGHT", indicatorFrame, "BOTTOMRIGHT", 4, -2)
-			indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", -1, 1)
 		end
 		indicatorFrame.StackSize:SetText(thisAura.applications)
 	else
-		-- Reset the position of the countdown text and clear our stack size text
-		indicatorFrame.Countdown:SetPoint("CENTER", indicatorFrame, "CENTER", 0, 0)
 		indicatorFrame.StackSize:SetText("")
 	end
 end

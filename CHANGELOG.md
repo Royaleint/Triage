@@ -1,5 +1,16 @@
 # Triage Changelog
 
+## [Unreleased]
+
+### What's fixed
+- No more login warnings about a missing AceTab library. (The library
+  was never used — the file reference was left behind from an earlier
+  cleanup.)
+- No more "Attempting to hook a non existing target" errors on login,
+  zone change, or group changes. (12.0.5 removed an internal Blizzard
+  function the overlay was attaching to. The overlay now checks whether
+  the function exists before wiring up.)
+
 ## v1.0.0 — ERF Reforged
 
 Triage picks up where Enhanced Raid Frames left off. Everything that
