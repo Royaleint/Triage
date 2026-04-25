@@ -16,21 +16,6 @@ Active and queued work for the Triage addon. Completed items live in
 
 ### Features
 
-### TRI-032 TRI-003 follow-up — Blizzard dispel highlight atlas for neutral fallback
-- **Type:** Feature (polish)
-- **Priority:** Medium
-- **Status:** Backlog — committed to branch, Gate 1 + in-game re-verify pending
-- **Source:** Session 24 (2026-04-13) locked decision during TRI-003 Gate 2 verification: when "Color by Debuff Type" is disabled, use Blizzard's stock dispel highlight atlas (`RaidFrame-DispelHighlight`) instead of a custom white border. Edits were parked uncommitted on Triage main through 2026-04-21 wrapup, at which point they were preserved on a dedicated branch.
-- **Acceptance criteria:** (1) With `Color by Debuff Type` disabled, raid frames with a dispellable debuff show Blizzard's native dispel highlight atlas and no custom glow. (2) With `Color by Debuff Type` enabled, behavior unchanged — colored border + type-colored glow. (3) Toggling the setting and `/reload`ing produces the correct visual in both states. (4) Setting tooltip text matches the new behavior (Blizzard's default highlight vs custom colored border/glow).
-- **Branch:** `tri-003-atlas-followup` at commit `2e73752` (`feat(overlay): use Blizzard dispel highlight atlas for neutral fallback`).
-- **Files touched:** `Modules/DispelOverlay.lua` (+15 / -5), `Localizations/enUS.lua` (+1 / -1).
-- **Next actions:**
-  1. Create worktree from the `tri-003-atlas-followup` branch when picking this back up (branch exists but no worktree yet).
-  2. Argus Gate 1 on the committed branch.
-  3. `/gate2-prep` merge to main after Gate 1 pass.
-  4. In-game Gate 2 on a dispel-capable class (druid, priest, paladin, shaman, monk, evoker, mage) — test both `Color by Debuff Type = off` (Blizzard atlas should appear) and `= on` (colored border should appear) with `/reload` between toggles.
-- **Notes:** Original TRI-003 scope (colored glow matching debuff type) shipped in v1.0.0 and is in Awaiting Release. This is a neutral-mode visual refinement discovered during that work's Gate 2 review, not a regression.
-
 ### TRI-001 Boss frames as raid-style compact frames
 - **Type:** Feature
 - **Priority:** High

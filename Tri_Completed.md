@@ -3,6 +3,19 @@
 Append-only history of completed Triage work. Active and queued items live in
 `Tri_Tracker.md`. Cross-project status rollup lives in `BawrLabs/INDEX.md`.
 
+## Unreleased — 2026-04-25
+
+### TRI-032 Neutral dispel highlight uses default proc glow
+- **Type:** Feature (polish)
+- **Priority:** Medium
+- **Status:** Complete
+- **Source:** TRI-003 Gate 2 follow-up and live PvP-group verification on Retail.
+- **Summary:** Neutral dispel mode now uses the default Blizzard-style action-button proc glow when `Color by Debuff Type` is disabled. Colored mode remains the Triage debuff-type border/glow path. The overlay no longer clears solely because the dispellable unit is out of range, so players can still see that an out-of-range target needs a dispel.
+- **Implementation:** Replaced the abandoned `RaidFrame-DispelHighlight` atlas direction with a live-frame-safe `LibCustomGlow.ButtonGlow` host for real Blizzard compact frames, while test-mode frames continue to render through the existing overlay. Removed the range gate from dispel-overlay refresh; dead, ghost, offline, unsupported, hidden, and disabled states still clear the overlay.
+- **Files touched:** `Modules/DispelOverlay.lua`.
+- **Verification:** Targeted `luacheck Modules\DispelOverlay.lua --config .luacheckrc` passed. Gate 2 passed on test-mode frames, live Blizzard party frames, colored mode, neutral mode, clear behavior, and out-of-range neutral behavior.
+- **Completed:** 2026-04-25
+
 ## v1.1.0 — 2026-04-23
 
 ### TRI-021 Extended range check beyond 40 yards
