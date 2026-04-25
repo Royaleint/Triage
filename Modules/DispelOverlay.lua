@@ -15,7 +15,6 @@ local PRIORITY_ORDER = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
 local BORDER_THICKNESS = 2
 local GLOW_ALPHA = 0.85
 local GLOW_UPDATE_INTERVAL = 0.2
-local BLIZZARD_DISPEL_HIGHLIGHT_ATLAS = "RaidFrame-DispelHighlight"
 
 local StopGlow, GetGlowColor, EnsureGlow
 
@@ -50,11 +49,6 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 	local overlay = CreateFrame("Frame", nil, frame)
 	overlay:SetAllPoints()
 	overlay:SetFrameLevel(frame:GetFrameLevel() + 2)
-
-	overlay.blizzardBorder = overlay:CreateTexture(nil, "OVERLAY")
-	overlay.blizzardBorder:SetAtlas(BLIZZARD_DISPEL_HIGHLIGHT_ATLAS)
-	overlay.blizzardBorder:SetAllPoints()
-	overlay.blizzardBorder:Hide()
 
 	-- Programmatic 4-edge border
 	overlay.edges = {}
@@ -96,8 +90,9 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 			return
 		end
 
+		local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
 		local glowStyle = EnhancedRaidFrames.db.profile.dispelOverlay.glowStyle
-		if glowStyle ~= "pulse" and glowStyle ~= "both" then
+		if useTypeColor and glowStyle ~= "pulse" and glowStyle ~= "both" then
 			StopGlow(hiddenOverlay)
 			return
 		end
@@ -111,13 +106,9 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 
 			local debuffColors = LibDispel:GetDebuffTypeColor()
 			local color = debuffColors[previewType] or debuffColors["None"]
-			local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
-			if not useTypeColor then
-				StopGlow(hiddenOverlay)
-				return
-			end
-
-			EnsureGlow(frame, hiddenOverlay, previewType, GetGlowColor(true, color), previewType)
+			local glowColor = GetGlowColor(useTypeColor, color)
+			local glowState = useTypeColor and previewType or "neutral"
+			EnsureGlow(frame, hiddenOverlay, previewType, glowColor, glowState)
 			return
 		end
 
@@ -137,13 +128,9 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 
 		local debuffColors = LibDispel:GetDebuffTypeColor()
 		local color = debuffColors[hiddenOverlay.currentDispelType] or debuffColors["None"]
-		local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
-		if not useTypeColor then
-			StopGlow(hiddenOverlay)
-			return
-		end
-
-		EnsureGlow(frame, hiddenOverlay, hiddenOverlay.currentDispelType, GetGlowColor(true, color), hiddenOverlay.currentDispelType)
+		local glowColor = GetGlowColor(useTypeColor, color)
+		local glowState = useTypeColor and hiddenOverlay.currentDispelType or "neutral"
+		EnsureGlow(frame, hiddenOverlay, hiddenOverlay.currentDispelType, glowColor, glowState)
 	end)
 	frame.ERF_dispelOverlay = overlay
 end
@@ -299,15 +286,11 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 		for _, edge in ipairs(overlay.edges) do
 			edge:Hide()
 		end
-		overlay.blizzardBorder:SetAlpha(alpha)
-		overlay.blizzardBorder:Show()
 		overlay:Show()
 		overlay.currentDispelType = dispelType
-		StopGlow(overlay)
+		EnsureGlow(frame, overlay, dispelType, GetGlowColor(false, color), "neutral")
 		return
 	end
-
-	overlay.blizzardBorder:Hide()
 
 	-- Border: show edges for "border" and "both", hide for "pulse" only
 	if glowStyle == "border" or glowStyle == "both" then
