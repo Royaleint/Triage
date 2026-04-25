@@ -16,16 +16,16 @@ local SpecDefaults = {
 		[3] = "Ironbark\nBarkskin",
 		[4] = "Dispel",
 		[6] = "Lifebloom",
-		[7] = "Cenarion Ward\nGrove Guardians",
+		[7] = "Power of the Archdruid",
 		[8] = "Magic\nBleed",
-		[9] = "Flourish\nIncarnation: Tree of Life",
+		[9] = "Tranquility\nIncarnation: Tree of Life",
 	},
 
 	-- Restoration Shaman
 	[264] = {
 		[1] = "Riptide",
 		[2] = "Earth Shield\nHealing Rain",
-		[3] = "Spirit Link Totem\nAncestral Protection Totem",
+		[3] = "Spirit Link Totem\nHealing Tide Totem",
 		[4] = "Dispel",
 		[6] = "Earthliving Weapon",
 		[7] = "Ancestral Vigor",
@@ -52,15 +52,15 @@ local SpecDefaults = {
 		[3] = "Guardian Spirit\nPower Word: Shield",
 		[4] = "Dispel",
 		[6] = "Divine Hymn",
-		[7] = "Lightwell\nHoly Word: Serenity",
+		[7] = "Surge of Light\nHoly Word: Serenity",
 		[8] = "Magic\nDisease",
-		[9] = "Apotheosis\nSymbol of Hope",
+		[9] = "Apotheosis\nDivine Hymn",
 	},
 
 	-- Discipline Priest
 	[256] = {
 		[1] = "Atonement",
-		[2] = "Power Word: Shield\nRenew",
+		[2] = "Power Word: Shield\nPlea",
 		[3] = "Pain Suppression\nPower Word: Barrier",
 		[4] = "Dispel",
 		[6] = "Rapture",
@@ -72,11 +72,11 @@ local SpecDefaults = {
 	-- Mistweaver Monk
 	[270] = {
 		[1] = "Renewing Mist",
-		[2] = "Enveloping Mist\nEssence Font",
+		[2] = "Enveloping Mist\nSoothing Mist",
 		[3] = "Life Cocoon\nDiffuse Magic",
 		[4] = "Dispel",
 		[6] = "Soothing Mist",
-		[7] = "Chi Harmony\nAncient Teachings",
+		[7] = "Chi Cocoon\nZen Pulse",
 		[8] = "Magic\nPoison\nDisease",
 		[9] = "Invoke Yu'lon, the Jade Serpent\nInvoke Chi-Ji, the Red Crane",
 	},
@@ -90,7 +90,7 @@ local SpecDefaults = {
 		[6] = "Lifebind",
 		[7] = "Temporal Anomaly\nStasis",
 		[8] = "Magic\nPoison\nBleed",
-		[9] = "Rewind\nEmerald Communion",
+		[9] = "Rewind\nDream Flight",
 	},
 
 	-- Arcane Mage
