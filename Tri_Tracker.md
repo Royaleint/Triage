@@ -447,7 +447,9 @@ Active and queued work for the Triage addon. Completed items live in
 - **Session progress (2026-04-07):** Implemented on worktree branch `tri-004-frame-registry` with two local commits: `445d6ff` (`refactor: add managed frame registry`) and `5b51eea` (`fix: support boss units and unnamed managed frames`).
 - **Scope landed on main:** New `Utils/FrameRegistry.lua`; registry-backed iteration and unit lookup across aura listeners, aura indicators, target markers, dispel overlay, range, and stock-aura passes; lifecycle sync from startup, roster changes, and `CompactUnitFrame_SetUnit`; widened default registry support for `boss1..boss5`; unnamed-frame-safe child creation for future addon-owned frames.
 - **Verification:** Argus Gate 1 passed. Current mainline history is linearized; TRI-004 is on `main` as `7eb36f0` (`refactor: add managed frame registry`) and `0588c57` (`fix: support boss units and unnamed managed frames`). Worktree `tri-004-frame-registry` still exists but is stale.
-- **Next step:** In-game Retail verification.
+- **Gate 2 bug (2026-04-25):** Target markers selected in Triage do not appear on party compact frames the way aura indicators do. Investigate as a registry-backed `Modules/TargetMarkers.lua` path failure.
+- **Temporary dev probes:** Local `/tridev markers ...` diagnostics were added beside the older `/tridev tri032 ...` probes. When the target-marker bug is fixed and marker probes are removed, remove the TRI-032 probes in the same cleanup pass.
+- **Next step:** Diagnose target-marker state on visible party frames with `/tridev markers list`, `/tridev markers refresh`, and `/tridev markers force`.
 
 ## Awaiting Release
 
