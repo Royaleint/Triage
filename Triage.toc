@@ -23,6 +23,7 @@ Localizations\Localizations.xml
 EnhancedRaidFrames.lua
 Globals.lua
 DatabaseDefaults.lua
+Data/SpecDefaults.lua
 Overrides.lua
 
 # Utils
