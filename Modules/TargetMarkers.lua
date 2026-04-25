@@ -8,6 +8,53 @@ local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
 local floor = math.floor
 
+local RAID_TARGET_FALLBACK_UNITS = {
+	"target",
+	"focus",
+	"mouseover",
+	"player",
+}
+
+for i = 1, 4 do
+	RAID_TARGET_FALLBACK_UNITS[#RAID_TARGET_FALLBACK_UNITS + 1] = "party" .. i
+end
+
+for i = 1, 40 do
+	RAID_TARGET_FALLBACK_UNITS[#RAID_TARGET_FALLBACK_UNITS + 1] = "raid" .. i
+end
+
+for i = 1, 5 do
+	RAID_TARGET_FALLBACK_UNITS[#RAID_TARGET_FALLBACK_UNITS + 1] = "boss" .. i
+end
+
+local function IsSecretValue(value)
+	return issecretvalue and issecretvalue(value)
+end
+
+local function GetRaidTargetIndexByGUID(unit)
+	local index = GetRaidTargetIndex(unit)
+	if index or IsSecretValue(index) then
+		return index
+	end
+
+	local unitGUID = UnitGUID(unit)
+	if not unitGUID or IsSecretValue(unitGUID) then
+		return nil
+	end
+
+	for _, fallbackUnit in ipairs(RAID_TARGET_FALLBACK_UNITS) do
+		if fallbackUnit ~= unit and UnitExists(fallbackUnit) then
+			local fallbackGUID = UnitGUID(fallbackUnit)
+			if fallbackGUID and not IsSecretValue(fallbackGUID) and fallbackGUID == unitGUID then
+				index = GetRaidTargetIndex(fallbackUnit)
+				if index or IsSecretValue(index) then
+					return index
+				end
+			end
+		end
+	end
+end
+
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
@@ -112,7 +159,7 @@ function EnhancedRaidFrames:UpdateTargetMarker(frame, setAppearance)
 	if frame.ERF_isTestFrame and frame.ERF_testData then
 		index = frame.ERF_testData.raidTargetIndex
 	else
-		index = GetRaidTargetIndex(unit)
+		index = GetRaidTargetIndexByGUID(unit)
 	end
 
 	-- GetRaidTargetIndex can return a secret number in Midnight — skip if tainted
