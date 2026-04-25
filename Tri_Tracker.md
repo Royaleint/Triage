@@ -57,10 +57,10 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-006 Curated per-spec aura defaults
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Gate 1 Ready
+- **Status:** Merged to main, pending in-game verification
 - **Summary:** Pre-configured Retail aura watch lists for 7 healer specs + utility dispellers, with manual Apply/Reset actions in Indicator Options. Paired with click-casting defaults for out-of-box experience. GitHub issue #7.
 - **Branch:** `tri-006-apply-spec-defaults`
-- **Verification:** Targeted `luacheck` on touched Lua files passed with 0 warnings / 0 errors.
+- **Verification:** Gate 1 passed. Merged to `main` for Gate 2 as `7a84992` (`merge: gate2 prep tri-006`). Addon-only `luacheck` passed with 0 warnings / 0 errors.
 
 ### TRI-008 Auto layout switching — content-aware profile selection
 - **Type:** Feature
@@ -474,6 +474,14 @@ Active and queued work for the Triage addon. Completed items live in
 - **Notes:** Distinct from TRI-016 (per-aura blacklist feature).
 
 ## Awaiting Gate 2
+
+### TRI-006 Curated per-spec aura defaults
+- **Type:** Feature
+- **Priority:** High
+- **Status:** Merged to main, pending in-game verification
+- **Summary:** Manual Apply/Reset buttons in Indicator Options fill curated Retail healer/utility aura defaults for the current specialization. Defaults now use researched applied aura IDs where available, with wildcard dispel entries preserved.
+- **Verification:** Gate 1 passed. Gate 2 target is Retail in-game validation of the option UI, apply/reset behavior, profile write behavior, and at least one real aura ID indicator match.
+- **Next step:** Rawb in-game Gate 2 using the TRI-006 checklist.
 
 ### TRI-003 Colored dispel glow — debuff-type-colored glow animation
 - **Type:** Feature
