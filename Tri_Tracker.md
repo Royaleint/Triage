@@ -168,7 +168,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Priority:** Medium
 - **Status:** Queued — drafts ready, awaiting Rawb go
 - **Source:** Session 2026-04-21. 17 organic CurseForge downloads since v1.0.0 launch (2026-04-20) with zero announcement push. Signal that ERF-redirect discovery is working; announcement would amplify reach.
-- **Scope:** Refresh announcement drafts (CurseForge news post, Reddit, GitHub issues) written in Session 16-17 against current state — v1.0.0 shipped, CurseForge moderation cleared, placeholder Soyier photos stand on the listing, TRI-003/004/007 merged but pending Gate 2.
+- **Scope:** Refresh announcement drafts (CurseForge news post, Reddit, GitHub issues) written in Session 16-17 against current state — v1.0.0 shipped, CurseForge moderation cleared, placeholder Soyier photos stand on the listing, TRI-004 still pending Gate 2.
 - **Voice:** Rawb's voice, not Blizzard style (memory: author voice vs product voice). Reddit post keeps rough edges per anti-AI signal pattern. Tone per locked decision (2026-04-03): community revival, respectful continuation, full credit to Soyier.
 - **Owner at execution:** Everett.
 - **Notes:** Timing is Rawb's call — no urgency. Organic 17 is a bonus, not a deadline driver. Classic Era + Pandaria Classic framed as "ships alongside Retail — community testing welcome" per the locked v1.0.0 softening.
@@ -176,10 +176,10 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-031 Replace placeholder Soyier photos on CurseForge listing
 - **Type:** Communications / Assets
 - **Priority:** Low
-- **Status:** Queued — blocked on TRI-003/004/007 Gate 2
+- **Status:** Queued — blocked on TRI-004 Gate 2
 - **Source:** Session 2026-04-21. Soyier's original ERF screenshots currently on the Triage CurseForge listing (intentional placeholder during the revival handoff — visual continuity signal for returning ERF users).
 - **Acceptance criteria:** (1) Original Triage screenshots captured showing current v1.0 features in-game (test mode preview, dispel overlay with colored glow, indicator grid, minimap button, settings panel). (2) CurseForge listing screenshots replaced. (3) Wago listing screenshots updated to match.
-- **Depends on:** TRI-003, TRI-004, TRI-007 Gate 2 pass. Screenshots should reflect verified-shipped behavior, not pre-Gate-2 state.
+- **Depends on:** TRI-004 Gate 2 pass. Screenshots should reflect verified-shipped behavior, not pre-Gate-2 state.
 - **Owner at execution:** Everett (listing updates) + Rawb (actual screenshots, since only Rawb has the in-game environment).
 - **Notes:** The placeholder is not a bug — it's continuity signal. Don't rush the swap; swap when we have the full set of verified-feature screenshots in hand, not piecemeal.
 
@@ -394,7 +394,7 @@ Active and queued work for the Triage addon. Completed items live in
   - **Gate 2 for v1.1.0 features** — run the per-PR in-game checks from Argus Gate 1 review: caster filter two-druid test, keep-indicators-visible toggle with `rangeAlpha`, countdown corner placement, 0.5% offset slider stepping, extended-range warning on DPS/tank spec, transform-spell hint renders in config panel.
   - **Gate 2 for v1.1.0 DB migration** — load a pre-v1.1.0 profile with `mineOnly = true/false` and confirm 2.2 → 2.3 migration rewrites to `casterFilter = "mine" / "all"` and drops the old key.
   - **Verify CurseForge v1.1.0 listing** — public changelog rendered correctly, all three client builds present.
-  - Fresh in-game Retail verification of the merged TRI-003, TRI-004, and TRI-007 work.
+  - Fresh in-game Retail verification of the merged TRI-004 work.
   - Run click-casting spike A1-A5 in-game (Retail).
   - Run boss frame spike B1-B6 in-game (Retail).
   - Run click-casting spike A6-A7 on Classic Era.
@@ -403,7 +403,7 @@ Active and queued work for the Triage addon. Completed items live in
   - **TRI-032** — Gate 1 (Argus) and in-game re-verify for the atlas neutral-fallback work on branch `tri-003-atlas-followup` (`2e73752`).
   - **TRI-029** — decide whether to rework or delete `UpdatePrivateAuraVisOverrides` (now confirmed dead on 12.0.5 via `/dump`).
   - **TRI-030** — refresh Session 16-17 announcement drafts against current state, then publish (CurseForge, Reddit, GitHub). v1.1.0 launch is a natural bundling moment.
-  - **TRI-031** — swap placeholder Soyier CF screenshots after TRI-003/004/007 Gate 2 passes.
+  - **TRI-031** — swap placeholder Soyier CF screenshots after TRI-004 Gate 2 passes.
   - Verify CurseForge v1.0.0 moderation status (web UI).
   - Clean up Wago duplicate v1.0.0 + v1.0.1 entries (web UI — old failed-release artifacts).
   - Classic Era testing (community-assisted).
@@ -436,46 +436,7 @@ Active and queued work for the Triage addon. Completed items live in
   - Competitor addon source copied to `C:\Projects\addon-review\` for reference (7 addons, including ERF)
 - **Notes:** Separate project from Homestead, but shares the BawrLabs platform layer (Ace3, WoW API MCP server, studio workflow). Would be a second addon under the BawrLabs umbrella.
 
-### TRI-033 Stock buff/debuff hide toggles stop hiding on Retail (Midnight)
-- **Type:** Bug
-- **Priority:** High
-- **Status:** In Progress — local implementation passed Retail Gate 2, needs commit/PR
-- **Source:** CurseForge comment on v1.1.0, 2026-04-23. Reporter explicitly names Midnight (Retail 12.0.5 confirmed by Rawb).
-- **Symptom:** With `Show Standard Raid Frame Buff/Debuff Icons` disabled in the Triage General panel, Blizzard's default buff icons still appear on compact raid/party frames and render on top of Triage indicators.
-- **Regression class:** 12.0.5 Blizzard compact-frame restructure (same class as TRI-028's `CompactUnitFrame_UpdatePrivateAuras` silent removal).
-- **Root-cause finding (2026-04-23, primary source):** Confirmed via fresh `Gethe/wow-ui-source` extraction at `058ff8d` (12.0.5.67186). The entire compact-frame aura system was deleted and rebuilt. Gone: `frame.buffFrames` / `.debuffFrames` / `.dispelDebuffFrames` parentArrays; `CompactUnitFrame_UpdateAuras`; `CompactUnitFrame_UtilSetBuff`/`UtilSetDebuff`/`UtilSetDispelDebuff`. Replaced by `Blizzard_PrivateAurasUI` (pool-based rendering) plus new mixins (`BasePrivateAuraBehaviorMixin`, `ContainerPrivateAuraBehaviorMixin`) reading secure attributes `ignore-buffs` / `ignore-debuffs` / `ignore-dispel-debuffs`. Full platform-layer finding in `Triage_Dev/session/KNOWLEDGE.md` (2026-04-23, `[PROMOTE]`).
-- **Direction picked — D'' (hooksecurefunc on `SetPrivateAuraAnchorSettings` + per-frame re-apply):** `SetAttribute` path, no `optionTable` writes (those taint — verified 2026-04-23 via `ForceTaint_Strong` LUA_ERROR at `CompactUnitFrame.lua:693`). `TriggerPrivateAuraSettingsUpdate` must also not be called from addon code (same taint class); use `SetAttribute("update-settings", true)` as the sanctioned refresh signal.
-- **Gate 3 test results (2026-04-24):**
-  - Q1 (does `SetAttribute` from `hooksecurefunc` callback taint?) — passed Gate 2 group-drop confirmation; no `CompactUnitFrame.lua:693` taint error.
-  - Q2 (raid uses same mixin?) — passed Gate 2 in 6+ raid.
-  - Q3 (does `Mixin()` run before Triage init on `/reload`?) — `false`. **Per-frame mixin reference was already copied;** mixin-table hook alone will not fire for existing frames. Implementation must hook each frame individually OR enumerate and write attributes directly.
-- **Acceptance criteria:**
-  1. On Retail 12.0.5, with `Show Standard Raid Frame Buff Icons` off, no Blizzard buff icon appears on any compact party/raid frame — verified in an actual grouped session with a player carrying a buff.
-  2. Same for `Show Standard Raid Frame Debuff Icons` and `Show Standard Raid Frame Dispellable Icons`.
-  3. Toggling any of the three flags at runtime honors the new value on the next aura update without a `/reload`.
-  4. `luacheck .` clean.
-  5. No new Lua errors on login, zone change, roster change, boss encounter, or **group drop** (the `oldR` taint regression — hard stop).
-  6. Classic Era and Pandaria Classic: no regression (code is Retail-gated).
-- **Scope guardrails:** Retail-only per Rawb. Out of scope: `UpdatePrivateAuraVisOverrides` (TRI-029), per-aura blacklist (TRI-016), any refactor of the stock-aura hide loop.
-- **Codex implementation in flight (2026-04-24):** Local `Overrides.lua` implementation uses per-frame `hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", ...)`, direct `ignore-*` attributes, `update-settings` refresh signaling, `PLAYER_ENTERING_WORLD` catch-up, and `PLAYER_REGEN_ENABLED` deferred re-apply. `luacheck` clean for shipped addon files. Rawb Gate 2 passed in party through group-drop taint check and passed 6+ raid confirmation.
-- **Open actions:**
-  1. Codex: commit the D''-revised implementation on the target branch and open PR/branch review.
-  2. Rawb: Classic/Pandaria smoke if required before release.
-  3. Everett / Rawb: file GH issue when fix lands (still held pending).
-- **Branch target:** `.worktrees/tri-033-stock-aura-hide-retail` on branch `tri-033-stock-aura-hide-retail`.
-- **Notes:** Distinct from TRI-016 (per-aura blacklist feature).
-
 ## Awaiting Gate 2
-
-### TRI-003 Colored dispel glow — debuff-type-colored glow animation
-- **Type:** Feature
-- **Priority:** High
-- **Status:** Merged to main, pending in-game verification
-- **Summary:** Current dispel overlay "both" mode shows colored edge border + standard yellow glow. The yellow glow is visually dominant and hides the debuff-type color. Replace with a colored glow that matches the debuff type (blue pulse for Magic, purple for Curse, green for Poison, etc). LibCustomGlow-1.0 supports colored glows via `PixelGlow_Start`, `AutoCastGlow_Start`, and `ButtonGlow_Start` — all accept a color parameter. Cell and HealBot both embed it.
-- **Source:** In-game testing feedback — glow overwhelms border color.
-- **Session progress (2026-04-07):** `LibCustomGlow-1.0` vendored and wired into packaging/load order on worktree branch `tri-003-colored-dispel-glow` (`ccc2fbf`). Integration into `Modules/DispelOverlay.lua` and in-game validation still pending.
-- **Session progress (2026-04-09/11):** Current mainline history is linearized. TRI-003 is on `main` as `53807f4` (`build: vendor LibCustomGlow for colored dispel glow`) and `edb877d` (`feat: integrate colored ButtonGlow into dispel overlay`). Argus QA passed on the vendoring work. Worktree `tri-003-colored-dispel-glow` still exists but is stale.
-- **Next step:** In-game verification on a dispel-capable class.
 
 ### TRI-004 Managed frame registry for raid/party/boss frames
 - **Type:** Refactor / Infrastructure
@@ -487,16 +448,6 @@ Active and queued work for the Triage addon. Completed items live in
 - **Scope landed on main:** New `Utils/FrameRegistry.lua`; registry-backed iteration and unit lookup across aura listeners, aura indicators, target markers, dispel overlay, range, and stock-aura passes; lifecycle sync from startup, roster changes, and `CompactUnitFrame_SetUnit`; widened default registry support for `boss1..boss5`; unnamed-frame-safe child creation for future addon-owned frames.
 - **Verification:** Argus Gate 1 passed. Current mainline history is linearized; TRI-004 is on `main` as `7eb36f0` (`refactor: add managed frame registry`) and `0588c57` (`fix: support boss units and unnamed managed frames`). Worktree `tri-004-frame-registry` still exists but is stale.
 - **Next step:** In-game Retail verification.
-
-### TRI-007 Test mode — preview frames without a group
-- **Type:** Feature
-- **Priority:** High
-- **Status:** Merged to main, pending in-game verification
-- **Summary:** Preview raid frames without being in a group. Simulated party/raid frames with class colors, health states, aura indicators, power bars, healing-on-click, tooltips. GitHub issue #13.
-- **Implementation:** Current mainline history is linearized. TRI-007 is on `main` as `24248dd`, `ff31723`, `185c6a5`, `c93b4a3`, `886cc61`, `9e75dfa`, and `dbc1a66`. Preview frames are addon-owned and movable, integrate the existing rendering modules through preview-aware adapters, and simulate healing locally.
-- **Gate 1:** Passed. Current mainline hardening commit is `9e75dfa` (earlier branch SHA `f9fc418` is stale after rebase).
-- **Gate 2:** Visual, interaction, and movability fixes landed in `dbc1a66`. Earlier tracker notes that still describe Gate 2 Bug 1 as open are stale.
-- **Next step:** Fresh in-game Retail verification of the merged preview frames.
 
 ## Awaiting Release
 

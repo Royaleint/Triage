@@ -5,6 +5,40 @@ Append-only history of completed Triage work. Active and queued items live in
 
 ## Unreleased — 2026-04-25
 
+### TRI-033 Stock buff/debuff hide toggles stop hiding on Retail (Midnight)
+- **Type:** Bug
+- **Priority:** High
+- **Status:** Complete
+- **Source:** CurseForge comment on v1.1.0, 2026-04-23. Reporter explicitly named Midnight; Retail 12.0.5 confirmed in-game.
+- **Summary:** Fixed Retail 12.0.5+ stock aura visibility toggles so disabled Blizzard buff, debuff, and dispellable icons no longer render over Triage indicators on compact party/raid frames.
+- **Root cause:** Blizzard replaced the legacy compact-frame aura arrays and update functions with `Blizzard_PrivateAurasUI`, which reads secure attributes such as `ignore-buffs`, `ignore-debuffs`, and `ignore-dispel-debuffs`.
+- **Implementation:** Retail path now applies the new ignore attributes, hooks each frame's copied `SetPrivateAuraAnchorSettings` method to reapply Triage settings after Blizzard rewrites, and uses `update-settings` as the refresh signal. It avoids `frame.optionTable` mutation and does not call `TriggerPrivateAuraSettingsUpdate` from addon code.
+- **Files touched:** `Overrides.lua`.
+- **Verification:** `luacheck Overrides.lua --config .luacheckrc` passed with 0 warnings / 0 errors. Gate 2 passed on Retail party frames, group-drop taint check, runtime toggle behavior, and 6+ raid verification.
+- **Completed:** 2026-04-25
+
+### TRI-007 Test mode — preview frames without a group
+- **Type:** Feature
+- **Priority:** High
+- **Status:** Complete
+- **Source:** GitHub issue #13.
+- **Summary:** Added configurable addon-owned preview frames so users can see Triage indicators, dispel overlay, target markers, range fade, health states, dead/offline states, and simulated healing without joining a group.
+- **Implementation:** Landed preview frame scaffolding, rendering adapters, simulated healing, slash/config wiring, teardown, client hardening, and Gate 2 visual/interaction/movability fixes.
+- **Files touched:** `Modules/TestMode.lua`, `Utils/TestModeData.lua`, `Utils/TestModeFrames.lua`, GUI/localization/config integration, and related preview adapters.
+- **Verification:** Gate 1 passed. Gate 2 passed on Retail after visual, interaction, and movability fixes landed in `dbc1a66`.
+- **Completed:** 2026-04-25
+
+### TRI-003 Colored dispel glow — debuff-type-colored glow animation
+- **Type:** Feature
+- **Priority:** High
+- **Status:** Complete
+- **Source:** GitHub issue #6.
+- **Summary:** Replaced the visually dominant neutral yellow glow path with a debuff-type colored glow/border path when `Color by Debuff Type` is enabled. Neutral mode now has its own completed follow-up under TRI-032.
+- **Implementation:** Vendored `LibCustomGlow-1.0`, integrated colored `ButtonGlow` into the dispel overlay, and completed the later neutral-mode fallback work in TRI-032.
+- **Files touched:** `Libs/`, `Modules/DispelOverlay.lua`, `Localizations/enUS.lua`, `.pkgmeta`, `Libs/embeds.xml`.
+- **Verification:** Gate 1 passed. Gate 2 passed via TRI-032 follow-up testing on test-mode frames and live Blizzard party frames, including colored mode, neutral mode, clear behavior, and out-of-range neutral behavior.
+- **Completed:** 2026-04-25
+
 ### TRI-006 Curated per-spec aura defaults
 - **Type:** Feature
 - **Priority:** High
