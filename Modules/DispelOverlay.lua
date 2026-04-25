@@ -6,7 +6,6 @@
 local EnhancedRaidFrames = _G.EnhancedRaidFrames
 local LibDispel = LibStub("LibDispel-1.0")
 local LibCustomGlow = LibStub("LibCustomGlow-1.0")
-local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 
 -- Dispel type priority order (highest to lowest)
 local PRIORITY_ORDER = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
@@ -21,9 +20,31 @@ local StopGlow, GetGlowColor, EnsureGlow
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+local function GetGlowTarget(frame, overlay)
+	if frame.ERF_isTestFrame then
+		return overlay
+	end
+
+	if not overlay.procGlowHost then
+		local host = CreateFrame("Frame", nil, UIParent)
+		host:EnableMouse(false)
+		host:Hide()
+		overlay.procGlowHost = host
+	end
+
+	local host = overlay.procGlowHost
+	host:ClearAllPoints()
+	host:SetPoint("TOPLEFT", frame, "TOPLEFT")
+	host:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT")
+	host:SetFrameStrata(frame:GetFrameStrata())
+	host:SetFrameLevel(frame:GetFrameLevel() + 20)
+	host:Show()
+	return host
+end
+
 local function GetPreviewDispelType(frame)
 	local previewData = frame.ERF_testData
-	if not previewData or previewData.status ~= "alive" or not previewData.inRange then
+	if not previewData or previewData.status ~= "alive" then
 		return nil
 	end
 
@@ -42,6 +63,10 @@ end
 --- Create the dispel overlay on a raid frame (edge border + glow host)
 ---@param frame table @The compact unit frame
 function EnhancedRaidFrames:CreateDispelOverlay(frame)
+	if not frame then
+		return
+	end
+
 	if frame.ERF_dispelOverlay then
 		return
 	end
@@ -118,14 +143,6 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 			return
 		end
 
-		local range = EnhancedRaidFrames.db.profile.customRangeCheck and EnhancedRaidFrames.db.profile.customRange or 40
-		local rangeChecker = LibRangeCheck:GetFriendMaxChecker(range, InCombatLockdown())
-			or LibRangeCheck:GetFriendMinChecker(range, InCombatLockdown())
-		if rangeChecker and not rangeChecker(unit) then
-			StopGlow(hiddenOverlay)
-			return
-		end
-
 		local debuffColors = LibDispel:GetDebuffTypeColor()
 		local color = debuffColors[hiddenOverlay.currentDispelType] or debuffColors["None"]
 		local glowColor = GetGlowColor(useTypeColor, color)
@@ -162,7 +179,14 @@ end
 --- Stop and clear the current glow state on an overlay
 ---@param overlay table @The overlay frame
 StopGlow = function(overlay)
+	if overlay.glowTarget then
+		LibCustomGlow.ButtonGlow_Stop(overlay.glowTarget)
+	end
 	LibCustomGlow.ButtonGlow_Stop(overlay)
+	if overlay.procGlowHost then
+		LibCustomGlow.ButtonGlow_Stop(overlay.procGlowHost)
+		overlay.procGlowHost:Hide()
+	end
 	overlay.glowVisible = nil
 	overlay.currentGlowState = nil
 	overlay.currentGlowWidth = nil
@@ -176,12 +200,14 @@ end
 ---@param glowColor table @RGBA color array for LibCustomGlow
 ---@param glowState string @State key used to detect color changes
 EnsureGlow = function(frame, overlay, dispelType, glowColor, glowState)
-	local width, height = frame:GetSize()
+	local glowTarget = GetGlowTarget(frame, overlay)
+	local width, height = glowTarget:GetSize()
 	local needsRefresh = not overlay.glowVisible
 		or overlay.currentGlowState ~= glowState
 		or overlay.currentDispelType ~= dispelType
 		or overlay.currentGlowWidth ~= width
 		or overlay.currentGlowHeight ~= height
+		or overlay.glowTarget ~= glowTarget
 
 	if not needsRefresh then
 		return
@@ -189,12 +215,13 @@ EnsureGlow = function(frame, overlay, dispelType, glowColor, glowState)
 
 	-- ProcGlow uses Retail-only FlipBook animations and is intentionally unused here.
 	-- ButtonGlow is the compatible LibCustomGlow path across Retail, Classic Era, and Pandaria Classic.
-	LibCustomGlow.ButtonGlow_Stop(overlay)
-	LibCustomGlow.ButtonGlow_Start(overlay, glowColor)
+	StopGlow(overlay)
+	LibCustomGlow.ButtonGlow_Start(glowTarget, glowColor)
 	overlay.glowVisible = true
 	overlay.currentGlowState = glowState
 	overlay.currentGlowWidth = width
 	overlay.currentGlowHeight = height
+	overlay.glowTarget = glowTarget
 end
 
 --- Check frame.dispels and update the overlay
