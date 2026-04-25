@@ -457,6 +457,35 @@ Active and queued work for the Triage addon. Completed items live in
   - Competitor addon source copied to `C:\Projects\addon-review\` for reference (7 addons, including ERF)
 - **Notes:** Separate project from Homestead, but shares the BawrLabs platform layer (Ace3, WoW API MCP server, studio workflow). Would be a second addon under the BawrLabs umbrella.
 
+### TRI-033 Stock buff/debuff hide toggles stop hiding on Retail (Midnight)
+- **Type:** Bug
+- **Priority:** High
+- **Status:** In Progress — local implementation passed Retail Gate 2, needs commit/PR
+- **Source:** CurseForge comment on v1.1.0, 2026-04-23. Reporter explicitly names Midnight (Retail 12.0.5 confirmed by Rawb).
+- **Symptom:** With `Show Standard Raid Frame Buff/Debuff Icons` disabled in the Triage General panel, Blizzard's default buff icons still appear on compact raid/party frames and render on top of Triage indicators.
+- **Regression class:** 12.0.5 Blizzard compact-frame restructure (same class as TRI-028's `CompactUnitFrame_UpdatePrivateAuras` silent removal).
+- **Root-cause finding (2026-04-23, primary source):** Confirmed via fresh `Gethe/wow-ui-source` extraction at `058ff8d` (12.0.5.67186). The entire compact-frame aura system was deleted and rebuilt. Gone: `frame.buffFrames` / `.debuffFrames` / `.dispelDebuffFrames` parentArrays; `CompactUnitFrame_UpdateAuras`; `CompactUnitFrame_UtilSetBuff`/`UtilSetDebuff`/`UtilSetDispelDebuff`. Replaced by `Blizzard_PrivateAurasUI` (pool-based rendering) plus new mixins (`BasePrivateAuraBehaviorMixin`, `ContainerPrivateAuraBehaviorMixin`) reading secure attributes `ignore-buffs` / `ignore-debuffs` / `ignore-dispel-debuffs`. Full platform-layer finding in `Triage_Dev/session/KNOWLEDGE.md` (2026-04-23, `[PROMOTE]`).
+- **Direction picked — D'' (hooksecurefunc on `SetPrivateAuraAnchorSettings` + per-frame re-apply):** `SetAttribute` path, no `optionTable` writes (those taint — verified 2026-04-23 via `ForceTaint_Strong` LUA_ERROR at `CompactUnitFrame.lua:693`). `TriggerPrivateAuraSettingsUpdate` must also not be called from addon code (same taint class); use `SetAttribute("update-settings", true)` as the sanctioned refresh signal.
+- **Gate 3 test results (2026-04-24):**
+  - Q1 (does `SetAttribute` from `hooksecurefunc` callback taint?) — passed Gate 2 group-drop confirmation; no `CompactUnitFrame.lua:693` taint error.
+  - Q2 (raid uses same mixin?) — passed Gate 2 in 6+ raid.
+  - Q3 (does `Mixin()` run before Triage init on `/reload`?) — `false`. **Per-frame mixin reference was already copied;** mixin-table hook alone will not fire for existing frames. Implementation must hook each frame individually OR enumerate and write attributes directly.
+- **Acceptance criteria:**
+  1. On Retail 12.0.5, with `Show Standard Raid Frame Buff Icons` off, no Blizzard buff icon appears on any compact party/raid frame — verified in an actual grouped session with a player carrying a buff.
+  2. Same for `Show Standard Raid Frame Debuff Icons` and `Show Standard Raid Frame Dispellable Icons`.
+  3. Toggling any of the three flags at runtime honors the new value on the next aura update without a `/reload`.
+  4. `luacheck .` clean.
+  5. No new Lua errors on login, zone change, roster change, boss encounter, or **group drop** (the `oldR` taint regression — hard stop).
+  6. Classic Era and Pandaria Classic: no regression (code is Retail-gated).
+- **Scope guardrails:** Retail-only per Rawb. Out of scope: `UpdatePrivateAuraVisOverrides` (TRI-029), per-aura blacklist (TRI-016), any refactor of the stock-aura hide loop.
+- **Codex implementation in flight (2026-04-24):** Local `Overrides.lua` implementation uses per-frame `hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", ...)`, direct `ignore-*` attributes, `update-settings` refresh signaling, `PLAYER_ENTERING_WORLD` catch-up, and `PLAYER_REGEN_ENABLED` deferred re-apply. `luacheck` clean for shipped addon files. Rawb Gate 2 passed in party through group-drop taint check and passed 6+ raid confirmation.
+- **Open actions:**
+  1. Codex: commit the D''-revised implementation on the target branch and open PR/branch review.
+  2. Rawb: Classic/Pandaria smoke if required before release.
+  3. Everett / Rawb: file GH issue when fix lands (still held pending).
+- **Branch target:** `.worktrees/tri-033-stock-aura-hide-retail` on branch `tri-033-stock-aura-hide-retail`.
+- **Notes:** Distinct from TRI-016 (per-aura blacklist feature).
+
 ## Awaiting Gate 2
 
 ### TRI-003 Colored dispel glow — debuff-type-colored glow animation

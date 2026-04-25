@@ -10,8 +10,26 @@ local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+local STOCK_AURA_ATTRIBUTES = {
+	{ option = "showBuffs", attribute = "ignore-buffs" },
+	{ option = "showDebuffs", attribute = "ignore-debuffs" },
+	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs" },
+}
+
+local function IsRetailClient(addon)
+	return not addon.isWoWClassicEra and not addon.isWoWClassic
+end
+
+local function IsRetailPrivateAuraContainer(frame)
+	return frame and type(frame.SetPrivateAuraAnchorSettings) == "function" and type(frame.SetAttribute) == "function"
+end
+
 --- Set the visibility on the stock buff/debuff frames
 function EnhancedRaidFrames:UpdateAllStockAuraVisibility()
+	if IsRetailClient(self) then
+		self:EnsureRetailStockAuraVisibilityEvents()
+	end
+
 	self:ForEachManagedFrame(function(frame)
 		self:UpdateStockAuraVisibility(frame)
 	end)
@@ -27,11 +45,80 @@ function EnhancedRaidFrames:UpdateAllStockAuraVisibility()
 	end
 end
 
+--- Register catch-up events for Retail's private-aura attribute path.
+function EnhancedRaidFrames:EnsureRetailStockAuraVisibilityEvents()
+	if self.ERF_stockAuraVisibilityEventsRegistered then
+		return
+	end
+
+	self.ERF_stockAuraVisibilityEventsRegistered = true
+	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
+		self:UpdateAllStockAuraVisibility()
+	end)
+	self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+		if self.ERF_pendingStockAuraVisibilityUpdate then
+			self.ERF_pendingStockAuraVisibilityUpdate = nil
+			self:UpdateAllStockAuraVisibility()
+		end
+	end)
+end
+
+--- Apply Retail 12.0.5+ stock aura visibility via Blizzard_PrivateAurasUI attributes.
+---@param frame table @The frame to update
+---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
+function EnhancedRaidFrames:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
+	if not IsRetailPrivateAuraContainer(frame) then
+		return false
+	end
+
+	if InCombatLockdown() then
+		self.ERF_pendingStockAuraVisibilityUpdate = true
+		return true
+	end
+
+	for _, mapping in ipairs(STOCK_AURA_ATTRIBUTES) do
+		frame:SetAttribute(mapping.attribute, not self.db.profile[mapping.option])
+	end
+
+	if notifyPrivateAuraUI then
+		frame.ERF_privateAuraSettingsVersion = not frame.ERF_privateAuraSettingsVersion
+		frame:SetAttribute("update-settings", frame.ERF_privateAuraSettingsVersion)
+	end
+
+	return true
+end
+
+--- Ensure Blizzard setting rewrites cannot restore stock auras over Triage indicators.
+---@param frame table @The frame to hook
+function EnhancedRaidFrames:EnsureRetailStockAuraVisibilityHook(frame)
+	if not IsRetailPrivateAuraContainer(frame) then
+		return false
+	end
+
+	if not frame.ERF_stockAuraVisibilityHooked then
+		frame.ERF_stockAuraVisibilityHooked = true
+		hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", function(hookedFrame)
+			self:ApplyRetailStockAuraVisibility(hookedFrame)
+		end)
+	end
+
+	return true
+end
+
 --- Set the visibility on the stock buff/debuff frames for a single frame
 --- This function hooks the "OnShow" event of the stock buff/debuff frames.
 ---@param frame table @The frame to set the visibility on
 function EnhancedRaidFrames:UpdateStockAuraVisibility(frame)
 	if frame.ERF_isTestFrame then
+		return
+	end
+
+	if IsRetailClient(self) and self:EnsureRetailStockAuraVisibilityHook(frame) then
+		if not self.ShouldContinue(frame, true) then
+			return
+		end
+
+		self:ApplyRetailStockAuraVisibility(frame, true)
 		return
 	end
 
