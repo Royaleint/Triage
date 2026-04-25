@@ -50,6 +50,18 @@ Before code edits, declare one bucket:
   `update-settings`; legacy `buffFrames` / `debuffFrames` parentArrays are
   gone on Retail.
 
+## Local Blizzard UI Sources
+
+Use these local extractions as primary sources for Blizzard frame/template/API
+behavior:
+
+- Retail: `C:\Projects\BlizzardUI`
+- Classic Era: `C:\Projects\BlizzardUI-ClassicEra`
+- Pandaria Classic: `C:\Projects\BlizzardUI-PandariaClassic`
+
+Prefer checking these files before relying on historical notes when working on
+compact frames, secure hooks, template inheritance, or client-specific APIs.
+
 ## Workflow
 
 - Use `.worktrees/{tri-id-name}` for non-trivial feature, bug-fix, refactor,
