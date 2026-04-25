@@ -3,94 +3,91 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Curated Retail spec starter profiles for the 3x3 indicator grid.
--- Keys are specialization IDs. Slot values are newline-delimited aura strings,
--- matching the existing indicator aura input format.
+-- Keys are specialization IDs. Slot values are newline-delimited aura IDs or
+-- supported wildcard strings, matching the existing indicator aura input format.
 
 local EnhancedRaidFrames = _G.EnhancedRaidFrames
 
 local SpecDefaults = {
 	-- Restoration Druid
 	[105] = {
-		[1] = "Rejuvenation\nRejuvenation (Germination)",
-		[2] = "Regrowth\nWild Growth",
-		[3] = "Ironbark\nBarkskin",
+		[1] = "774\n155777",
+		[2] = "8936\n48438",
+		[3] = "102342\n22812",
 		[4] = "Dispel",
-		[6] = "Lifebloom",
-		[7] = "Power of the Archdruid",
+		[6] = "33763",
 		[8] = "Magic\nBleed",
-		[9] = "Tranquility\nIncarnation: Tree of Life",
+		[9] = "1236573\n33891",
 	},
 
 	-- Restoration Shaman
 	[264] = {
-		[1] = "Riptide",
-		[2] = "Earth Shield\nHealing Rain",
-		[3] = "Spirit Link Totem\nHealing Tide Totem",
+		[1] = "61295",
+		[2] = "383648\n73920",
+		[3] = "98007",
 		[4] = "Dispel",
-		[6] = "Earthliving Weapon",
-		[7] = "Ancestral Vigor",
+		[6] = "382024",
+		[7] = "207400",
 		[8] = "Magic\nCurse",
-		[9] = "Ascendance\nSpiritwalker's Grace",
+		[9] = "79206",
 	},
 
 	-- Holy Paladin
 	[65] = {
-		[1] = "Bestow Faith\nEternal Flame",
-		[2] = "Beacon of Light\nBeacon of Faith",
-		[3] = "Blessing of Sacrifice\nBlessing of Protection",
+		[1] = "156322",
+		[2] = "53563\n156910",
+		[3] = "6940\n1022",
 		[4] = "Dispel",
-		[6] = "Beacon of Virtue",
-		[7] = "Tyr's Deliverance",
+		[6] = "200025",
+		[7] = "200654",
 		[8] = "Magic\nPoison\nDisease",
-		[9] = "Avenging Wrath\nDivine Favor",
+		[9] = "31884\n210294",
 	},
 
 	-- Holy Priest
 	[257] = {
-		[1] = "Renew",
-		[2] = "Prayer of Mending\nEcho of Light",
-		[3] = "Guardian Spirit\nPower Word: Shield",
+		[1] = "139",
+		[2] = "41635\n77489",
+		[3] = "47788\n17",
 		[4] = "Dispel",
-		[6] = "Divine Hymn",
-		[7] = "Surge of Light\nHoly Word: Serenity",
+		[6] = "64844",
 		[8] = "Magic\nDisease",
-		[9] = "Apotheosis\nDivine Hymn",
+		[9] = "200183",
 	},
 
 	-- Discipline Priest
 	[256] = {
-		[1] = "Atonement",
-		[2] = "Power Word: Shield\nPlea",
-		[3] = "Pain Suppression\nPower Word: Barrier",
+		[1] = "194384",
+		[2] = "17",
+		[3] = "33206\n81782",
 		[4] = "Dispel",
-		[6] = "Rapture",
-		[7] = "Power of the Dark Side",
+		[6] = "47536",
 		[8] = "Magic\nDisease",
-		[9] = "Evangelism\nShadowfiend",
+		[9] = "472433",
 	},
 
 	-- Mistweaver Monk
 	[270] = {
-		[1] = "Renewing Mist",
-		[2] = "Enveloping Mist\nSoothing Mist",
-		[3] = "Life Cocoon\nDiffuse Magic",
+		[1] = "448430\n1238851",
+		[2] = "227345\n1260617",
+		[3] = "116849",
 		[4] = "Dispel",
-		[6] = "Soothing Mist",
-		[7] = "Chi Cocoon\nZen Pulse",
+		[6] = "1260617",
+		[7] = "406139\n1260681",
 		[8] = "Magic\nPoison\nDisease",
-		[9] = "Invoke Yu'lon, the Jade Serpent\nInvoke Chi-Ji, the Red Crane",
+		[9] = "343820",
 	},
 
 	-- Preservation Evoker
 	[1468] = {
-		[1] = "Reversion",
-		[2] = "Echo\nDream Breath",
-		[3] = "Time Dilation\nZephyr",
+		[1] = "367364",
+		[2] = "364343\n376788",
+		[3] = "357170",
 		[4] = "Dispel",
-		[6] = "Lifebind",
-		[7] = "Temporal Anomaly\nStasis",
+		[6] = "373267",
+		[7] = "373862\n370537\n370562",
 		[8] = "Magic\nPoison\nBleed",
-		[9] = "Rewind\nDream Flight",
+		[9] = "363534",
 	},
 
 	-- Arcane Mage

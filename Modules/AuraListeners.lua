@@ -217,7 +217,7 @@ function EnhancedRaidFrames:addToAuraTable(parentFrame, auraData)
 		-- It's important to use the 4th argument in string.find to turn off pattern matching,
 	-- otherwise strings with parentheses in them will fail to be found
 	if self.allAuras:find(" " .. auraData.name:lower() .. " ", 1, true)
-			or self.allAuras:find(auraData.spellId, 1, true)
+			or (auraData.spellId and self.allAuras:find(" " .. tostring(auraData.spellId) .. " ", 1, true))
 			-- Check if the aura is a debuff, if aura string contains the "dispel" wildcard, and if the player can dispel this type
 			or (auraData.isHarmful and self.allAuras:find("dispel", 1, true) and auraData.dispelName and LibDispel:GetMyDispelTypes()[auraData.dispelName])
 			-- Check if the aura is a debuff, and if it has a dispelName see if we're tracking the wildcard for it
