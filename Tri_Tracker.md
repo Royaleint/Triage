@@ -4,7 +4,7 @@ Active and queued work for the Triage addon. Completed items live in
 `Tri_Completed.md`. Cross-project status rollup lives in
 `BawrLabs/INDEX.md`.
 
-## Backlog
+## Queued
 
 ### Next Release
 
@@ -19,7 +19,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-001 Boss frames as raid-style compact frames
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Summary:** Boss unit frames (Boss1–Boss5) are Blizzard's default `TargetFrame` buttons, not compact raid frames. On fights like Lura, healable adds appear in these frames and healers have no way to configure them. Supporting them would require addon-owned compact-style boss frames so they can receive Triage indicators, dispel overlay, range, and profile-driven appearance.
 - **Source:** Direct guild feedback from a healer.
 - **Research status:** Initial feasibility review complete (2026-04-06).
@@ -32,7 +32,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-002 Import aura watch lists from other addons
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Backlog
+- **Status:** Queued
 - **Summary:** Import DandersFrames Aura Designer placed-aura configurations into Triage's 9 indicator positions as aura watch lists. This is a lossy migration tool, not a full profile import or Aura Designer compatibility layer.
 - **Data policy:** Safe. Reads user-owned DandersFrames data only: either the live `DandersFramesDB_v2` global if Danders is loaded, or a user-provided Danders export string. Does not require runtime parsing of competitor source files and does not ship competitor config semantics wholesale.
 - **Research status:** Investigated 2026-04-06 against DandersFrames' current SavedVariables and Aura Designer runtime model.
@@ -54,60 +54,52 @@ Active and queued work for the Triage addon. Completed items live in
 - **Status:** Research Complete, Spike Defined
 - **Summary:** Compiled macro click-casting system. Harm/help conditionals, Smart Resurrection, per-spec defaults. Retail + Classic support. Feasibility spike required before full implementation. GitHub issue #5.
 
-### TRI-006 Curated per-spec aura defaults
-- **Type:** Feature
-- **Priority:** High
-- **Status:** Merged to main, pending in-game verification
-- **Summary:** Pre-configured Retail aura watch lists for 7 healer specs + utility dispellers, with manual Apply/Reset actions in Indicator Options. Paired with click-casting defaults for out-of-box experience. GitHub issue #7.
-- **Branch:** `tri-006-apply-spec-defaults`
-- **Verification:** Gate 1 passed. Merged to `main` for Gate 2 as `7a84992` (`merge: gate2 prep tri-006`). Addon-only `luacheck` passed with 0 warnings / 0 errors.
-
 ### TRI-008 Auto layout switching — content-aware profile selection
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Competitor analysis (Danders), ERF #58. 4 users +1'd on ERF over multiple years.
 - **Summary:** Auto-switch profiles based on content type and group size (dungeon, raid, BG, open world). Per-size-range profiles, auto-detection on roster/zone change, combat-safe queuing. Ships with sensible defaults (party 1-5, raid 6+). GitHub issue #14.
 
 ### TRI-009 Priority-chain indicators — "show X, else Y, else Z" per slot
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Competitor analysis (VuhDo bouquet system).
 - **Summary:** Each indicator slot supports an ordered priority chain of conditions (specific aura, aura type, health threshold, aggro, role, missing buff). First match wins. Visual drag-and-drop editor, not nested dropdowns. Default profiles use simple single-aura slots — chains are opt-in.
 
 ### TRI-010 Pre-configured raid debuffs with auto-detection
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Competitor analysis (Cell curated lists, Grid2 auto-detection).
 - **Summary:** Ship curated per-tier debuff lists for current content. Auto-detect unknown debuffs in combat and surface them for review post-encounter. Dedicated "raid debuff" indicator mode shows highest-priority active boss debuff without manual config. Works with priority chains (TRI-009).
 
 ### TRI-011 Cluster heal finder — AoE heal target recommendation
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Competitor analysis (VuhDo — only addon with this feature).
 - **Summary:** Highlight the best target for AoE/chain heals by detecting clusters of nearby injured players. Configurable radius, health threshold, per-spell presets. Performance-sensitive — needs throttled updates (0.2-0.5s). Uses positional data from C_Map or combat log range checks.
 
 ### TRI-012 Raid tools panel — ready check, pull timer, markers, trackers
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Competitor analysis (Cell — only raid frame addon with built-in raid tools).
 - **Summary:** Lightweight collapsible panel near raid frames. Core: ready check, raid markers, pull timer (syncs with DBM/BigWigs), battle res tracker. Extended: buff/consumable checker, interrupt tracker, cooldown tracker. Auto-appears for raid leaders/assists.
 
 ### TRI-013 Pinned frames — custom frame groups for priority targets
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Competitor analysis (VuhDo private tanks).
 - **Summary:** Pin specific players into a dedicated always-visible frame group independent of Blizzard Main Tank assignments. For assigned healing — pin co-healer, assigned tank, priority targets. Multiple named groups, drag-and-drop or right-click to pin. Depends on frame registry (TRI-004).
 
 ### TRI-014 Spell validation with autocomplete in aura configuration
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Original — no competitor has this.
 - **Summary:** Real-time spell name validation and autocomplete in aura config fields. Validates against C_Spell.GetSpellInfo(), supports spell IDs and fuzzy matching ("rejuv" → "Rejuvenation"). Warning icon on typos. Eliminates the most common config error across all raid frame addons.
 - **Notes:** AceTab-3.0 was removed from vendoring in v1.0.0 (was inherited unused from ERF; CurseForge slug `acetab-3.0` invalid). If implementing via the Tab-key autocomplete pattern, re-vendor AceTab-3.0 with the correct CurseForge externals override or use an alternative pattern (Blizzard's `AutoCompleteEditBoxTemplate`, AceGUI editbox + live `OnTextChanged` suggestions, or LibAdvancedAutoComplete).
@@ -115,42 +107,42 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-015 First-run experience — spec detection, welcome flow, progressive disclosure
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** Original — UX strategy.
 - **Summary:** Detect class/spec on first load, apply defaults automatically, show brief dismissable tooltip. Progressive disclosure in settings: simple mode by default, advanced toggle for power users. Ship 3 preset templates (Raid Healer, Dungeon Healer, DPS Dispeller). This defines how the UX layer system manifests in the UI.
 
 ### TRI-016 Buff/debuff blacklist for stock Blizzard icons
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** ERF #142, #110. Most requested feature across ERF issues (3+ users over multiple years).
 - **Summary:** Granular control over which buffs/debuffs show in Blizzard's stock icon display. Blacklist mode (hide specific auras) and whitelist mode (hide all except listed). Separate lists for buffs and debuffs. Current workaround (disable all + re-add as indicators) wastes indicator slots.
 
 ### TRI-017 Copy/sync indicator settings between positions
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** ERF #122.
 - **Summary:** Copy visual settings (size, text, animation, colors) from one indicator position to others. Optional sync mode to link positions. Bulk reset to defaults. Excludes aura lists (always per-position). Reduces tedium of configuring 9 positions with similar appearance.
 
 ### TRI-018 Health bar color by health percentage
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** ERF #135. Standard feature in VuhDo and Grid2.
 - **Summary:** Dynamically color health bars by remaining health (green → yellow → red). Options: class colors, flat custom color, or gradient. Configurable thresholds, smooth vs stepped. Coexists with debuff-type coloring (TRI-019) via priority. Uses SetStatusBarColor on frame.healthBar.
 
 ### TRI-019 Frame color by debuff type
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** ERF #57. VuhDo staple feature.
 - **Summary:** Override health bar color with debuff type color when a dispellable debuff is active (Magic=blue, Curse=purple, Poison=green, Disease=brown). Configurable per type, priority when multiple active, option to limit to player-dispellable types. Complements existing dispel border/glow overlay. Toggle: border-only, bar-color-only, or both.
 
 ### TRI-020 Multiple auras per indicator position
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** ERF #33.
 - **Summary:** Show multiple active matching auras at a single indicator position as stacked sub-icons (up to 4). Configurable direction (horizontal, vertical, grid). Alternative: cycle through matches on a timer. Default unchanged (first match). Partially overlaps with priority chains (TRI-009) — different use case (show everything vs show most important).
 
@@ -163,7 +155,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-029 Retire or rework UpdatePrivateAuraVisOverrides (dead on 12.0.5)
 - **Type:** Maintenance
 - **Priority:** Low
-- **Status:** Backlog
+- **Status:** Queued
 - **Source:** TRI-028 follow-up (2026-04-21). Confirmed via `/dump CompactUnitFrame_UpdatePrivateAuras` → `nil` on live 12.0.5.
 - **Context:** Midnight 12.0.5 removed the free-standing `CompactUnitFrame_UpdatePrivateAuras` global. Private-aura handling moved to `CompactUnitPrivateAuraAnchorMixin:SetUnit` (CompactUnitFrame.lua:2711 in our Blizzard source extraction). TRI-028's existence guard prevents the error but leaves `UpdatePrivateAuraVisOverrides` permanently unreachable on Retail — the polish behavior that hides private-aura anchors when `showDebuffs` is off no longer runs.
 - **Acceptance criteria:** Decide between (a) reworking `UpdatePrivateAuraVisOverrides` against the current `PrivateAuraAnchors` / mixin path so the polish works again on 12.0.5, or (b) deleting `UpdatePrivateAuraVisOverrides` and its call site as permanently dead code. Document the choice. Existence guard in `Overrides.lua:22` stays either way.
@@ -174,7 +166,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-030 Publish Triage v1.0.0 announcement
 - **Type:** Communications
 - **Priority:** Medium
-- **Status:** Backlog — drafts ready, awaiting Rawb go
+- **Status:** Queued — drafts ready, awaiting Rawb go
 - **Source:** Session 2026-04-21. 17 organic CurseForge downloads since v1.0.0 launch (2026-04-20) with zero announcement push. Signal that ERF-redirect discovery is working; announcement would amplify reach.
 - **Scope:** Refresh announcement drafts (CurseForge news post, Reddit, GitHub issues) written in Session 16-17 against current state — v1.0.0 shipped, CurseForge moderation cleared, placeholder Soyier photos stand on the listing, TRI-003/004/007 merged but pending Gate 2.
 - **Voice:** Rawb's voice, not Blizzard style (memory: author voice vs product voice). Reddit post keeps rough edges per anti-AI signal pattern. Tone per locked decision (2026-04-03): community revival, respectful continuation, full credit to Soyier.
@@ -184,7 +176,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-031 Replace placeholder Soyier photos on CurseForge listing
 - **Type:** Communications / Assets
 - **Priority:** Low
-- **Status:** Backlog — blocked on TRI-003/004/007 Gate 2
+- **Status:** Queued — blocked on TRI-003/004/007 Gate 2
 - **Source:** Session 2026-04-21. Soyier's original ERF screenshots currently on the Triage CurseForge listing (intentional placeholder during the revival handoff — visual continuity signal for returning ERF users).
 - **Acceptance criteria:** (1) Original Triage screenshots captured showing current v1.0 features in-game (test mode preview, dispel overlay with colored glow, indicator grid, minimap button, settings panel). (2) CurseForge listing screenshots replaced. (3) Wago listing screenshots updated to match.
 - **Depends on:** TRI-003, TRI-004, TRI-007 Gate 2 pass. Screenshots should reflect verified-shipped behavior, not pre-Gate-2 state.
@@ -321,7 +313,7 @@ Active and queued work for the Triage addon. Completed items live in
     - Mouseover macros not working through indicators (explicit SetPropagateMouseMotion)
     - frame.outOfRange secret boolean taint
     - Stock aura OnShow hook self-shadowing
-  - Classic API reference created: FrameXML sparse checkout for Classic Era (1.15.8) and Pandaria Classic (5.5.3). New `classic_api_differences` tool in wow-api MCP. Backlog BL-008.
+  - Classic API reference created: FrameXML sparse checkout for Classic Era (1.15.8) and Pandaria Classic (5.5.3). New `classic_api_differences` tool in wow-api MCP. Former BL-008.
   - Dispel overlay feature IMPLEMENTED and merged to main (feature/dispel-overlay branch):
     - Standalone Modules/DispelOverlay.lua — edge border + glow on raid frames when player can dispel
     - Reads frame.dispels PriorityTable (:Size() API) + LibDispel — zero secret values
@@ -331,7 +323,7 @@ Active and queued work for the Triage addon. Completed items live in
   - GitHub issue templates added (bug report + feature request with Game Version field)
   - Announcement drafts written (CurseForge, Reddit, GitHub issues) — v2, rewritten for voice
   - LibDualSpec updated v1.27→v1.29, CallbackHandler and LibStub refreshed
-  - Triage Backlog section created with TRI- prefix (TRI-001 boss frames, TRI-002 addon import)
+  - Triage queued-work section created with TRI- prefix (TRI-001 boss frames, TRI-002 addon import)
   - 3 GitHub issues created: #1 boss frames, #2 addon import, #3 dispel overlay
 - **Session progress (2026-04-07, session 18):**
   - Implemented `TRI-004` on worktree `tri-004-frame-registry` with a central managed-frame registry replacing direct compact-frame iteration. Branch commits:
@@ -365,9 +357,9 @@ Active and queued work for the Triage addon. Completed items live in
   - TRI-004 is on `main` as `7eb36f0` and `0588c57`.
   - TRI-007 is on `main` as `24248dd`, `ff31723`, `185c6a5`, `c93b4a3`, `886cc61`, `9e75dfa`, and `dbc1a66`.
   - Argus QA passed on TRI-003 vendoring (WARN: ProcGlow is Retail-only, but Triage uses only ButtonGlow).
-  - Cherry-picked backlog docs from `Triage-Analysis-ERF-Issues` branch (build file regressions excluded).
-  - Added 18 new backlog items (TRI-008 through TRI-025) from ERF open issues and competitor analysis.
-  - Created 14 GitHub issues (#17-#31) to sync backlog with repo issues; created `quick-win` label.
+  - Cherry-picked queued-work docs from `Triage-Analysis-ERF-Issues` branch (build file regressions excluded).
+  - Added 18 new queued items (TRI-008 through TRI-025) from ERF open issues and competitor analysis.
+  - Created 14 GitHub issues (#17-#31) to sync tracker items with repo issues; created `quick-win` label.
   - Cleaned up 3 stale remote branches (Triage, BawrLabs, Homestead) and 1 stale local branch (Homestead).
   - Reviewed Claude Code releases v2.1.92-v2.1.98 against all CLAUDE.md files — no updates needed.
 - **Session progress (2026-04-20, v1.0.0 release):**
@@ -383,7 +375,7 @@ Active and queued work for the Triage addon. Completed items live in
   - **12.0.5 live.** Two login-time Lua errors surfaced immediately. Shipped hotfixes as TRI-027 (`Libs/embeds.xml` stale `AceTab-3.0` include removed — commit `378360a`) and TRI-028 (`Overrides.lua` existence guard for `CompactUnitFrame_UpdatePrivateAuras` SecureHook — commit `1f36640`). Merged to main as `3ba6b3e`, Argus Gate 1 passed, Rawb Gate 2 passed on Retail (no errors on login/zone/roster).
   - **12.0.5 private-aura removal confirmed.** `/dump CompactUnitFrame_UpdatePrivateAuras` returned `nil` — Blizzard removed the free-standing global and moved private-aura handling to the `CompactUnitPrivateAuraAnchorMixin:SetUnit` path. Filed TRI-029 to retire or rework the now-dead `UpdatePrivateAuraVisOverrides` polish code. Guard stays either way.
   - **TRI-003 atlas follow-up rescued.** The parked Blizzard dispel highlight atlas work from Session 24 (uncommitted for 8 days) preserved on new branch `tri-003-atlas-followup` at commit `2e73752`. Filed TRI-032 to track Gate 1 + in-game re-verify.
-  - **Comms items filed.** 17 organic CurseForge downloads since v1.0.0 with zero announcement push — filed TRI-030 (publish announcement, refresh Session 16-17 drafts) and TRI-031 (replace placeholder Soyier CF screenshots after TRI-003/004/007 Gate 2 passes). Both under a new `Release & Comms` Backlog subsection.
+  - **Comms items filed.** 17 organic CurseForge downloads since v1.0.0 with zero announcement push — filed TRI-030 (publish announcement, refresh Session 16-17 drafts) and TRI-031 (replace placeholder Soyier CF screenshots after TRI-003/004/007 Gate 2 passes). Both under a new `Release & Comms` queued subsection.
   - **Worktree cleanup.** Removed 3 merged worktrees (`tri-003-colored-dispel-glow`, `tri-004-frame-registry`, `tri-027-login-errors`) and 4 stale branches (the three above plus `fix/remove-acetab`). `stu-034-tracker-split` worktree held per Rawb (Category C — 1 real unmerged cutover-SHA commit).
   - **Studio-side impact:** Stop and PreCompact hooks were broken project-agnostically (relative paths + Windows-path-mangling regex). Fixed in BawrLabs this session — session heartbeat now fires correctly across all projects.
 - **Session progress (2026-04-23, v1.1.0 release):**
@@ -475,14 +467,6 @@ Active and queued work for the Triage addon. Completed items live in
 
 ## Awaiting Gate 2
 
-### TRI-006 Curated per-spec aura defaults
-- **Type:** Feature
-- **Priority:** High
-- **Status:** Merged to main, pending in-game verification
-- **Summary:** Manual Apply/Reset buttons in Indicator Options fill curated Retail healer/utility aura defaults for the current specialization. Defaults now use researched applied aura IDs where available, with wildcard dispel entries preserved.
-- **Verification:** Gate 1 passed. Gate 2 target is Retail in-game validation of the option UI, apply/reset behavior, profile write behavior, and at least one real aura ID indicator match.
-- **Next step:** Rawb in-game Gate 2 using the TRI-006 checklist.
-
 ### TRI-003 Colored dispel glow — debuff-type-colored glow animation
 - **Type:** Feature
 - **Priority:** High
@@ -511,7 +495,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Summary:** Preview raid frames without being in a group. Simulated party/raid frames with class colors, health states, aura indicators, power bars, healing-on-click, tooltips. GitHub issue #13.
 - **Implementation:** Current mainline history is linearized. TRI-007 is on `main` as `24248dd`, `ff31723`, `185c6a5`, `c93b4a3`, `886cc61`, `9e75dfa`, and `dbc1a66`. Preview frames are addon-owned and movable, integrate the existing rendering modules through preview-aware adapters, and simulate healing locally.
 - **Gate 1:** Passed. Current mainline hardening commit is `9e75dfa` (earlier branch SHA `f9fc418` is stale after rebase).
-- **Gate 2:** Visual, interaction, and movability fixes landed in `dbc1a66`. Earlier backlog notes that still describe Gate 2 Bug 1 as open are stale.
+- **Gate 2:** Visual, interaction, and movability fixes landed in `dbc1a66`. Earlier tracker notes that still describe Gate 2 Bug 1 as open are stale.
 - **Next step:** Fresh in-game Retail verification of the merged preview frames.
 
 ## Awaiting Release

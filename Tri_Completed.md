@@ -5,6 +5,17 @@ Append-only history of completed Triage work. Active and queued items live in
 
 ## Unreleased — 2026-04-25
 
+### TRI-006 Curated per-spec aura defaults
+- **Type:** Feature
+- **Priority:** High
+- **Status:** Complete
+- **Source:** GitHub issue #7; launch-readiness work for out-of-box healer setup.
+- **Summary:** Added Retail-only manual Apply/Reset actions under Indicator Options that fill curated per-spec aura defaults for 7 healer specs plus utility dispeller specs. Defaults use researched applied aura IDs where available and preserve wildcard entries such as `Dispel`, `Magic`, `Poison`, `Disease`, `Curse`, and `Bleed`.
+- **Implementation:** Added `Data/SpecDefaults.lua` and `Utils/SpecDefaults.lua`, wired TOC load order, added option UI/localization, and fixed aura ID matching so numeric `auraData.spellId` values are compared safely as full tokens.
+- **Files touched:** `Data/SpecDefaults.lua`, `DatabaseDefaults.lua`, `GUI/IndicatorConfigPanel.lua`, `Localizations/enUS.lua`, `Modules/AuraListeners.lua`, `Triage.toc`, `Utils/SpecDefaults.lua`.
+- **Verification:** Gate 1 passed. Merged to `main` for Gate 2 as `7a84992` (`merge: gate2 prep tri-006`), with tracker update `5b5a1e6`. Addon-only `luacheck` passed with 0 warnings / 0 errors. Gate 2 passed on Retail: Apply/Reset behavior worked as expected, and Restoration Druid live aura matching displayed Rejuvenation in upper-left and Lifebloom in center-right as expected.
+- **Completed:** 2026-04-25
+
 ### TRI-032 Neutral dispel highlight uses default proc glow
 - **Type:** Feature (polish)
 - **Priority:** Medium
@@ -93,7 +104,7 @@ Append-only history of completed Triage work. Active and queued items live in
 - **Root cause:** `Overrides.lua:22` called `self:SecureHook("CompactUnitFrame_UpdatePrivateAuras", ...)` guarded only by `IsHooked`, while sibling hooks at `EnhancedRaidFrames.lua:126` / `:136` already used the `if CompactUnitFrame_<name> and ...` existence-check pattern. Midnight 12.0.5 (live 2026-04-21) removed the free-standing global — confirmed via `/dump CompactUnitFrame_UpdatePrivateAuras` returning `nil`. Logic moved to `CompactUnitPrivateAuraAnchorMixin:SetUnit`.
 - **Shipped in:** v1.1.0.
 - **Implementation:** one-line existence guard added to match sibling pattern. Commit `1f36640`. Merged to main as `3ba6b3e` (2026-04-21). Gate 1 passed (Argus, 5/5 lenses). Gate 2 passed in-game on Retail 2026-04-21 — no errors on login or zone change.
-- **Follow-up filed:** TRI-029 (Maintenance backlog) — retire or rework `UpdatePrivateAuraVisOverrides` (now confirmed dead code on 12.0.5). Guard stays regardless.
+- **Follow-up filed:** TRI-029 (Maintenance queued item) — retire or rework `UpdatePrivateAuraVisOverrides` (now confirmed dead code on 12.0.5). Guard stays regardless.
 - **Completed:** 2026-04-23
 
 ---
