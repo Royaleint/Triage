@@ -28,6 +28,56 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 				fontSize = "medium",
 				order = 1,
 			},
+			specDefaultsHeader = {
+				type = "header",
+				name = L["Spec Aura Defaults"],
+				hidden = function()
+					return self.isWoWClassicEra or self.isWoWClassic
+				end,
+				order = 2,
+			},
+			applySpecDefaults = {
+				type = "execute",
+				name = L["Apply Current Spec Defaults"],
+				desc = L["applySpecDefaults_desc"],
+				func = function()
+					local applied, skipped, specID = self:ApplyCurrentSpecAuraDefaults(false)
+					if applied == 0 and not specID then
+						self:Print(L["No spec aura defaults available."])
+					else
+						self:Print(L["Spec aura defaults applied."]:format(applied, skipped))
+					end
+				end,
+				disabled = function()
+					return not self:HasCurrentSpecAuraDefaults()
+				end,
+				hidden = function()
+					return self.isWoWClassicEra or self.isWoWClassic
+				end,
+				width = THIRD_WIDTH * 1.5,
+				order = 3,
+			},
+			resetSpecDefaults = {
+				type = "execute",
+				name = L["Reset Current Spec Defaults"],
+				desc = L["resetSpecDefaults_desc"],
+				func = function()
+					local applied, skipped, specID = self:ApplyCurrentSpecAuraDefaults(true)
+					if applied == 0 and not specID then
+						self:Print(L["No spec aura defaults available."])
+					else
+						self:Print(L["Spec aura defaults reset."]:format(applied, skipped))
+					end
+				end,
+				disabled = function()
+					return not self:HasCurrentSpecAuraDefaults()
+				end,
+				hidden = function()
+					return self.isWoWClassicEra or self.isWoWClassic
+				end,
+				width = THIRD_WIDTH * 1.5,
+				order = 4,
+			},
 		}
 	}
 
@@ -37,7 +87,7 @@ function EnhancedRaidFrames:CreateIndicatorOptions()
 		indicatorOptions.args[v].type = "group"
 		indicatorOptions.args[v].childGroups = "tab"
 		indicatorOptions.args[v].name = i .. ": " .. v
-		indicatorOptions.args[v].order = i + 1
+		indicatorOptions.args[v].order = i + 10
 		indicatorOptions.args[v].args = {
 			--------------------------------------------
 			instructions = {

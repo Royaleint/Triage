@@ -72,8 +72,10 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-006 Curated per-spec aura defaults
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Backlog (data authoring assigned to Codex, issue #10)
-- **Summary:** Pre-configured aura watch lists for 7 healer specs + utility dispellers. Paired with click-casting defaults for out-of-box experience. GitHub issue #7.
+- **Status:** Gate 1 Ready
+- **Summary:** Pre-configured Retail aura watch lists for 7 healer specs + utility dispellers, with manual Apply/Reset actions in Indicator Options. Paired with click-casting defaults for out-of-box experience. GitHub issue #7.
+- **Branch:** `tri-006-apply-spec-defaults`
+- **Verification:** Targeted `luacheck` on touched Lua files passed with 0 warnings / 0 errors.
 
 ### TRI-008 Auto layout switching — content-aware profile selection
 - **Type:** Feature

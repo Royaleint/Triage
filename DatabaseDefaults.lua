@@ -40,6 +40,9 @@ function EnhancedRaidFrames:CreateDefaults()
 		testModeLastSize = 5,
 		testModePosition = {},
 		configWindowStatus = {},
+		defaultsState = {
+			aura = {},
+		},
 
 		-- Out-of-Range Options
 		customRangeCheck = false,
