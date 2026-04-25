@@ -112,10 +112,12 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 			local debuffColors = LibDispel:GetDebuffTypeColor()
 			local color = debuffColors[previewType] or debuffColors["None"]
 			local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
-			local glowState = useTypeColor and previewType or "neutral"
-			local glowColor = GetGlowColor(useTypeColor, color)
+			if not useTypeColor then
+				StopGlow(hiddenOverlay)
+				return
+			end
 
-			EnsureGlow(frame, hiddenOverlay, previewType, glowColor, glowState)
+			EnsureGlow(frame, hiddenOverlay, previewType, GetGlowColor(true, color), previewType)
 			return
 		end
 
@@ -136,10 +138,12 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 		local debuffColors = LibDispel:GetDebuffTypeColor()
 		local color = debuffColors[hiddenOverlay.currentDispelType] or debuffColors["None"]
 		local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
-		local glowState = useTypeColor and hiddenOverlay.currentDispelType or "neutral"
-		local glowColor = GetGlowColor(useTypeColor, color)
+		if not useTypeColor then
+			StopGlow(hiddenOverlay)
+			return
+		end
 
-		EnsureGlow(frame, hiddenOverlay, hiddenOverlay.currentDispelType, glowColor, glowState)
+		EnsureGlow(frame, hiddenOverlay, hiddenOverlay.currentDispelType, GetGlowColor(true, color), hiddenOverlay.currentDispelType)
 	end)
 	frame.ERF_dispelOverlay = overlay
 end
@@ -291,36 +295,37 @@ function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
 
 	local glowStyle = self.db.profile.dispelOverlay.glowStyle
 
-	-- Border: show edges for "border" and "both", hide for "pulse" only
-	if glowStyle == "border" or glowStyle == "both" then
-		if useTypeColor then
-			overlay.blizzardBorder:Hide()
-			SetBorderColor(overlay, color.r, color.g, color.b, alpha)
-			for _, edge in ipairs(overlay.edges) do
-				edge:Show()
-			end
-		else
-			for _, edge in ipairs(overlay.edges) do
-				edge:Hide()
-			end
-			overlay.blizzardBorder:SetAlpha(alpha)
-			overlay.blizzardBorder:Show()
-		end
-	else
-		-- Pulse only — hide edges
+	if not useTypeColor then
 		for _, edge in ipairs(overlay.edges) do
 			edge:Hide()
 		end
-		overlay.blizzardBorder:Hide()
+		overlay.blizzardBorder:SetAlpha(alpha)
+		overlay.blizzardBorder:Show()
+		overlay:Show()
+		overlay.currentDispelType = dispelType
+		StopGlow(overlay)
+		return
+	end
+
+	overlay.blizzardBorder:Hide()
+
+	-- Border: show edges for "border" and "both", hide for "pulse" only
+	if glowStyle == "border" or glowStyle == "both" then
+		SetBorderColor(overlay, color.r, color.g, color.b, alpha)
+		for _, edge in ipairs(overlay.edges) do
+			edge:Show()
+		end
+	else
+		for _, edge in ipairs(overlay.edges) do
+			edge:Hide()
+		end
 	end
 
 	overlay:Show()
 
 	-- Glow: show for "pulse" and "both", hide for "border" only
 	if glowStyle == "pulse" or glowStyle == "both" then
-		local glowState = useTypeColor and dispelType or "neutral"
-		local glowColor = GetGlowColor(useTypeColor, color)
-		EnsureGlow(frame, overlay, dispelType, glowColor, glowState)
+		EnsureGlow(frame, overlay, dispelType, GetGlowColor(true, color), dispelType)
 	else
 		StopGlow(overlay)
 	end
