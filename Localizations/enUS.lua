@@ -17,6 +17,14 @@ L["General Options"] = true
 L["Indicator Options"] = true
 L["Target Marker Options"] = true
 L["Profiles"] = true
+L["Spec Aura Defaults"] = true
+L["Apply Current Spec Defaults"] = true
+L["applySpecDefaults_desc"] = "Fill empty indicator slots with the curated aura defaults for your current specialization. Existing aura lists are not overwritten."
+L["Reset Current Spec Defaults"] = true
+L["resetSpecDefaults_desc"] = "Overwrite all indicator aura lists with the curated defaults for your current specialization."
+L["No spec aura defaults available."] = true
+L["Spec aura defaults applied."] = "%d spec aura default slots applied. %d customized slots skipped."
+L["Spec aura defaults reset."] = "%d spec aura default slots reset. %d customized slots skipped."
 
 L["Vertical Offset"] = true
 L["verticalOffset_desc"] = "The vertical offset percentage relative to the starting position and the width of the frame"
