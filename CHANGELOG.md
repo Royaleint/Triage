@@ -1,5 +1,11 @@
 # Triage Changelog
 
+## Unreleased
+
+### What's fixed
+- Target markers now appear correctly on Blizzard party and raid frames in Midnight.
+- Added a target-marker vertical nudge control and a reset button for target-marker defaults.
+
 ## v1.1.0
 
 ### What's new
