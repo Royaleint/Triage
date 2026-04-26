@@ -19,7 +19,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-001 Boss frames as raid-style compact frames
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Awaiting Gate 2 — TRI-001a prototype committed on worktree; TRI-001b queued behind Spike B
+- **Status:** Blocked — TRI-001a Gate 1 PASS but Gate 2 FAIL (Retail Midnight secret-value taint in `CompactUnitFrame_UpdateHealPrediction` and `_UpdateInRange` paths on addon-owned `CompactUnitFrameTemplate` boss frames). Architecture must be redesigned (B-alt1 owned `SecureUnitButtonTemplate` clone, B-alt2 read-only overlay, or B-alt3 defer). TRI-001b dependent on replacement.
 - **Summary:** Boss unit frames (Boss1–Boss5) are Blizzard's default `TargetFrame` buttons, not compact raid frames. On fights like Lura, healable adds appear in these frames and healers have no way to configure them. Supporting them would require addon-owned compact-style boss frames so they can receive Triage indicators, dispel overlay, range, and profile-driven appearance.
 - **Source:** Direct guild feedback from a healer.
 - **Research status:** Initial feasibility review complete (2026-04-06).
@@ -31,6 +31,8 @@ Active and queued work for the Triage addon. Completed items live in
 - **Follow-up:** After the Retail version is settled, evaluate whether Classic Era and Pandaria Classic can support a separate boss-frame approach without breaking their existing shared ERF behavior.
 - **Session progress:** Retail-only `boss1` compact-frame prototype is in the worktree on `Modules/BossFrames.lua`, registered through the managed frame registry, and wired into startup before the first config refresh. Prodigy spec drafted in `Triage_Dev/plans/active/tri-001-boss-frames-prodigy-spec.md`.
 - **Session progress (2026-04-25):** Prodigy reviewed Codex's draft spec, found Gate 3 incorrectly empty (5 unresolved questions), and rewrote against the studio plan template. Rawb resolved all five: Q1 anchor stays near Blizzard's default boss frame position; Q2 ship coexistence toggle unconditionally (default `false`); Q3 lifecycle driver = `RegisterUnitWatch(frame)` after `CompactUnitFrame_SetUnit(frame, "boss1")`, with `SetUpdateAllEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")` named as documented fallback if Spike B5 finds taint; Q4 split into TRI-001a (prototype + Spike B) and TRI-001b (full feature); Q5 frames named `TriageBossFrame1..5`. Final spec at `Triage_Dev/plans/active/tri-001-boss-frames-prodigy-spec.md` (353 lines, gitignored by Triage_Dev's `plans/*` rule, by design). Codex caught and corrected the `RegisterUnitWatch(frame, "boss1")` API bug before implementation. TRI-001a was implemented and Gate 1-passed on worktree branch `tri-001-boss-frames` at `9a7c96e`. **Next action:** run Spike B / Gate 2 when Rawb decides whether to continue refactor/extension or pause for rebuild evaluation.
+- **Verification update (2026-04-26):** Local Blizzard UI source review supports addon-owned secure/compact boss frames bound to `boss1`-`boss5`; the remaining uncertainty is live encounter lifecycle and taint, not basic API feasibility. Gate 2 should focus on boss token appearance/disappearance, phase transitions, combat lockdown, and whether Triage modules can decorate the boss frame cleanly during combat.
+- **Gate 2 result (2026-04-26):** FAILED. `/tridev bossdungeon` run during a real Retail Midnight dungeon boss encounter produced two Lua errors: `CompactUnitFrame_UpdateHealPrediction: attempt to compare local 'maxHealth' (a secret number value, while execution tainted by 'Triage_Dev')` and `CompactUnitFrame_UpdateInRange: attempt to perform boolean test on local 'checkedRange' (a secret boolean value, while execution tainted by 'Triage_Dev')` — both on `TriageDevBossFrame1`. Blizzard's compact-frame internals read boss `maxHealth`/`checkedRange` as secret values, and addon-tainted execution context blocks the comparisons. The naive `CompactUnitFrameTemplate` owned-boss-frame approach is **blocked on Retail Midnight**. Code itself was Gate 1 PASS — failure was architectural, not implementation-quality. Findings docs at `Triage_Dev/plans/active/triage-rebuild-verification-findings-2026-04-26.md` (Codex — strategic rebuild handoff) and `Triage_Dev/plans/active/tri-001a-claude-findings.md` (Claude — comprehensive Gate 1 review with Gate 2 postscript). KNOWLEDGE.md entry tagged `[PROMOTE]`. **Next action:** write the rebuild architecture spec from the combined findings; treat boss-frame provider as unresolved with B-alt1/B-alt2/B-alt3 spike paths. Do not commit the worktree boss-frame prototype as-is.
 - **Related issues:** GitHub `#1` parent feature, `#9` boss-frame prototype, `#8` click-casting scaffold.
 
 ### TRI-002 Import aura watch lists from other addons
@@ -55,8 +57,10 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-005 Built-in click-casting
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Research Complete, Spike Defined
+- **Status:** Research Complete, Spike A partially verified; scope revised after Midnight taint finding
 - **Summary:** Compiled macro click-casting system. Harm/help conditionals, Smart Resurrection, per-spec defaults. Retail + Classic support. Feasibility spike required before full implementation. GitHub issue #5.
+- **Finding (2026-04-26):** Directly stamping Triage click-cast attributes onto Blizzard compact raid/party frames is unsafe on Retail Midnight. TriageDev testing produced secret-value taint in Blizzard `CompactUnitFrame_UpdateInRange`, `CompactUnitFrame_UpdateHealthColor`, `CompactUnitFrame_GetRangeAlpha`, and related update paths. After moving the probes to an addon-owned secure frame (`TriageDevClickProbeFrame`), A1/A3/A4 passed without Lua errors.
+- **Scope update:** First-party click-casting should target addon-owned/provider-safe frames. Blizzard compact frames should preserve native `C_ClickBindings`, Clicked, and Clique compatibility rather than being mutated by Triage. Add an explicit provider/capability flag such as `supportsTriageClickCasting`. Classic/Pandaria A6/A7 remain unverified.
 
 ### TRI-008 Auto layout switching — content-aware profile selection
 - **Type:** Feature
@@ -78,13 +82,14 @@ Active and queued work for the Triage addon. Completed items live in
 - **Status:** Queued
 - **Source:** Competitor analysis (Cell curated lists, Grid2 auto-detection).
 - **Summary:** Ship curated per-tier debuff lists for current content. Auto-detect unknown debuffs in combat and surface them for review post-encounter. Dedicated "raid debuff" indicator mode shows highest-priority active boss debuff without manual config. Works with priority chains (TRI-009).
+- **Finding (2026-04-26):** Spike C is reduced from an architecture unknown to a data-policy/content-curation problem. Local competitor/source review found Cell and Danders-style whitelist approaches for secret-safe aura display. A hand-curated whitelist plus graceful degradation is viable for v1.x, but active aura/debuff behavior still needs live verification.
 
 ### TRI-011 Cluster heal finder — AoE heal target recommendation
 - **Type:** Feature
 - **Priority:** Medium
-- **Status:** Queued
+- **Status:** Reframed by feasibility research; see GitHub #41 / TRI-011b
 - **Source:** Competitor analysis (VuhDo — only addon with this feature).
-- **Summary:** Highlight the best target for AoE/chain heals by detecting clusters of nearby injured players. Configurable radius, health threshold, per-spell presets. Performance-sensitive — needs throttled updates (0.2-0.5s). Uses positional data from C_Map or combat log range checks.
+- **Summary:** Original VuhDo-style spatial cluster detection is not a reliable Retail path with current APIs. The practical feature is Triage Focus: highlight the best in-range heal target using LibRangeCheck, health deficit, incoming-heal adjustment where safe, and a throttled priority score. Avoid `UnitPosition()`/CLEU spatial assumptions.
 
 ### TRI-012 Raid tools panel — ready check, pull timer, markers, trackers
 - **Type:** Feature
@@ -121,6 +126,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Status:** Queued
 - **Source:** ERF #142, #110. Most requested feature across ERF issues (3+ users over multiple years).
 - **Summary:** Granular control over which buffs/debuffs show in Blizzard's stock icon display. Blacklist mode (hide specific auras) and whitelist mode (hide all except listed). Separate lists for buffs and debuffs. Current workaround (disable all + re-add as indicators) wastes indicator slots.
+- **Finding (2026-04-26):** This must be treated as a Blizzard-frame-specific capability. Retail stock/private aura suppression uses Blizzard compact-frame attributes and private-aura paths; owned frames or future third-party providers should not be assumed to support the same mechanism.
 
 ### TRI-017 Copy/sync indicator settings between positions
 - **Type:** Feature
@@ -135,6 +141,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Status:** Queued
 - **Source:** ERF #135. Standard feature in VuhDo and Grid2.
 - **Summary:** Dynamically color health bars by remaining health (green → yellow → red). Options: class colors, flat custom color, or gradient. Configurable thresholds, smooth vs stepped. Coexists with debuff-type coloring (TRI-019) via priority. Uses SetStatusBarColor on frame.healthBar.
+- **Finding (2026-04-26):** Treat Blizzard health-color paths as taint-sensitive on Retail Midnight. TriageDev click-cast testing produced secret-number taint inside Blizzard health-color updates after protected frame mutation. This feature should avoid mutating protected Blizzard state in ways that cause Blizzard update code to execute under Triage taint.
 
 ### TRI-019 Frame color by debuff type
 - **Type:** Feature
@@ -142,6 +149,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Status:** Queued
 - **Source:** ERF #57. VuhDo staple feature.
 - **Summary:** Override health bar color with debuff type color when a dispellable debuff is active (Magic=blue, Curse=purple, Poison=green, Disease=brown). Configurable per type, priority when multiple active, option to limit to player-dispellable types. Complements existing dispel border/glow overlay. Toggle: border-only, bar-color-only, or both.
+- **Finding (2026-04-26):** Prefer overlay/border presentation over direct Blizzard health-bar color mutation until a taint-safe implementation is proven. `frame.dispels` remains Retail Blizzard-frame-specific; cross-client behavior needs a separate data source.
 
 ### TRI-020 Multiple auras per indicator position
 - **Type:** Feature
@@ -186,6 +194,25 @@ Active and queued work for the Triage addon. Completed items live in
 - **Depends on:** Verified-shipped behavior, not pre-Gate-2 state.
 - **Owner at execution:** Everett (listing updates) + Rawb (actual screenshots, since only Rawb has the in-game environment).
 - **Notes:** The placeholder is not a bug — it's continuity signal. Don't rush the swap; swap when we have the full set of verified-feature screenshots in hand, not piecemeal.
+
+### TRI-034 TBC Classic Anniversary support
+- **Type:** Feature
+- **Priority:** Medium
+- **Status:** Queued
+- **Summary:** Add TBC Classic Anniversary as a fourth supported client alongside Retail, Classic Era, and Pandaria Classic. TBC Anniversary launched January 2026 on Anniversary realms with active player base and addon ecosystem. None of DandersFrames, Cell, MidnightHealerUI, or HealBot ship TBC support; this widens Triage's multi-client moat.
+- **Source:** Codex's rebuild brief flagged TBC as a separate compatibility track. Cost assessment dated 2026-04-26 in `Triage_Dev/plans/active/triage-rebuild-tbc-cost-assessment.md`.
+- **Research status:** Cost assessment complete (2026-04-26).
+- **Findings:** TBC Anniversary uses the modern Midnight 12.0+ engine with TBC content gating, the same backend pattern as Pandaria Classic. Interface version is 20505 (verified via recent TBC Anniversary addon TOCs). Prunes Enhanced Raid Frames for TBC Anniversary (1.5K+ downloads) demonstrates CompactUnitFrame APIs are exposed on this client; ERF's overlay model applies directly.
+- **Findings:** Library compatibility verified against vendored externals — `LibRangeCheck-3.0` has `isTBC` branch (line 55), `LibDispel` has TBC branch (line 21), Ace3 stack is universal. `LibClassicDurations` does not apply (TBC's `UnitAura` returns durations natively from 2.0). `LibDualSpec` does not apply (dual spec was a WotLK 3.1 addition).
+- **Findings:** Per Codex's source verification (`triage-rebuild-source-verification-findings.md`), the local Blizzard UI extracts do not include full TBC compact-frame source; treat TBC as closer to Classic Era for aura and click-cast paths (no `C_UnitAuras` payload, no `C_ClickBindings`, no private aura APIs). Path B (legacy `UnitAura` polling) is the safe default; Path A (modern payload) is an opportunistic optimization to verify on first port.
+- **Constraints:** TBC predates the spec system (talent points only). `Utils/SpecDefaults.lua` early-return must include the new client flag. Click-casting uses the attribute-based path like Classic Era / Pandaria — no `C_ClickBindings` interop. TRI-001 boss frames remain Retail-only and do not apply to TBC.
+- **Triage impact:** Surface area is small. `Globals.lua` needs `WOW_PROJECT_BURNING_CRUSADE_CLASSIC` branch and an `isWoWClassicTBC` flag (~5 lines). `Triage.toc` Interface line extends to `11508, 20505, 50503, 120005`. `.github/workflows/release.yml` needs a TBC build step using `BigWigsMods/packager@v2 -g bcc` (~10 lines). Per-module client gates in `Modules/AuraIndicators.lua`, `Modules/AuraListeners.lua`, `Overrides.lua`, `Utils/SpecDefaults.lua`, `GUI/IndicatorConfigPanel.lua`, `GUI/GeneralConfigPanel.lua` need TBC additions; `Utils/TestModeData.lua` needs a TBC variant (~10 lines).
+- **Effort estimate:** 2-4 days focused work plus community-assisted in-game verification window.
+- **Suggested spike:** D4 sub-items (D4a–D4h) in `Triage_Dev/plans/active/triage-rebuild-ingame-verification.md`. Verify CompactUnitFrame surface, aura indicator population, range fade, target markers, profile import/export, dispel overlay, test mode rendering on TBC Anniversary client.
+- **Sequencing:** Should run after TRI-001a Spike B Gate 2 and TRI-005 Spike A so capability-flag layer decisions are settled. Can run in parallel with the rebuild architecture work since code surfaces don't intersect — TBC port touches `Globals.lua`, TOC, build pipeline, and per-module client gates; rebuild touches state model, providers, and schema.
+- **Open product question:** Ship in a v1.x point release as a quick-win moat extension, or bundle with the v2.x rebuild release? Cost assessment recommends v1.x — low cost, meaningful differentiator, reinforces multi-client moat ahead of Cell's planned framework rewrite.
+- **Notes:** Triage v1.0 launch design (`triage-v1-launch-design.md:12`) already mentions "future TBC Classic support" in the product thesis. This issue formalizes that promise as tracked work. Not unique value (other TBC Anniversary frame addons exist — Prunes ERF, Shadowed Unit Frames TBC Anniversary), but Triage would be the only addon spanning Retail + Classic Era + Pandaria + TBC under one identity.
+- **Related issues:** None on GitHub yet. File when sequencing decision lands.
 
 ### Stale
 
@@ -394,15 +421,29 @@ Active and queued work for the Triage addon. Completed items live in
   - **Public v1.1.0 CHANGELOG rewritten** in imperative voice per Rawb feedback (outcome-first bullets, no jargon, no internal codenames, no file paths / SHAs). v1.0.0 heading expanded to "Triage - Enhanced Raid Frames Reforged" in both `CHANGELOG.md` and `README.md`.
   - **TRI-027 and TRI-028 hotfixes** (previously Awaiting Release) shipped inside v1.1.0 alongside the five features.
   - **Release:** `luacheck` 0 errors / 2 warnings (both in `Triage_Dev/` dev-only code, not shipped). Tag `v1.1.0` pushed, BigWigs packager workflow produced 4 assets (Retail zip, Mists zip, Classic zip, release.json) and uploaded to CF + Wago.
+- **Session progress (2026-04-26, rebuild verification):**
+  - **Strategic direction re-validated:** ERF-preserving architectural rebuild remains the favored path. Do not rewrite from scratch. Keep EnhancedRaidFramesDB, `/erf`, legacy 3x3 indicator behavior, and multi-client support while adding owned-frame surfaces where proven.
+  - **GitHub issue update attempt blocked:** Codex attempted to add finding comments to GitHub issues `#1`, `#4`, `#5`, `#8`, `#9`, and `#13`, but the GitHub app returned 403 `Resource not accessible by integration`. Tracker was updated locally instead; issue comments still need to be applied manually or after connector permissions are fixed.
+  - **TRI-001 / Spike B:** Local Blizzard UI source review supports addon-owned secure/compact boss frames bound to `boss1`-`boss5`; remaining uncertainty is live encounter lifecycle, combat lockdown, and taint.
+  - **TRI-001 / Spike B live dungeon result:** Dungeon boss test of `TriageDevBossFrame1` using addon-created `CompactUnitFrameTemplate` bound to `boss1` failed with Retail secret-value taint in Blizzard compact-frame update code. Errors hit `CompactUnitFrame_UpdateHealPrediction` (`maxHealth` secret number) and `CompactUnitFrame_UpdateInRange` (`checkedRange` secret boolean) while execution was tainted by `Triage_Dev`. **Implication:** The naive owned `CompactUnitFrameTemplate` boss-frame path is not safe on Retail Midnight for boss units. Spike B should be marked failed/blocked for this implementation shape; next research should evaluate a lower-level owned `SecureUnitButtonTemplate` visual clone or a read-only overlay/anchor strategy that avoids Blizzard compact-frame health/range/heal-prediction update code.
+  - **TRI-005 / Spike A:** Directly mutating Blizzard compact frames for Triage click-cast caused Retail Midnight secret-value taint in Blizzard compact-frame range and health paths. Owned secure click probe path passed non-healer A1/A3/A4 after reload. Implementation scope changed to owned/provider-safe frames; Blizzard compact frames should preserve native/external click-cast paths.
+  - **TRI-003 / dispel:** Non-healer C1 probe command worked. Follow-up PvE/follower testing showed `frame.dispels` is not the correct Retail Midnight source for active dispel overlay state. Blizzard's live signal is `frame.DispelOverlay.dispelDebuffFrames[i].aura`, but the aura object fields and even `IsShown()` calls can be secret/blocked. Treat `frame.dispels` as non-load-bearing on Retail 12.0+ and rename any capability around this to the Blizzard dispel-overlay state path.
+  - **Spike C / TRI-010:** Source review reduces secret-safe boss debuff handling to curated whitelist + graceful degradation. C4 was inconclusive on non-healer because no matching active aura/debuff was visible.
+  - **PvP healer verification (2026-04-26, Restoration Druid BG):** Retail BG compact raid frames were discovered correctly (`10` visible raid frames), but `frame.dispels` was nil on visible PvP raid frames and capability dump reported `supportsFrameDispels=false`. LibDispel correctly reported Druid dispel capability as `Poison, Magic, Curse`. `TriggerPrivateAuraShowDispelType` was absent. Aura whitelist probing showed `774`/Rejuvenation readable once with duration/stacks, then later secret; other Druid HoT IDs hit secret `spellId` guards. User observed the visual dispel border/glow path working and stable with no Lua errors, but no pulse was visible. Healer geometry was usable, with a note that hovering did not always behave as expected. **Implication:** PvP must be treated as a degraded data context for dispel urgency/whitelist work; visual active-dispel signaling can work, but `frame.dispels` and aura-field matching are not reliable load-bearing sources there.
+  - **Follower-style party verification (2026-04-26, Restoration Druid):** `/tridev dispelbundle druid` wrote a new report at `12:38:45`. Runtime capability still reported `supportsFrameDispels=false`, but whitelist probes successfully found `774`/Rejuvenation and `8936`/Regrowth on visible party frames. `33763`/Lifebloom, `48438`/Wild Growth, and `102351`/Cenarion Ward did not match and skipped `27` aura(s) with secret `spellId`. **Implication:** Normal party/follower-style content improves readability for some friendly HoTs, but `frame.dispels` still should not be assumed available and spell-ID matching still needs secret-safe fallback behavior.
+  - **Follower dungeon frame-context check (2026-04-26, Restoration Druid):** `/tridev dungeoncheck follower` in Windrunner Spire recorded `type=party`, `difficulty=205/Follower`, `group=5`, `5/5` compact party frames, normal `player`/`party1`-`party4` unit tokens, and both Blizzard/Triage dispel overlay objects present on all five frames. Follower units were NPC-controlled (`UnitIsPlayer=false`, `UnitPlayerControlled=false`) but assist-friendly and class-tagged. **Implication:** Follower dungeons are valid for frame discovery, provider assumptions, overlay attachment, aura-surface presence, and general party layout checks. They are not a full substitute for player dungeon addon-coexistence, real-player aura/cooldown behavior, social roster churn, or player-specific role edge cases.
+  - **TRI-011:** Spatial cluster finder is reframed into Triage Focus / priority heal target highlight. Use range + deficit + incoming-heal-aware scoring where safe; avoid true position-based clustering.
+  - **Capability flags:** Capability layer should replace scattered client/frame assumptions. Current derived shape includes UnitAura payload support, LibClassicDurations need, LibDualSpec support, compact party frames, mouse input propagation, private-aura suppression/hooking, spec defaults, Retail indicator features, `frame.dispels`, and Triage-owned click-cast support.
 - **Pending (next session):**
   - **Gate 2 for v1.1.0 features** — run the per-PR in-game checks from Argus Gate 1 review: caster filter two-druid test, keep-indicators-visible toggle with `rangeAlpha`, countdown corner placement, 0.5% offset slider stepping, extended-range warning on DPS/tank spec, transform-spell hint renders in config panel.
   - **Gate 2 for v1.1.0 DB migration** — load a pre-v1.1.0 profile with `mineOnly = true/false` and confirm 2.2 → 2.3 migration rewrites to `casterFilter = "mine" / "all"` and drops the old key.
   - **Verify CurseForge v1.1.0 listing** — public changelog rendered correctly, all three client builds present.
-  - Run click-casting spike A1-A5 in-game (Retail).
+  - Run remaining click-casting spike items in-game (Retail): A2/A5 still open; A1/A3/A4 passed on owned `TriageDevClickProbeFrame`; direct Blizzard CompactUnitFrame mutation is now considered unsafe on Midnight.
   - Run boss frame spike B1-B6 in-game (Retail).
+  - Revise TRI-001 boss-frame architecture before any further live boss testing. Do not rerun the current `CompactUnitFrameTemplate` boss prototype except as an explicit unsafe retest.
   - Run click-casting spike A6-A7 on Classic Era.
-  - Urgency glow data source investigation (Spike C).
-  - In-game test dispel overlay on a dispel class.
+  - Urgency glow data source investigation (Spike C): PvP healer and follower/PvE checks completed for Restoration Druid. `frame.dispels` is no longer a candidate source on Retail Midnight; remaining PvE value is limited to confirming non-secret availability for curated whitelist entries in live dungeon/M+/raid contexts and validating graceful-degrade visuals.
+  - Optional: run `/tridev dungeoncheck player` in a real player dungeon to compare against the saved follower snapshot. This is useful but not blocking for frame/provider assumptions.
   - **TRI-032** — Gate 1 (Argus) and in-game re-verify for the atlas neutral-fallback work on branch `tri-003-atlas-followup` (`2e73752`).
   - **TRI-029** — decide whether to rework or delete `UpdatePrivateAuraVisOverrides` (now confirmed dead on 12.0.5 via `/dump`).
   - **TRI-030** — refresh Session 16-17 announcement drafts against current state, then publish (CurseForge, Reddit, GitHub). v1.1.0 launch is a natural bundling moment.
