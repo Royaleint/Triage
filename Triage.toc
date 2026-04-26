@@ -41,6 +41,9 @@ Modules/AuraIndicators.lua
 # Target Markers
 Modules/TargetMarkers.lua
 
+# Boss Frames
+Modules/BossFrames.lua
+
 # Dispel Overlay (Retail only — version-gated in code)
 Modules/DispelOverlay.lua
 

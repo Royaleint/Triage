@@ -19,7 +19,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-001 Boss frames as raid-style compact frames
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Queued
+- **Status:** In Progress (TRI-001a prototype + Spike B)
 - **Summary:** Boss unit frames (Boss1–Boss5) are Blizzard's default `TargetFrame` buttons, not compact raid frames. On fights like Lura, healable adds appear in these frames and healers have no way to configure them. Supporting them would require addon-owned compact-style boss frames so they can receive Triage indicators, dispel overlay, range, and profile-driven appearance.
 - **Source:** Direct guild feedback from a healer.
 - **Research status:** Initial feasibility review complete (2026-04-06).
@@ -28,6 +28,9 @@ Active and queued work for the Triage addon. Completed items live in
 - **Triage impact:** Current architecture only iterates Blizzard raid/party compact frames and filters to `player`/`party`/`raid` units. This feature needs a managed frame registry, boss-aware iteration, and selective widening of `ShouldContinue()` rather than a small hook on the existing code.
 - **Suggested spike:** Build one Retail-only prototype frame for `boss1`, anchor it near `BossTargetFrameContainer`, and validate targeting, right-click menu, Blizzard click-casting, aura listener updates, dispel overlay, and encounter-time appearance before committing to all five frames.
 - **Notes:** High differentiator for Blizzard-frame users, but not literally unique — Cell already supports boss/NPC frames. Bigger scope than the current overlay-only healing modules. Retail only.
+- **Session progress:** TRI-001a is scoped to one Retail-only `boss1` compact-frame prototype plus Spike B validation. Full `boss2..boss5`, config UI, localization, and Blizzard boss-frame hide behavior move to TRI-001b after Spike B passes.
+- **Related issues:** GitHub `#1` parent feature, `#9` boss-frame prototype, `#8` click-casting scaffold.
+- **Follow-up:** After the Retail version is settled, evaluate whether Classic Era and Pandaria Classic can support a separate boss-frame approach without breaking their existing shared ERF behavior.
 
 ### TRI-002 Import aura watch lists from other addons
 - **Type:** Feature

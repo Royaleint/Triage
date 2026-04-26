@@ -94,6 +94,11 @@ function EnhancedRaidFrames:OnEnable()
 	self:RegisterChatCommand("triage", "ChatCommand")
 	self:RegisterChatCommand("tri", "ChatCommand")
 
+	-- Create addon-owned boss frames before the managed registry refresh so the
+	-- prototype participates in the same frame iteration path as the compact raid
+	-- and party frames.
+	self:InitializeBossFrames()
+
 	-- Sync the managed frame registry before the first config refresh/update pass.
 	self:RefreshManagedFrameRegistry()
 

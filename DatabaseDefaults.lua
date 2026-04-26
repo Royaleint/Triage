@@ -62,6 +62,21 @@ function EnhancedRaidFrames:CreateDefaults()
 			showInRaid = true,
 		},
 
+		-------------------------------
+		---- Boss Frames (Retail) -----
+		-------------------------------
+		bossFrames = {
+			enabled = true,
+			hideBlizzardFrames = false,
+			anchor = {
+				point = "TOPLEFT",
+				relativeTo = "BossTargetFrameContainer",
+				relativePoint = "TOPLEFT",
+				x = 0,
+				y = 0,
+			},
+		},
+
 		--------------------------------
 		---- Target Marker Settings ----
 		--------------------------------
