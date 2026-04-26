@@ -1,6 +1,7 @@
 -- Triage - Enhanced Raid Frames Reforged
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
+-- luacheck: globals SetRaidTargetIconTexture
 
 -- Create a local handle to our addon table
 ---@type EnhancedRaidFrames
@@ -81,7 +82,7 @@ function EnhancedRaidFrames:SetTargetMarkerAppearance(frame)
 		frameHeight = 36
 		frameWidth = 72
 	end
-	local markerVerticalOffset = self.db.profile.markerVerticalOffset * frameHeight
+	local markerVerticalOffset = self.db.profile.markerVerticalOffset * frameHeight - (self.db.profile.markerVerticalNudge or 0)
 	local markerHorizontalOffset = self.db.profile.markerHorizontalOffset * frameWidth
 
 	-- We probably don't want to overlap the power bar (rage, mana, energy, etc) so we need a compensation factor
@@ -126,6 +127,24 @@ function EnhancedRaidFrames:SetTargetMarkerAppearance(frame)
 	self:ClearTargetMarker(frame)
 end
 
+--- Reset the target marker settings to their database defaults.
+function EnhancedRaidFrames:ResetTargetMarkerDefaults()
+	if not self.db or not self.db.profile then
+		return
+	end
+
+	local defaults = self:CreateDefaults().profile
+	self.db.profile.showTargetMarkers = defaults.showTargetMarkers
+	self.db.profile.markerPosition = defaults.markerPosition
+	self.db.profile.markerSize = defaults.markerSize
+	self.db.profile.markerAlpha = defaults.markerAlpha
+	self.db.profile.markerVerticalOffset = defaults.markerVerticalOffset
+	self.db.profile.markerVerticalNudge = defaults.markerVerticalNudge
+	self.db.profile.markerHorizontalOffset = defaults.markerHorizontalOffset
+
+	self:RefreshConfig()
+end
+
 --- Update the appearance of our target marker for a given frame
 ---@param frame table @The frame to update the appearance for
 ---@param setAppearance boolean @Whether or not to set the appearance of the marker
@@ -162,9 +181,16 @@ function EnhancedRaidFrames:UpdateTargetMarker(frame, setAppearance)
 		index = GetRaidTargetIndexByGUID(unit)
 	end
 
-	-- GetRaidTargetIndex can return a secret number in Midnight — skip if tainted
-	if issecretvalue and index and issecretvalue(index) then
-		self:ClearTargetMarker(frame)
+	-- GetRaidTargetIndex can return a secret number in Midnight. In that case,
+	-- avoid addon-side numeric comparisons/math and let Blizzard's texture helper
+	-- consume the value directly, matching TargetFrameMixin:UpdateRaidTargetIcon.
+	if IsSecretValue(index) then
+		frame.ERF_targetMarkerFrame:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons", nil, nil, "TRILINEAR")
+		if SetRaidTargetIconTexture then
+			SetRaidTargetIconTexture(frame.ERF_targetMarkerFrame, index)
+		end
+		frame.ERF_targetMarkerFrame:SetAlpha(self.db.profile.markerAlpha)
+		frame.ERF_targetMarkerFrame:Show()
 		return
 	end
 

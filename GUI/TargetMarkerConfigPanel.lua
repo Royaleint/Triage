@@ -88,73 +88,104 @@ function EnhancedRaidFrames:CreateIconOptions()
 				width = THIRD_WIDTH,
 				order = 12,
 			},
-			-------------------------------------------------
-			positionOptions = {
-				type = "header",
-				name = L["Position"],
-				order = 20,
-			},
-			markerPosition = {
-				type = "select",
-				name = L["Marker Position"],
-				desc = L["markerPosition_desc"],
-				values = self.POSITIONS,
-				get = function()
-					return self.db.profile.markerPosition
-				end,
-				set = function(_, value)
-					self.db.profile.markerPosition = value
-					self:RefreshConfig()
-				end,
-				disabled = function()
-					return not self.db.profile.showTargetMarkers
-				end,
-				width = THIRD_WIDTH,
-				order = 21,
-			},
-			markerVerticalOffset = {
-				type = "range",
-				name = L["Vertical Offset"],
-				desc = L["verticalOffset_desc"],
-				isPercent = true,
-				min = -1,
-				max = 1,
-				step = .01,
-				get = function()
-					return self.db.profile.markerVerticalOffset
-				end,
-				set = function(_, value)
-					self.db.profile.markerVerticalOffset = value
-					self:RefreshConfig()
-				end,
-				disabled = function()
-					return not self.db.profile.showTargetMarkers
-				end,
-				width = THIRD_WIDTH,
-				order = 22,
-			},
-			markerHorizontalOffset = {
-				type = "range",
-				name = L["Horizontal Offset"],
-				desc = L["horizontalOffset_desc"],
-				isPercent = true,
-				min = -1,
-				max = 1,
-				step = .01,
-				get = function()
-					return self.db.profile.markerHorizontalOffset
-				end,
-				set = function(_, value)
-					self.db.profile.markerHorizontalOffset = value
-					self:RefreshConfig()
-				end,
-				disabled = function()
-					return not self.db.profile.showTargetMarkers
-				end,
-				width = THIRD_WIDTH,
-				order = 23,
-			},
+				-------------------------------------------------
+				positionOptions = {
+					type = "header",
+					name = L["Position"],
+					order = 20,
+				},
+				markerPosition = {
+					type = "select",
+					name = L["Marker Position"],
+					desc = L["markerPosition_desc"],
+					values = self.POSITIONS,
+					get = function()
+						return self.db.profile.markerPosition
+					end,
+					set = function(_, value)
+						self.db.profile.markerPosition = value
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.showTargetMarkers
+					end,
+					width = THIRD_WIDTH,
+					order = 21,
+				},
+				markerVerticalOffset = {
+					type = "range",
+					name = L["Vertical Offset"],
+					desc = L["verticalOffset_desc"],
+					isPercent = true,
+					min = -1,
+					max = 1,
+					step = .01,
+					get = function()
+						return self.db.profile.markerVerticalOffset
+					end,
+					set = function(_, value)
+						self.db.profile.markerVerticalOffset = value
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.showTargetMarkers
+					end,
+					width = THIRD_WIDTH,
+					order = 22,
+				},
+				markerVerticalNudge = {
+					type = "range",
+					name = L["Marker Vertical Nudge"],
+					desc = L["markerVerticalNudge_desc"],
+					min = -10,
+					max = 10,
+					step = 1,
+					get = function()
+						return self.db.profile.markerVerticalNudge or 0
+					end,
+					set = function(_, value)
+						self.db.profile.markerVerticalNudge = value
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.showTargetMarkers
+					end,
+					width = THIRD_WIDTH,
+					order = 23,
+				},
+				markerHorizontalOffset = {
+					type = "range",
+					name = L["Horizontal Offset"],
+					desc = L["horizontalOffset_desc"],
+					isPercent = true,
+					min = -1,
+					max = 1,
+					step = .01,
+					get = function()
+						return self.db.profile.markerHorizontalOffset
+					end,
+					set = function(_, value)
+						self.db.profile.markerHorizontalOffset = value
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.showTargetMarkers
+					end,
+					width = THIRD_WIDTH,
+					order = 24,
+				},
+				resetTargetMarkerDefaults = {
+					type = "execute",
+					name = L["Reset Target Marker Defaults"],
+					desc = L["resetTargetMarkerDefaults_desc"],
+					func = function()
+						self:ResetTargetMarkerDefaults()
+						self:Print(L["Target marker defaults reset."])
+					end,
+					width = THIRD_WIDTH * 1.5,
+					order = 25,
+				},
+			}
 		}
-	}
 	return markerOptions
 end

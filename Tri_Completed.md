@@ -5,6 +5,17 @@ Append-only history of completed Triage work. Active and queued items live in
 
 ## Unreleased — 2026-04-25
 
+### TRI-004 Managed frame registry for raid/party/boss frames
+- **Type:** Refactor / Infrastructure
+- **Priority:** High
+- **Status:** Complete
+- **Source:** GitHub issue #4.
+- **Summary:** Replaced direct Blizzard compact-frame iteration with a central managed-frame registry that tracks frame add/remove/unit-change lifecycle. All modules now query the registry instead of iterating Blizzard raid/party frames directly, which keeps boss-frame support and future click-casting work unblocked.
+- **Implementation:** Added `Utils/FrameRegistry.lua`, wired registry-backed iteration and unit lookup across aura listeners, aura indicators, target markers, dispel overlay, range, and stock-aura passes, synchronized lifecycle from startup, roster changes, and `CompactUnitFrame_SetUnit`, widened default registry support for `boss1..boss5`, and made unnamed-frame child creation safe for future addon-owned frames. Target markers were then fixed for Midnight secret raid-target values and given a configurable downward nudge to keep the icon off the name.
+- **Files touched:** `Utils/FrameRegistry.lua`, `EnhancedRaidFrames.lua`, `Modules/AuraListeners.lua`, `Modules/AuraIndicators.lua`, `Modules/TargetMarkers.lua`, `Modules/DispelOverlay.lua`, `Modules/Range.lua`, `Modules/StockAuras.lua`, `GUI/TargetMarkerConfigPanel.lua`, `DatabaseDefaults.lua`, `Localizations/enUS.lua`.
+- **Verification:** Argus Gate 1 passed. Gate 2 passed on live Retail party and raid frames after the target-marker visibility fix and placement adjustment.
+- **Completed:** 2026-04-25
+
 ### TRI-033 Stock buff/debuff hide toggles stop hiding on Retail (Midnight)
 - **Type:** Bug
 - **Priority:** High

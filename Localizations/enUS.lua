@@ -161,6 +161,12 @@ L["Position"] = true
 L["Marker Position"] = true
 L["markerPosition_desc"] = "Position of the target marker relative to the frame"
 
+L["Marker Vertical Nudge"] = true
+L["markerVerticalNudge_desc"] = "Additional pixels applied after the percentage-based position. Positive values move the icon downward."
+L["Reset Target Marker Defaults"] = true
+L["resetTargetMarkerDefaults_desc"] = "Restore the target marker settings to their default values."
+L["Target marker defaults reset."] = true
+
 ----------------------------------------------------
 ------------------ Indicator Panel -----------------
 ----------------------------------------------------

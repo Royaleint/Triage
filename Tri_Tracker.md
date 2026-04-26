@@ -19,7 +19,7 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-001 Boss frames as raid-style compact frames
 - **Type:** Feature
 - **Priority:** High
-- **Status:** Queued
+- **Status:** In Progress — TRI-001a (spec approved, ready for Douglock); TRI-001b queued behind Spike B
 - **Summary:** Boss unit frames (Boss1–Boss5) are Blizzard's default `TargetFrame` buttons, not compact raid frames. On fights like Lura, healable adds appear in these frames and healers have no way to configure them. Supporting them would require addon-owned compact-style boss frames so they can receive Triage indicators, dispel overlay, range, and profile-driven appearance.
 - **Source:** Direct guild feedback from a healer.
 - **Research status:** Initial feasibility review complete (2026-04-06).
@@ -28,6 +28,10 @@ Active and queued work for the Triage addon. Completed items live in
 - **Triage impact:** Current architecture only iterates Blizzard raid/party compact frames and filters to `player`/`party`/`raid` units. This feature needs a managed frame registry, boss-aware iteration, and selective widening of `ShouldContinue()` rather than a small hook on the existing code.
 - **Suggested spike:** Build one Retail-only prototype frame for `boss1`, anchor it near `BossTargetFrameContainer`, and validate targeting, right-click menu, Blizzard click-casting, aura listener updates, dispel overlay, and encounter-time appearance before committing to all five frames.
 - **Notes:** High differentiator for Blizzard-frame users, but not literally unique — Cell already supports boss/NPC frames. Bigger scope than the current overlay-only healing modules. Retail only.
+- **Follow-up:** After the Retail version is settled, evaluate whether Classic Era and Pandaria Classic can support a separate boss-frame approach without breaking their existing shared ERF behavior.
+- **Session progress:** Retail-only `boss1` compact-frame prototype is in the worktree on `Modules/BossFrames.lua`, registered through the managed frame registry, and wired into startup before the first config refresh. Prodigy spec drafted in `Triage_Dev/plans/active/tri-001-boss-frames-prodigy-spec.md`.
+- **Session progress (2026-04-25):** Prodigy reviewed Codex's draft spec, found Gate 3 incorrectly empty (5 unresolved questions), and rewrote against the studio plan template. Rawb resolved all five: Q1 anchor stays near Blizzard's default boss frame position; Q2 ship coexistence toggle unconditionally (default `false`); Q3 lifecycle driver = `RegisterUnitWatch(frame)` after `CompactUnitFrame_SetUnit(frame, "boss1")`, with `SetUpdateAllEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")` named as documented fallback if Spike B5 finds taint; Q4 split into TRI-001a (prototype + Spike B) and TRI-001b (full feature); Q5 frames named `TriageBossFrame1..5`. Final spec at `Triage_Dev/plans/active/tri-001-boss-frames-prodigy-spec.md` (353 lines, gitignored by Triage_Dev's `plans/*` rule, by design). Existing prototype in worktree needs revision: lifecycle driver swap from `SetUpdateAllEvent` → `RegisterUnitWatch`; anchor and frame name unchanged. SavedVariables schema (`bossFrames.enabled`, `bossFrames.hideBlizzardFrames`) ships in TRI-001a so TRI-001b stays additive — no profile migration. **Next action:** Douglock picks up TRI-001a from the spec.
+- **Related issues:** GitHub `#1` parent feature, `#9` boss-frame prototype, `#8` click-casting scaffold.
 
 ### TRI-002 Import aura watch lists from other addons
 - **Type:** Feature
@@ -168,7 +172,7 @@ Active and queued work for the Triage addon. Completed items live in
 - **Priority:** Medium
 - **Status:** Queued — drafts ready, awaiting Rawb go
 - **Source:** Session 2026-04-21. 17 organic CurseForge downloads since v1.0.0 launch (2026-04-20) with zero announcement push. Signal that ERF-redirect discovery is working; announcement would amplify reach.
-- **Scope:** Refresh announcement drafts (CurseForge news post, Reddit, GitHub issues) written in Session 16-17 against current state — v1.0.0 shipped, CurseForge moderation cleared, placeholder Soyier photos stand on the listing, TRI-004 still pending Gate 2.
+- **Scope:** Refresh announcement drafts (CurseForge news post, Reddit, GitHub issues) written in Session 16-17 against current state — v1.0.0 shipped, CurseForge moderation cleared, and placeholder Soyier photos still stand on the listing.
 - **Voice:** Rawb's voice, not Blizzard style (memory: author voice vs product voice). Reddit post keeps rough edges per anti-AI signal pattern. Tone per locked decision (2026-04-03): community revival, respectful continuation, full credit to Soyier.
 - **Owner at execution:** Everett.
 - **Notes:** Timing is Rawb's call — no urgency. Organic 17 is a bonus, not a deadline driver. Classic Era + Pandaria Classic framed as "ships alongside Retail — community testing welcome" per the locked v1.0.0 softening.
@@ -176,10 +180,10 @@ Active and queued work for the Triage addon. Completed items live in
 ### TRI-031 Replace placeholder Soyier photos on CurseForge listing
 - **Type:** Communications / Assets
 - **Priority:** Low
-- **Status:** Queued — blocked on TRI-004 Gate 2
+- **Status:** Queued — unblocked
 - **Source:** Session 2026-04-21. Soyier's original ERF screenshots currently on the Triage CurseForge listing (intentional placeholder during the revival handoff — visual continuity signal for returning ERF users).
 - **Acceptance criteria:** (1) Original Triage screenshots captured showing current v1.0 features in-game (test mode preview, dispel overlay with colored glow, indicator grid, minimap button, settings panel). (2) CurseForge listing screenshots replaced. (3) Wago listing screenshots updated to match.
-- **Depends on:** TRI-004 Gate 2 pass. Screenshots should reflect verified-shipped behavior, not pre-Gate-2 state.
+- **Depends on:** Verified-shipped behavior, not pre-Gate-2 state.
 - **Owner at execution:** Everett (listing updates) + Rawb (actual screenshots, since only Rawb has the in-game environment).
 - **Notes:** The placeholder is not a bug — it's continuity signal. Don't rush the swap; swap when we have the full set of verified-feature screenshots in hand, not piecemeal.
 
@@ -394,7 +398,6 @@ Active and queued work for the Triage addon. Completed items live in
   - **Gate 2 for v1.1.0 features** — run the per-PR in-game checks from Argus Gate 1 review: caster filter two-druid test, keep-indicators-visible toggle with `rangeAlpha`, countdown corner placement, 0.5% offset slider stepping, extended-range warning on DPS/tank spec, transform-spell hint renders in config panel.
   - **Gate 2 for v1.1.0 DB migration** — load a pre-v1.1.0 profile with `mineOnly = true/false` and confirm 2.2 → 2.3 migration rewrites to `casterFilter = "mine" / "all"` and drops the old key.
   - **Verify CurseForge v1.1.0 listing** — public changelog rendered correctly, all three client builds present.
-  - Fresh in-game Retail verification of the merged TRI-004 work.
   - Run click-casting spike A1-A5 in-game (Retail).
   - Run boss frame spike B1-B6 in-game (Retail).
   - Run click-casting spike A6-A7 on Classic Era.
@@ -403,7 +406,7 @@ Active and queued work for the Triage addon. Completed items live in
   - **TRI-032** — Gate 1 (Argus) and in-game re-verify for the atlas neutral-fallback work on branch `tri-003-atlas-followup` (`2e73752`).
   - **TRI-029** — decide whether to rework or delete `UpdatePrivateAuraVisOverrides` (now confirmed dead on 12.0.5 via `/dump`).
   - **TRI-030** — refresh Session 16-17 announcement drafts against current state, then publish (CurseForge, Reddit, GitHub). v1.1.0 launch is a natural bundling moment.
-  - **TRI-031** — swap placeholder Soyier CF screenshots after TRI-004 Gate 2 passes.
+  - **TRI-031** — swap placeholder Soyier CF screenshots now that TRI-004 is complete.
   - Verify CurseForge v1.0.0 moderation status (web UI).
   - Clean up Wago duplicate v1.0.0 + v1.0.1 entries (web UI — old failed-release artifacts).
   - Classic Era testing (community-assisted).
@@ -435,21 +438,6 @@ Active and queued work for the Triage addon. Completed items live in
   - Blizzard UI source extracted at `C:\Projects\BlizzardUI\` (10 healing-related directories via sparse checkout)
   - Competitor addon source copied to `C:\Projects\addon-review\` for reference (7 addons, including ERF)
 - **Notes:** Separate project from Homestead, but shares the BawrLabs platform layer (Ace3, WoW API MCP server, studio workflow). Would be a second addon under the BawrLabs umbrella.
-
-## Awaiting Gate 2
-
-### TRI-004 Managed frame registry for raid/party/boss frames
-- **Type:** Refactor / Infrastructure
-- **Priority:** High
-- **Status:** Merged to main, pending in-game verification
-- **Summary:** Replace direct Blizzard compact-frame iteration with a central managed-frame registry that tracks frame add/remove/unit-change lifecycle. All modules should query the registry instead of iterating Blizzard raid/party frames directly. This unblocks boss-frame support and future click-casting registration.
-- **Source:** GitHub issue #4.
-- **Session progress (2026-04-07):** Implemented on worktree branch `tri-004-frame-registry` with two local commits: `445d6ff` (`refactor: add managed frame registry`) and `5b51eea` (`fix: support boss units and unnamed managed frames`).
-- **Scope landed on main:** New `Utils/FrameRegistry.lua`; registry-backed iteration and unit lookup across aura listeners, aura indicators, target markers, dispel overlay, range, and stock-aura passes; lifecycle sync from startup, roster changes, and `CompactUnitFrame_SetUnit`; widened default registry support for `boss1..boss5`; unnamed-frame-safe child creation for future addon-owned frames.
-- **Verification:** Argus Gate 1 passed. Current mainline history is linearized; TRI-004 is on `main` as `7eb36f0` (`refactor: add managed frame registry`) and `0588c57` (`fix: support boss units and unnamed managed frames`). Worktree `tri-004-frame-registry` still exists but is stale.
-- **Gate 2 bug (2026-04-25):** Target markers selected in Triage do not appear on party compact frames the way aura indicators do. Investigate as a registry-backed `Modules/TargetMarkers.lua` path failure.
-- **Temporary dev probes:** Local `/tridev markers ...` diagnostics were added beside the older `/tridev tri032 ...` probes. When the target-marker bug is fixed and marker probes are removed, remove the TRI-032 probes in the same cleanup pass.
-- **Next step:** Diagnose target-marker state on visible party frames with `/tridev markers list`, `/tridev markers refresh`, and `/tridev markers force`.
 
 ## Awaiting Release
 

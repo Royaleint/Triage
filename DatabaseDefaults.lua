@@ -75,6 +75,7 @@ function EnhancedRaidFrames:CreateDefaults()
 
 		-- Position Options
 		markerVerticalOffset = 0,
+		markerVerticalNudge = 4,
 		markerHorizontalOffset = 0,
 	}
 
