@@ -169,19 +169,7 @@ Active and queued work for the Triage addon. Completed items live in
 
 ### Bugs
 
-### TRI-037 Combat-lockdown safety on indicator mouse-behavior setup
-- **Type:** Bug Fix
-- **Priority:** High (blocks TRI-035 Slice 1 Gate 2 verification)
-- **Status:** Awaiting Gate 2 — committed at `9ec5421` on main; Argus Gate 1 PASS (cycle 2 after AceEvent collision fix). Rawb retests M1-M3 multi-debuff scenario in same session as TRI-035 Gate 2 retest.
-- **Source:** TRI-035 Slice 1 Gate 2 verification 2026-04-26. `ADDON_ACTION_BLOCKED` fired during dispel testing in follower dungeon. Pre-existing bug; lines 185-190 of `Modules/AuraIndicators.lua` committed at `8136e8a3` (2026-04-06), 20 days before TRI-035 — Slice 1 did not modify this file. TRI-035's more aggressive aura-update activity from the new live dispel reader surfaced the dormant bug.
-- **Problem:** `Modules/AuraIndicators.lua:185-190` calls `SetPropagateMouseClicks` and `SetPropagateMouseMotion` (protected/secure-restricted on Retail) without an `InCombatLockdown()` guard. When a frame is added to the managed registry mid-combat (party-to-raid conversion, joined party during fight, profile switch in combat) and its first aura update fires while the indicator frames don't yet exist, `CreateIndicators` → `SetMouseBehavior` hits the protected call. The taint then propagates through the rest of `CompactUnitFrame_UpdateAuras` execution chain, breaking downstream rendering — notably TRI-035's dispel overlay (confirmed via `/tridev dispelcheck`: `active=Magic` but `rendered=nil`).
-- **Acceptance criteria:** (1) Wrap protected calls in `InCombatLockdown()` guard at `Modules/AuraIndicators.lua:185-190`. (2) On combat-deferred path, queue the frame in a `combatDeferredMouseBehavior` table on the addon. (3) Register `PLAYER_REGEN_ENABLED` event handler that flushes the queue (calls `SetMouseBehavior` on each deferred frame). (4) Verify whether `EnableMouse` and `SetMouseClickEnabled` (lines 181-182) need the same guard. (5) Argus Gate 1 PASS. (6) Rawb Gate 2: same dungeon scenario that triggered original error + retest TRI-035's full Gate 2 sheet.
-- **Files:** `Modules/AuraIndicators.lua` (modify), `EnhancedRaidFrames.lua` (modify — register `PLAYER_REGEN_ENABLED` if not already).
-- **Branch:** `tri-037-combat-lockdown-indicators`
-- **Worktree:** `C:/Projects/Triage/.worktrees/tri-037-combat-lockdown-indicators/`
-- **Effort:** 2-3 hours implementation + Argus review + Gate 2.
-- **Out of scope:** Don't touch dispel logic. Don't reach into TRI-035's files. Don't refactor `CreateIndicators` beyond the guard + deferral.
-- **Notes:** Skipping full Gate 0/1/2/3/4 plan template per Rawb 2026-04-26 — small enough to go directly to Codex implementation. Argus does Gate 1; Rawb does Gate 2.
+*(None.)*
 
 ### Data
 
@@ -510,6 +498,18 @@ Active and queued work for the Triage addon. Completed items live in
   - Blizzard UI source extracted at `C:\Projects\BlizzardUI\` (10 healing-related directories via sparse checkout)
   - Competitor addon source copied to `C:\Projects\addon-review\` for reference (7 addons, including ERF)
 - **Notes:** Separate project from Homestead, but shares the BawrLabs platform layer (Ace3, WoW API MCP server, studio workflow). Would be a second addon under the BawrLabs umbrella.
+
+## Awaiting Gate 2
+
+### TRI-037 Combat-lockdown safety on indicator mouse-behavior setup
+- **Type:** Bug Fix
+- **Priority:** High (blocks TRI-035 Slice 1 Gate 2 verification)
+- **Status:** Awaiting Gate 2 — committed at `9ec5421` on main; Argus Gate 1 PASS (cycle 2 after AceEvent collision fix). Rawb retests M1-M3 multi-debuff scenario in same session as TRI-035 Gate 2 retest.
+- **Source:** TRI-035 Slice 1 Gate 2 verification 2026-04-26. `ADDON_ACTION_BLOCKED` fired during dispel testing in follower dungeon. Pre-existing bug; lines 185-190 of `Modules/AuraIndicators.lua` committed at `8136e8a3` (2026-04-06), 20 days before TRI-035 — Slice 1 did not modify this file. TRI-035's more aggressive aura-update activity from the new live dispel reader surfaced the dormant bug.
+- **Problem:** `Modules/AuraIndicators.lua:185-190` calls `SetPropagateMouseClicks` and `SetPropagateMouseMotion` (protected/secure-restricted on Retail) without an `InCombatLockdown()` guard. When a frame is added to the managed registry mid-combat (party-to-raid conversion, joined party during fight, profile switch in combat) and its first aura update fires while the indicator frames don't yet exist, `CreateIndicators` → `SetMouseBehavior` hits the protected call. The taint then propagates through the rest of `CompactUnitFrame_UpdateAuras` execution chain, breaking downstream rendering — notably TRI-035's dispel overlay (confirmed via `/tridev dispelcheck`: `active=Magic` but `rendered=nil`).
+- **Implementation (committed `9ec5421`):** Wrapped Retail mouse setup in `InCombatLockdown()` guard with `DeferMouseBehavior(frame)` queuing; consolidated `PLAYER_REGEN_ENABLED` registration into single `OnEnable()` handler that drains both deferred mouse-behavior flush and pending stock-aura visibility update (Argus cycle-1 caught AceEvent collision; cycle-2 fixed by removing duplicate registration in `Overrides.lua`).
+- **Files committed:** `Modules/AuraIndicators.lua`, `EnhancedRaidFrames.lua`, `Overrides.lua`.
+- **Gate 2 verification:** Frame-add-mid-combat scenario should no longer fire `ADDON_ACTION_BLOCKED`; TRI-035's dispel overlay should render correctly because taint chain is broken. Combined Gate 2 retest with TRI-035 M1-M3 multi-debuff.
 
 ## Awaiting Release
 
