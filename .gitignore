@@ -2,6 +2,9 @@
 Triage_Dev/
 AGENTS.md
 CLAUDE.md
+Tri_Tracker.md
+Tri_Completed.md
+.codex/skills/triage/
 
 # Claude Code config (local)
 .claude/
