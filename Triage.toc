@@ -20,7 +20,7 @@ Libs\embeds.xml
 Localizations\Localizations.xml
 
 # Core
-EnhancedRaidFrames.lua
+Triage.lua
 Globals.lua
 DatabaseDefaults.lua
 Data/SpecDefaults.lua
