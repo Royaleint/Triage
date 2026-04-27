@@ -267,7 +267,7 @@ local function HandlePreviewFrameClick(frame, button)
 	}
 
 	ShowFloatingHealText(frame, healAmount)
-	RefreshSingleTestModeFrame(EnhancedRaidFrames, frame, false)
+	RefreshSingleTestModeFrame(Triage, frame, false)
 end
 
 local function CreatePreviewFrame(frameName)

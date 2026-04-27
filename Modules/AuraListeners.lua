@@ -12,7 +12,8 @@ local LibDispel = LibStub("LibDispel-1.0")
 if Triage.isWoWClassicEra then
 	-- Set up LibClassicDurations
 	local LibClassicDurations = LibStub("LibClassicDurations")
-	LibClassicDurations:Register("Enhanced Raid Frames") -- Tell library it's being used and should start working
+	-- LibClassicDurations registration string frozen; library API uses string-keyed registration.
+	LibClassicDurations:Register("Enhanced Raid Frames")
 	Triage.UnitAuraWrapper = LibClassicDurations.UnitAuraWrapper -- Wrapper function to use in place of UnitAura
 end
 

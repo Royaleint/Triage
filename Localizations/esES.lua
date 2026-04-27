@@ -2,6 +2,7 @@
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
+-- AceLocale namespace frozen; paired with GetLocale("EnhancedRaidFrames", ...) consumers.
 local L = LibStub("AceLocale-3.0"):NewLocale("EnhancedRaidFrames", "esES", false)
 
 -------------------------------------------------------------------------

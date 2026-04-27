@@ -96,6 +96,7 @@ end
 --- information from the game that wasn't yet available during :OnInitialize()
 function Triage:OnEnable()
 	-- Register slash commands first so they're available even if startup hits an error
+	-- /erf slash alias frozen; preserves command muscle memory for old ERF users.
 	self:RegisterChatCommand("erf", "ChatCommand")
 	self:RegisterChatCommand("triage", "ChatCommand")
 	self:RegisterChatCommand("tri", "ChatCommand")
