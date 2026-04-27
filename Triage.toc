@@ -24,6 +24,7 @@ EnhancedRaidFrames.lua
 Globals.lua
 DatabaseDefaults.lua
 Data/SpecDefaults.lua
+Data/DispelWhitelist.lua
 Overrides.lua
 
 # Utils
@@ -42,6 +43,7 @@ Modules/AuraIndicators.lua
 Modules/TargetMarkers.lua
 
 # Dispel Overlay (Retail only — version-gated in code)
+Modules/DispelSource.lua
 Modules/DispelOverlay.lua
 
 # Test Mode
