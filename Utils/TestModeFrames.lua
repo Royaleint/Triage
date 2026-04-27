@@ -4,7 +4,7 @@
 -- luacheck: globals RAID_CLASS_COLORS DEAD PLAYER_OFFLINE
 -- luacheck: globals LOCALIZED_CLASS_NAMES_MALE LOCALIZED_CLASS_NAMES_FEMALE
 
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+local Triage = _G.Triage
 
 local FRAME_WIDTH = 72
 local FRAME_HEIGHT = 36
@@ -61,7 +61,7 @@ local function GetLocalizedClassName(classFile)
 end
 
 local function SaveTestModeContainerPosition(container)
-	local profile = EnhancedRaidFrames.db and EnhancedRaidFrames.db.profile
+	local profile = Triage.db and Triage.db.profile
 	if not profile or not profile.testModePosition then
 		return
 	end
@@ -71,7 +71,7 @@ local function SaveTestModeContainerPosition(container)
 end
 
 local function ApplyTestModeContainerPosition(container)
-	local profile = EnhancedRaidFrames.db and EnhancedRaidFrames.db.profile
+	local profile = Triage.db and Triage.db.profile
 	local position = profile and profile.testModePosition
 
 	container:ClearAllPoints()
@@ -346,7 +346,7 @@ local function CreatePreviewFrame(frameName)
 end
 
 --- Ensure the shared preview container and frame pool exist.
-function EnhancedRaidFrames:InitializeTestModeFrames()
+function Triage:InitializeTestModeFrames()
 	if self.testModeFrames then
 		return
 	end
@@ -384,7 +384,7 @@ end
 
 --- Acquire a preview frame from the manual pool.
 ---@return table
-function EnhancedRaidFrames:AcquireTestModeFrame()
+function Triage:AcquireTestModeFrame()
 	self:InitializeTestModeFrames()
 
 	local pool = self.testModeFrames
@@ -408,7 +408,7 @@ RefreshSingleTestModeFrame = function(self, frame, setAppearance)
 end
 
 --- Update preview-frame visuals from the current session data.
-function EnhancedRaidFrames:RefreshTestModeFrames()
+function Triage:RefreshTestModeFrames()
 	if not self.testModeState or not self.testModeState.active then
 		return
 	end
@@ -420,7 +420,7 @@ end
 
 --- Spawn or resize the preview roster for the current test session.
 ---@param session table
-function EnhancedRaidFrames:ShowTestModeFrames(session)
+function Triage:ShowTestModeFrames(session)
 	self:InitializeTestModeFrames()
 
 	local pool = self.testModeFrames
@@ -470,7 +470,7 @@ function EnhancedRaidFrames:ShowTestModeFrames(session)
 end
 
 --- Tear down and release all preview frames back into the pool.
-function EnhancedRaidFrames:HideTestModeFrames()
+function Triage:HideTestModeFrames()
 	if not self.testModeFrames then
 		return
 	end

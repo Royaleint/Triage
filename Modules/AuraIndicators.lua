@@ -3,8 +3,8 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
 local LibSharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
@@ -17,7 +17,7 @@ local floor = math.floor
 
 --- Queue a frame whose indicator mouse behavior could not be updated in combat.
 --- @param frame table @The raid frame to update after combat
-function EnhancedRaidFrames:DeferMouseBehavior(frame)
+function Triage:DeferMouseBehavior(frame)
 	if not frame then
 		return
 	end
@@ -26,7 +26,7 @@ function EnhancedRaidFrames:DeferMouseBehavior(frame)
 end
 
 --- Apply any indicator mouse behavior updates deferred during combat lockdown.
-function EnhancedRaidFrames:FlushDeferredMouseBehavior()
+function Triage:FlushDeferredMouseBehavior()
 	if InCombatLockdown() or not self.combatDeferredMouseBehavior then
 		return
 	end
@@ -43,7 +43,7 @@ end
 
 --- Creates all of our indicator frames on their respective raid frames
 --- @param frame table @The raid frame to create indicators on
-function EnhancedRaidFrames:CreateIndicators(frame)
+function Triage:CreateIndicators(frame)
 	frame.ERF_indicatorFrames = frame.ERF_indicatorFrames or {}
 
 	-- Create indicators
@@ -100,7 +100,7 @@ end
 
 --- Set the appearance of the Indicator
 --- @param frame table @The raid frame of our indicator
-function EnhancedRaidFrames:SetIndicatorAppearance(frame)
+function Triage:SetIndicatorAppearance(frame)
 	-- Loop over all 9 indicators and set their appearance
 	for i = 1, 9 do
 		-- Create local pointer for readability
@@ -189,7 +189,7 @@ end
 --- Update the mouse behavior for a given frame
 --- This is used to update the mouse behavior when the user changes the mouseoverCastCompat option
 --- @param frame table @The raid frame to update mouse behavior for
-function EnhancedRaidFrames:SetMouseBehavior(frame)
+function Triage:SetMouseBehavior(frame)
 	-- Stop here if we don't have any indicators
 	if not frame.ERF_indicatorFrames then
 		return
@@ -232,7 +232,7 @@ end
 
 --- Update all mouse behavior for all indicators
 --- This is used to update all indicators when the user changes the mouseoverCastCompat option
-function EnhancedRaidFrames:SetAllMouseBehavior()
+function Triage:SetAllMouseBehavior()
 	self:ForEachManagedFrame(function(frame)
 		self:SetMouseBehavior(frame)
 	end)
@@ -245,7 +245,7 @@ end
 --- Kickstart the indicator processing for all indicators on a given frame
 --- @param frame table @The raid frame of our indicators
 --- @param setAppearance boolean @Indicates if we should trigger reapply appearance settings to the indicators
-function EnhancedRaidFrames:UpdateIndicators(frame, setAppearance)
+function Triage:UpdateIndicators(frame, setAppearance)
 	if not self.ShouldContinue(frame) then
 		return
 	end
@@ -281,7 +281,7 @@ end
 --- Process a single indicator location and apply any necessary visual effects for this moment in time
 --- @param indicatorFrame table @The indicator frame to process
 --- @param unit string @The unit to process the indicator for
-function EnhancedRaidFrames:ProcessIndicator(indicatorFrame, unit)
+function Triage:ProcessIndicator(indicatorFrame, unit)
 	local i = indicatorFrame.position
 
 	indicatorFrame.thisAura = nil
@@ -292,7 +292,7 @@ function EnhancedRaidFrames:ProcessIndicator(indicatorFrame, unit)
 	end
 
 	-- Find the current aura, if there is one
-	indicatorFrame.thisAura = EnhancedRaidFrames:FindActiveAndTrackedAura(indicatorFrame)
+	indicatorFrame.thisAura = Triage:FindActiveAndTrackedAura(indicatorFrame)
 
 	-- Process our visuals
 	if indicatorFrame.thisAura then
@@ -339,7 +339,7 @@ end
 --- Find the current aura for a given indicator frame
 --- @param indicatorFrame table @The indicator frame to process
 --- @return table @The aura table for the current aura
-function EnhancedRaidFrames:FindActiveAndTrackedAura(indicatorFrame)
+function Triage:FindActiveAndTrackedAura(indicatorFrame)
 	local i = indicatorFrame.position
 	local parentFrame = indicatorFrame:GetParent()
 
@@ -377,7 +377,7 @@ end
 
 --- Process a single tick of our indicator animation for things like color changing, glow, etc
 --- @param indicatorFrame table @The indicator frame to process
-function EnhancedRaidFrames:IndicatorTick(indicatorFrame)
+function Triage:IndicatorTick(indicatorFrame)
 	if indicatorFrame.thisAura then
 		local remainingTime = floor(indicatorFrame.thisAura.expirationTime - GetTime())
 		if remainingTime and remainingTime >= 0 then
@@ -394,7 +394,7 @@ end
 
 --- Start the update ticker for our indicator animation
 --- @param indicatorFrame table @The indicator frame to process
-function EnhancedRaidFrames:StartUpdateTicker(indicatorFrame)
+function Triage:StartUpdateTicker(indicatorFrame)
 	if not indicatorFrame.updateTicker then
 		-- Run straight away to set initial values
 		self:IndicatorTick(indicatorFrame)
@@ -408,7 +408,7 @@ end
 
 --- Stop the update ticker for our indicator animation
 --- @param indicatorFrame table @The indicator frame to process
-function EnhancedRaidFrames:StopUpdateTicker(indicatorFrame)
+function Triage:StopUpdateTicker(indicatorFrame)
 	if indicatorFrame.updateTicker then
 		self:CancelTimer(indicatorFrame.updateTicker)
 		indicatorFrame.updateTicker = nil
@@ -417,7 +417,7 @@ end
 
 --- Clear all animations and hide the indicator frame
 --- @param indicatorFrame table @The indicator frame to process
-function EnhancedRaidFrames:ClearIndicator(indicatorFrame)
+function Triage:ClearIndicator(indicatorFrame)
 	indicatorFrame.Cooldown:Clear()
 	self:StopUpdateTicker(indicatorFrame)
 	self:UpdateOverlayGlow(indicatorFrame)
@@ -432,7 +432,7 @@ end
 
 --- Set the cooldown animation on the indicator
 --- @param indicatorFrame table @The indicator frame to process
-function EnhancedRaidFrames:SetCooldownAnimation(indicatorFrame)
+function Triage:SetCooldownAnimation(indicatorFrame)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
@@ -448,7 +448,7 @@ end
 --- Update the countdown text on the indicator
 --- @param indicatorFrame table @The indicator frame to process
 --- @param remainingTime number @The time remaining on the aura
-function EnhancedRaidFrames:UpdateCountdownText(indicatorFrame, remainingTime)
+function Triage:UpdateCountdownText(indicatorFrame, remainingTime)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
@@ -465,7 +465,7 @@ end
 
 --- Update the stack size text on the indicator
 --- @param indicatorFrame table @The indicator frame to process
-function EnhancedRaidFrames:UpdateStackSizeText(indicatorFrame)
+function Triage:UpdateStackSizeText(indicatorFrame)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
@@ -505,7 +505,7 @@ end
 
 --- Update the indicator icon
 --- @param indicatorFrame table @The indicator frame to process
-function EnhancedRaidFrames:UpdateIndicatorIcon(indicatorFrame)
+function Triage:UpdateIndicatorIcon(indicatorFrame)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
@@ -568,7 +568,7 @@ end
 --- Update the indicator color
 --- @param indicatorFrame table @The indicator frame to process
 --- @param remainingTime number @The time remaining on the aura
-function EnhancedRaidFrames:UpdateIndicatorColor(indicatorFrame, remainingTime)
+function Triage:UpdateIndicatorColor(indicatorFrame, remainingTime)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
@@ -620,7 +620,7 @@ end
 --- Update the indicator countdown text color
 --- @param indicatorFrame table @The indicator frame to process
 --- @param remainingTime number @The time remaining on the aura
-function EnhancedRaidFrames:UpdateCountdownTextColor(indicatorFrame, remainingTime)
+function Triage:UpdateCountdownTextColor(indicatorFrame, remainingTime)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
@@ -667,7 +667,7 @@ end
 --- Update the indicator glow effect
 --- @param indicatorFrame table @The indicator frame to process
 --- @param remainingTime number @The time remaining on the aura
-function EnhancedRaidFrames:UpdateOverlayGlow(indicatorFrame, remainingTime)
+function Triage:UpdateOverlayGlow(indicatorFrame, remainingTime)
 	local i = indicatorFrame.position
 
 	if self.db.profile["indicator-" .. i].indicatorGlow and remainingTime
@@ -694,7 +694,7 @@ end
 --- Show the tooltip for the indicator
 --- @param indicatorFrame table @The indicator frame to process
 --- @param parentFrame table @The parent frame of the indicator
-function EnhancedRaidFrames:Tooltip_OnEnter(indicatorFrame, parentFrame)
+function Triage:Tooltip_OnEnter(indicatorFrame, parentFrame)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
 
@@ -745,7 +745,7 @@ end
 --- Since indicators have EnableMouse(false), tooltips are driven by scanning
 --- indicator geometry while the parent frame is hovered.
 --- @param frame table @The raid frame to set up scanning on
-function EnhancedRaidFrames:SetupClassicTooltipScanning(frame)
+function Triage:SetupClassicTooltipScanning(frame)
 	if frame.ERF_tooltipHooked then
 		return
 	end
@@ -770,7 +770,7 @@ end
 
 --- Start the hover-driven tooltip scanner while the parent is hovered
 --- @param frame table @The raid frame being hovered
-function EnhancedRaidFrames:StartClassicTooltipScanning(frame)
+function Triage:StartClassicTooltipScanning(frame)
 	if frame.ERF_tooltipTicker then
 		return
 	end
@@ -782,7 +782,7 @@ end
 
 --- Stop the tooltip scanner when the parent is no longer hovered
 --- @param frame table @The raid frame no longer hovered
-function EnhancedRaidFrames:StopClassicTooltipScanning(frame)
+function Triage:StopClassicTooltipScanning(frame)
 	if frame.ERF_tooltipTicker then
 		self:CancelTimer(frame.ERF_tooltipTicker)
 		frame.ERF_tooltipTicker = nil
@@ -794,7 +794,7 @@ end
 
 --- Scan indicators for hover and show/restore tooltips accordingly
 --- @param frame table @The raid frame to scan
-function EnhancedRaidFrames:ScanClassicIndicatorTooltips(frame)
+function Triage:ScanClassicIndicatorTooltips(frame)
 	if not frame.ERF_indicatorFrames then
 		return
 	end
@@ -828,7 +828,7 @@ end
 ------------------------------------------------
 
 --- Generates a table of individual, sanitized aura strings from the raw user text input.
-function EnhancedRaidFrames:GenerateAuraStrings()
+function Triage:GenerateAuraStrings()
 	-- Reset the aura strings
 	self.allAuras = " " -- Used for quick boolean searches
 	self.auraStrings = { {}, {}, {}, {}, {}, {}, {}, {}, {} }  -- Matrix to keep all aura strings to watch for
@@ -858,7 +858,7 @@ end
 
 --- Sanitize a single aura string
 --- @param auraString string @The aura string to sanitize
-function EnhancedRaidFrames:SanitizeAuraString(auraString)
+function Triage:SanitizeAuraString(auraString)
 	auraString = auraString:lower() -- Force lowercase
 	auraString = auraString:gsub("^%s*(.-)%s*$", "%1") -- Strip any leading or trailing whitespace
 	auraString = auraString:gsub("\"", "") -- Strip any quotation marks if there are any

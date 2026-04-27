@@ -3,7 +3,7 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 -- luacheck: globals UnitIsConnected
 
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+local Triage = _G.Triage
 local LibDispel = LibStub("LibDispel-1.0")
 local LibCustomGlow = LibStub("LibCustomGlow-1.0")
 
@@ -59,7 +59,7 @@ end
 
 --- Create the dispel overlay on a raid frame (edge border + glow host)
 ---@param frame table @The compact unit frame
-function EnhancedRaidFrames:CreateDispelOverlay(frame)
+function Triage:CreateDispelOverlay(frame)
 	if not frame then
 		return
 	end
@@ -107,13 +107,13 @@ function EnhancedRaidFrames:CreateDispelOverlay(frame)
 			return
 		end
 
-		if not EnhancedRaidFrames.ShouldContinue(frame, true) then
-			EnhancedRaidFrames:HideDispelOverlay(frame)
+		if not Triage.ShouldContinue(frame, true) then
+			Triage:HideDispelOverlay(frame)
 			return
 		end
 
-		local useTypeColor = EnhancedRaidFrames.db.profile.dispelOverlay.colorByType
-		local glowStyle = EnhancedRaidFrames.db.profile.dispelOverlay.glowStyle
+		local useTypeColor = Triage.db.profile.dispelOverlay.colorByType
+		local glowStyle = Triage.db.profile.dispelOverlay.glowStyle
 		if useTypeColor and glowStyle ~= "pulse" and glowStyle ~= "both" then
 			StopGlow(hiddenOverlay)
 			return
@@ -223,7 +223,7 @@ end
 
 --- Resolve dispel state and update the overlay
 ---@param frame table @The compact unit frame
-function EnhancedRaidFrames:UpdateDispelOverlay(frame)
+function Triage:UpdateDispelOverlay(frame)
 	if not self.ShouldContinue(frame, true) then
 		if frame.ERF_dispelOverlay then
 			self:HideDispelOverlay(frame)
@@ -277,7 +277,7 @@ end
 --- Show the dispel overlay with color and optional glow
 ---@param frame table @The compact unit frame
 ---@param dispelType string @The debuff type to display
-function EnhancedRaidFrames:ShowDispelOverlay(frame, dispelType)
+function Triage:ShowDispelOverlay(frame, dispelType)
 	local overlay = frame.ERF_dispelOverlay
 	if not overlay then return end
 
@@ -324,7 +324,7 @@ end
 
 --- Hide the dispel overlay and remove glow
 ---@param frame table @The compact unit frame
-function EnhancedRaidFrames:HideDispelOverlay(frame)
+function Triage:HideDispelOverlay(frame)
 	local overlay = frame.ERF_dispelOverlay
 	if not overlay then return end
 
@@ -335,7 +335,7 @@ function EnhancedRaidFrames:HideDispelOverlay(frame)
 end
 
 --- Update all dispel overlays on all frames
-function EnhancedRaidFrames:UpdateAllDispelOverlays()
+function Triage:UpdateAllDispelOverlays()
 	self:ForEachManagedFrame(function(frame)
 		self:UpdateDispelOverlay(frame)
 	end)

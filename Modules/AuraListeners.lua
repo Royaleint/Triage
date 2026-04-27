@@ -3,17 +3,17 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
 local LibDispel = LibStub("LibDispel-1.0")
 
-if EnhancedRaidFrames.isWoWClassicEra then
+if Triage.isWoWClassicEra then
 	-- Set up LibClassicDurations
 	local LibClassicDurations = LibStub("LibClassicDurations")
 	LibClassicDurations:Register("Enhanced Raid Frames") -- Tell library it's being used and should start working
-	EnhancedRaidFrames.UnitAuraWrapper = LibClassicDurations.UnitAuraWrapper -- Wrapper function to use in place of UnitAura
+	Triage.UnitAuraWrapper = LibClassicDurations.UnitAuraWrapper -- Wrapper function to use in place of UnitAura
 end
 
 -------------------------------------------------------------------------
@@ -25,14 +25,14 @@ local function SyncPreviewAuras(parentFrame)
 	end
 
 	parentFrame.ERF_unitAuras = parentFrame.ERF_testData.auras or {}
-	EnhancedRaidFrames:UpdateIndicators(parentFrame)
+	Triage:UpdateIndicators(parentFrame)
 	return true
 end
 
 
 --- Creates a listener for the UNIT_AURA event attached to a specified raid frame
 ---@param frame table @The raid frame to create the listener for
-function EnhancedRaidFrames:CreateAuraListener(frame)
+function Triage:CreateAuraListener(frame)
 	if frame.ERF_isTestFrame then
 		if frame.ERF_auraListenerFrame then
 			frame.ERF_auraListenerFrame:UnregisterAllEvents()
@@ -83,7 +83,7 @@ end
 -------------------------------------------------------------------------
 
 --- Scans all raid frame units and updates the unitAuras table with all auras on each unit.
-function EnhancedRaidFrames:UpdateAllAuras()
+function Triage:UpdateAllAuras()
 	-- Iterate over all raid frame units, forcing a full refresh and re-creating the listener frame
 	-- It is important that we re-create the listener frame for each unit to ensure that the listener is attached to the correct unit
 	self:ForEachManagedFrame(function(frame)
@@ -104,7 +104,7 @@ end
 ---@param parentFrame table @The raid frame to update
 ---@param payload table @The payload from the UNIT_AURA event
 ---@param forceRefresh boolean @Whether or not to force a full refresh
-function EnhancedRaidFrames:UpdateUnitAuras(parentFrame, payload, forceRefresh)
+function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	if SyncPreviewAuras(parentFrame) then
 		return
 	end
@@ -193,7 +193,7 @@ end
 ---@param parentFrame table @The raid frame that we're updating
 ---@param auraData table @Payload from UNIT_AURA event
 ---@return boolean @True if we added or updated an aura
-function EnhancedRaidFrames:addToAuraTable(parentFrame, auraData)
+function Triage:addToAuraTable(parentFrame, auraData)
 	-- Skip auras with secret values from C_Secrets (M+, rated PvP)
 	-- issecretvalue() is safe to call on any value including nil, so it runs
 	-- before any boolean tests on aura fields to avoid taint from truthiness checks
@@ -246,7 +246,7 @@ end
 --- This function is less optimized than :UpdateUnitAuras(), but is still required for Classic and Classic Era.
 ---@param parentFrame table @The raid frame to update
 ---@param forceRefresh boolean @Whether or not to force a full refresh
-function EnhancedRaidFrames:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
+function Triage:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 	if SyncPreviewAuras(parentFrame) then
 		return
 	end

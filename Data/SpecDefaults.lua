@@ -6,7 +6,7 @@
 -- Keys are specialization IDs. Slot values are newline-delimited aura IDs or
 -- supported wildcard strings, matching the existing indicator aura input format.
 
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+local Triage = _G.Triage
 
 local SpecDefaults = {
 	-- Restoration Druid
@@ -121,4 +121,4 @@ local SpecDefaults = {
 	},
 }
 
-EnhancedRaidFrames.SpecDefaults = SpecDefaults
+Triage.SpecDefaults = SpecDefaults

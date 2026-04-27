@@ -4,8 +4,8 @@
 -- luacheck: globals IsInGroup IsInRaid
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
@@ -32,7 +32,7 @@ end
 -------------------------------------------------------------------------
 
 --- Populate our "General" options table for our Blizzard interface options
-function EnhancedRaidFrames:CreateGeneralOptions()
+function Triage:CreateGeneralOptions()
 	local generalOptions = {
 		type = "group",
 		childGroups = "tree",
