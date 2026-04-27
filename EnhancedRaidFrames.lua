@@ -167,7 +167,8 @@ function EnhancedRaidFrames:OnEnable()
 		end
 	end)
 
-	-- Hook aura updates to refresh dispel overlay (Retail only — frame.dispels doesn't exist on Classic)
+	-- Hook aura updates to refresh dispel overlay (Retail DispelSource path;
+	-- legacy clients keep the frame.dispels fallback when refreshed elsewhere).
 	-- No explicit hide on SetUnit — the aura hook handles it. Blizzard's SetUnit calls UpdateAll
 	-- which calls UpdateAuras before our SetUnit hook runs, so hiding here would blank valid overlays.
 	if not self.isWoWClassicEra and not self.isWoWClassic then

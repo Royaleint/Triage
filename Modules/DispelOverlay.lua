@@ -7,9 +7,6 @@ local EnhancedRaidFrames = _G.EnhancedRaidFrames
 local LibDispel = LibStub("LibDispel-1.0")
 local LibCustomGlow = LibStub("LibCustomGlow-1.0")
 
--- Dispel type priority order (highest to lowest)
-local PRIORITY_ORDER = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
-
 -- Border thickness in pixels
 local BORDER_THICKNESS = 2
 local GLOW_ALPHA = 0.85
@@ -224,7 +221,7 @@ EnsureGlow = function(frame, overlay, dispelType, glowColor, glowState)
 	overlay.glowTarget = glowTarget
 end
 
---- Check frame.dispels and update the overlay
+--- Resolve dispel state and update the overlay
 ---@param frame table @The compact unit frame
 function EnhancedRaidFrames:UpdateDispelOverlay(frame)
 	if not self.ShouldContinue(frame, true) then
@@ -267,29 +264,11 @@ function EnhancedRaidFrames:UpdateDispelOverlay(frame)
 		return
 	end
 
-	-- Read Blizzard's frame.dispels (PriorityTable per type)
-	if not frame.dispels then
-		self:HideDispelOverlay(frame)
-		return
-	end
-
-	-- Find the highest-priority dispel type the player can handle
-	-- Priority order: Magic > Curse > Disease > Poison > Bleed
-	local myDispels = LibDispel:GetMyDispelTypes()
-	local bestType = nil
-
-	for _, dispelType in ipairs(PRIORITY_ORDER) do
-		if myDispels[dispelType] then
-			local pt = frame.dispels[dispelType]
-			if pt and pt:Size() > 0 then
-				bestType = dispelType
-				break
-			end
-		end
-	end
-
-	if bestType then
-		self:ShowDispelOverlay(frame, bestType)
+	local dispelType = self:GetActiveDispelType(frame)
+	if dispelType == self.UNKNOWN_DISPEL_TYPE then
+		self:ShowDispelOverlay(frame, "None")
+	elseif dispelType then
+		self:ShowDispelOverlay(frame, dispelType)
 	else
 		self:HideDispelOverlay(frame)
 	end
