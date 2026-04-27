@@ -55,12 +55,6 @@ function EnhancedRaidFrames:EnsureRetailStockAuraVisibilityEvents()
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
 		self:UpdateAllStockAuraVisibility()
 	end)
-	self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
-		if self.ERF_pendingStockAuraVisibilityUpdate then
-			self.ERF_pendingStockAuraVisibilityUpdate = nil
-			self:UpdateAllStockAuraVisibility()
-		end
-	end)
 end
 
 --- Apply Retail 12.0.5+ stock aura visibility via Blizzard_PrivateAurasUI attributes.

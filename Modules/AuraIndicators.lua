@@ -15,6 +15,32 @@ local floor = math.floor
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+--- Queue a frame whose indicator mouse behavior could not be updated in combat.
+--- @param frame table @The raid frame to update after combat
+function EnhancedRaidFrames:DeferMouseBehavior(frame)
+	if not frame then
+		return
+	end
+	self.combatDeferredMouseBehavior = self.combatDeferredMouseBehavior or {}
+	self.combatDeferredMouseBehavior[frame] = true
+end
+
+--- Apply any indicator mouse behavior updates deferred during combat lockdown.
+function EnhancedRaidFrames:FlushDeferredMouseBehavior()
+	if InCombatLockdown() or not self.combatDeferredMouseBehavior then
+		return
+	end
+
+	local deferred = self.combatDeferredMouseBehavior
+	self.combatDeferredMouseBehavior = nil
+
+	for frame in pairs(deferred) do
+		if frame and frame.ERF_indicatorFrames then
+			self:SetMouseBehavior(frame)
+		end
+	end
+end
+
 --- Creates all of our indicator frames on their respective raid frames
 --- @param frame table @The raid frame to create indicators on
 function EnhancedRaidFrames:CreateIndicators(frame)
@@ -174,6 +200,15 @@ function EnhancedRaidFrames:SetMouseBehavior(frame)
 	-- can keep mouse enabled for tooltips while clicks/motion pass through to the parent.
 	-- On Classic clients without propagation APIs, disable mouse entirely for click-cast safety.
 	local hasPropagation = not self.isWoWClassicEra and not self.isWoWClassic
+	if hasPropagation and InCombatLockdown() then
+		-- Guard the whole Retail mouse setup: EnableMouse, SetMouseClickEnabled,
+		-- and propagation calls can be restricted when compact frames are updated in combat.
+		-- XML propagateMouseInput keeps click-cast safety on fresh indicators; the deferred
+		-- pass restores tooltip hover behavior after combat.
+		self:DeferMouseBehavior(frame)
+		return
+	end
+
 	for i = 1, 9 do
 		local indicatorFrame = frame.ERF_indicatorFrames[i]
 

@@ -116,6 +116,15 @@ function EnhancedRaidFrames:OnEnable()
 		self:UpdateAllTargetMarkers()
 	end)
 
+	-- Apply indicator mouse propagation settings that were skipped during combat lockdown.
+	self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+		self:FlushDeferredMouseBehavior()
+		if self.ERF_pendingStockAuraVisibilityUpdate then
+			self.ERF_pendingStockAuraVisibilityUpdate = nil
+			self:UpdateAllStockAuraVisibility()
+		end
+	end)
+
 	-- Force a full update of all frames when a raid target icon changes
 	self:RegisterEvent("RAID_TARGET_UPDATE", function()
 		self:UpdateAllTargetMarkers()
