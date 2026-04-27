@@ -112,22 +112,22 @@ local function UpdateMemberHealthState(member)
 end
 
 local function UpdateFrameVisuals(frame)
-	local member = frame.ERF_testData
+	local member = frame.Triage_testData
 	if not member then
 		return
 	end
 
-	frame.ERF_nameText:SetText(member.displayName)
-	frame.ERF_healthBar:SetMinMaxValues(0, member.maxHealth)
-	if not frame.ERF_healAnimation then
-		frame.ERF_healthBar:SetValue(member.currentHealth)
+	frame.Triage_nameText:SetText(member.displayName)
+	frame.Triage_healthBar:SetMinMaxValues(0, member.maxHealth)
+	if not frame.Triage_healAnimation then
+		frame.Triage_healthBar:SetValue(member.currentHealth)
 	end
 	frame.powerBar:SetMinMaxValues(0, member.maxPower)
 	frame.powerBar:SetValue(member.currentPower)
 
 	local backgroundR, backgroundG, backgroundB = GetCompactHealthBackgroundColor()
 	local healthR, healthG, healthB = GetCompactHealthColor()
-	local healthTexture = frame.ERF_healthBar:GetStatusBarTexture()
+	local healthTexture = frame.Triage_healthBar:GetStatusBarTexture()
 	local powerTexture = frame.powerBar:GetStatusBarTexture()
 	local powerAlpha = 1
 
@@ -136,14 +136,14 @@ local function UpdateFrameVisuals(frame)
 		healthR, healthG, healthB = GetClassColor(member.classFile)
 	end
 
-	frame.ERF_nameText:SetTextColor(1, 1, 1, 1)
+	frame.Triage_nameText:SetTextColor(1, 1, 1, 1)
 	if member.status == "dead" or member.status == "offline" then
 		healthR, healthG, healthB = DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR
-		frame.ERF_nameText:SetTextColor(DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, 1)
+		frame.Triage_nameText:SetTextColor(DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, DEAD_OFFLINE_COLOR, 1)
 		powerAlpha = member.status == "dead" and DEAD_POWER_ALPHA or OFFLINE_POWER_ALPHA
 	end
 
-	frame.ERF_healthBar:SetStatusBarColor(healthR, healthG, healthB, 1)
+	frame.Triage_healthBar:SetStatusBarColor(healthR, healthG, healthB, 1)
 	if healthTexture and healthTexture.SetDesaturated then
 		healthTexture:SetDesaturated(member.status == "dead" or member.status == "offline")
 	end
@@ -153,52 +153,52 @@ local function UpdateFrameVisuals(frame)
 	frame.powerBar:SetAlpha(powerAlpha)
 
 	if member.status == "dead" then
-		frame.ERF_statusText:SetText(DEAD or "")
+		frame.Triage_statusText:SetText(DEAD or "")
 	elseif member.status == "offline" then
-		frame.ERF_statusText:SetText(PLAYER_OFFLINE or "")
+		frame.Triage_statusText:SetText(PLAYER_OFFLINE or "")
 	else
-		frame.ERF_statusText:SetText("")
+		frame.Triage_statusText:SetText("")
 	end
 end
 
 local function StopPreviewAnimations(frame)
-	frame.ERF_healAnimation = nil
-	frame.ERF_floatingTextState = nil
+	frame.Triage_healAnimation = nil
+	frame.Triage_floatingTextState = nil
 	frame:SetScript("OnUpdate", nil)
 end
 
 local function PreviewFrame_OnUpdate(frame, elapsed)
 	local hasAnimation = false
 
-	if frame.ERF_healAnimation then
-		local animation = frame.ERF_healAnimation
+	if frame.Triage_healAnimation then
+		local animation = frame.Triage_healAnimation
 		animation.elapsed = animation.elapsed + elapsed
 
 		local progress = math.min(animation.elapsed / animation.duration, 1)
 		local value = animation.startValue + ((animation.endValue - animation.startValue) * progress)
-		frame.ERF_healthBar:SetValue(value)
+		frame.Triage_healthBar:SetValue(value)
 
 		if progress >= 1 then
-			frame.ERF_healthBar:SetValue(animation.endValue)
-			frame.ERF_healAnimation = nil
+			frame.Triage_healthBar:SetValue(animation.endValue)
+			frame.Triage_healAnimation = nil
 		else
 			hasAnimation = true
 		end
 	end
 
-	if frame.ERF_floatingTextState then
-		local textState = frame.ERF_floatingTextState
+	if frame.Triage_floatingTextState then
+		local textState = frame.Triage_floatingTextState
 		textState.elapsed = textState.elapsed + elapsed
 
 		local progress = math.min(textState.elapsed / textState.duration, 1)
 		local alpha = 1 - progress
-		frame.ERF_floatingText:SetAlpha(alpha)
-		frame.ERF_floatingText:ClearAllPoints()
-		frame.ERF_floatingText:SetPoint("CENTER", frame, "CENTER", 0, 8 + (progress * 12))
+		frame.Triage_floatingText:SetAlpha(alpha)
+		frame.Triage_floatingText:ClearAllPoints()
+		frame.Triage_floatingText:SetPoint("CENTER", frame, "CENTER", 0, 8 + (progress * 12))
 
 		if progress >= 1 then
-			frame.ERF_floatingText:Hide()
-			frame.ERF_floatingTextState = nil
+			frame.Triage_floatingText:Hide()
+			frame.Triage_floatingTextState = nil
 		else
 			hasAnimation = true
 		end
@@ -210,14 +210,14 @@ local function PreviewFrame_OnUpdate(frame, elapsed)
 end
 
 local function ShowFloatingHealText(frame, amount)
-	frame.ERF_floatingText:SetText(amount)
-	frame.ERF_floatingText:SetTextColor(0.2, 1, 0.35, 1)
-	frame.ERF_floatingText:SetAlpha(1)
-	frame.ERF_floatingText:ClearAllPoints()
-	frame.ERF_floatingText:SetPoint("CENTER", frame, "CENTER", 0, 8)
-	frame.ERF_floatingText:Show()
+	frame.Triage_floatingText:SetText(amount)
+	frame.Triage_floatingText:SetTextColor(0.2, 1, 0.35, 1)
+	frame.Triage_floatingText:SetAlpha(1)
+	frame.Triage_floatingText:ClearAllPoints()
+	frame.Triage_floatingText:SetPoint("CENTER", frame, "CENTER", 0, 8)
+	frame.Triage_floatingText:Show()
 
-	frame.ERF_floatingTextState = {
+	frame.Triage_floatingTextState = {
 		elapsed = 0,
 		duration = FLOATING_TEXT_DURATION,
 	}
@@ -225,7 +225,7 @@ local function ShowFloatingHealText(frame, amount)
 end
 
 local function ShowPreviewTooltip(frame)
-	local member = frame.ERF_testData
+	local member = frame.Triage_testData
 	if not member then
 		return
 	end
@@ -244,12 +244,12 @@ local function HandlePreviewFrameClick(frame, button)
 		return
 	end
 
-	if frame.ERF_suppressNextClick then
-		frame.ERF_suppressNextClick = nil
+	if frame.Triage_suppressNextClick then
+		frame.Triage_suppressNextClick = nil
 		return
 	end
 
-	local member = frame.ERF_testData
+	local member = frame.Triage_testData
 	if not member or member.status ~= "alive" then
 		return
 	end
@@ -259,7 +259,7 @@ local function HandlePreviewFrameClick(frame, button)
 	member.currentHealth = math.min(member.maxHealth, member.currentHealth + healAmount)
 	UpdateMemberHealthState(member)
 
-	frame.ERF_healAnimation = {
+	frame.Triage_healAnimation = {
 		startValue = startValue,
 		endValue = member.currentHealth,
 		duration = HEAL_ANIMATION_DURATION,
@@ -283,19 +283,19 @@ local function CreatePreviewFrame(frameName)
 	frame.background:SetAtlas("raidframe-hp-bg-white")
 	frame.background:SetVertexColor(0.22, 0.22, 0.22, 1)
 
-	frame.ERF_healthBackground = frame:CreateTexture(nil, "BORDER")
-	frame.ERF_healthBackground:SetAllPoints(frame.background)
-	frame.ERF_healthBackground:SetColorTexture(0, 0, 0, 0)
+	frame.Triage_healthBackground = frame:CreateTexture(nil, "BORDER")
+	frame.Triage_healthBackground:SetAllPoints(frame.background)
+	frame.Triage_healthBackground:SetColorTexture(0, 0, 0, 0)
 
-	frame.ERF_healthBar = CreateFrame("StatusBar", nil, frame)
-	frame.ERF_healthBar:SetPoint("TOPLEFT", 1, -1)
-	frame.ERF_healthBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1 + POWER_BAR_HEIGHT)
-	frame.ERF_healthBar:SetStatusBarTexture("RaidFrame-Hp-Fill")
-	frame.ERF_healthBar:GetStatusBarTexture():SetDrawLayer("BORDER")
-	frame.healthBar = frame.ERF_healthBar
+	frame.Triage_healthBar = CreateFrame("StatusBar", nil, frame)
+	frame.Triage_healthBar:SetPoint("TOPLEFT", 1, -1)
+	frame.Triage_healthBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1 + POWER_BAR_HEIGHT)
+	frame.Triage_healthBar:SetStatusBarTexture("RaidFrame-Hp-Fill")
+	frame.Triage_healthBar:GetStatusBarTexture():SetDrawLayer("BORDER")
+	frame.healthBar = frame.Triage_healthBar
 
 	frame.powerBar = CreateFrame("StatusBar", nil, frame)
-	frame.powerBar:SetPoint("TOPLEFT", frame.ERF_healthBar, "BOTTOMLEFT", 0, -2)
+	frame.powerBar:SetPoint("TOPLEFT", frame.Triage_healthBar, "BOTTOMLEFT", 0, -2)
 	frame.powerBar:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -1, 1)
 	frame.powerBar:SetHeight(POWER_BAR_HEIGHT)
 	frame.powerBar:SetStatusBarTexture("_RaidFrame-Resource-Fill")
@@ -306,20 +306,20 @@ local function CreatePreviewFrame(frameName)
 	frame.powerBar.background:SetAtlas("_RaidFrame-Resource-Background")
 	frame.powerBar.background:SetVertexColor(0.8, 0.8, 0.8, 1)
 
-	frame.ERF_nameText = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	frame.ERF_nameText:SetPoint("LEFT", frame, "LEFT", 5, 1)
-	frame.ERF_nameText:SetPoint("RIGHT", frame, "RIGHT", -3, 1)
-	frame.ERF_nameText:SetHeight(12)
-	frame.ERF_nameText:SetJustifyH("LEFT")
-	frame.name = frame.ERF_nameText
+	frame.Triage_nameText = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	frame.Triage_nameText:SetPoint("LEFT", frame, "LEFT", 5, 1)
+	frame.Triage_nameText:SetPoint("RIGHT", frame, "RIGHT", -3, 1)
+	frame.Triage_nameText:SetHeight(12)
+	frame.Triage_nameText:SetJustifyH("LEFT")
+	frame.name = frame.Triage_nameText
 
-	frame.ERF_statusText = frame:CreateFontString(nil, "ARTWORK", "GameFontDisable")
-	frame.ERF_statusText:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 3, (FRAME_HEIGHT / 3) - 2)
-	frame.ERF_statusText:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, (FRAME_HEIGHT / 3) - 2)
-	frame.ERF_statusText:SetJustifyH("CENTER")
+	frame.Triage_statusText = frame:CreateFontString(nil, "ARTWORK", "GameFontDisable")
+	frame.Triage_statusText:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 3, (FRAME_HEIGHT / 3) - 2)
+	frame.Triage_statusText:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -3, (FRAME_HEIGHT / 3) - 2)
+	frame.Triage_statusText:SetJustifyH("CENTER")
 
-	frame.ERF_floatingText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	frame.ERF_floatingText:Hide()
+	frame.Triage_floatingText = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	frame.Triage_floatingText:Hide()
 
 	frame:SetScript("OnEnter", function()
 		ShowPreviewTooltip(frame)
@@ -331,14 +331,14 @@ local function CreatePreviewFrame(frameName)
 		HandlePreviewFrameClick(frame, button)
 	end)
 	frame:SetScript("OnDragStart", function()
-		frame.ERF_draggingPreview = true
+		frame.Triage_draggingPreview = true
 		StartContainerDrag(frame:GetParent())
 	end)
 	frame:SetScript("OnDragStop", function()
-		if frame.ERF_draggingPreview then
-			frame.ERF_suppressNextClick = true
+		if frame.Triage_draggingPreview then
+			frame.Triage_suppressNextClick = true
 		end
-		frame.ERF_draggingPreview = nil
+		frame.Triage_draggingPreview = nil
 		StopContainerDrag(frame:GetParent())
 	end)
 
@@ -453,11 +453,11 @@ function Triage:ShowTestModeFrames(session)
 			-(row * (FRAME_HEIGHT + ROW_SPACING)))
 
 		frame.unit = member.unitToken
-		frame.ERF_isTestFrame = true
-		frame.ERF_testData = member
-		frame.ERF_unitAuras = member.auras
-		frame.ERF_suppressNextClick = nil
-		frame.ERF_draggingPreview = nil
+		frame.Triage_isTestFrame = true
+		frame.Triage_testData = member
+		frame.Triage_unitAuras = member.auras
+		frame.Triage_suppressNextClick = nil
+		frame.Triage_draggingPreview = nil
 
 		UpdateFrameVisuals(frame)
 		self:RegisterManagedFrame(frame, frame.unit, "test")
@@ -483,13 +483,13 @@ function Triage:HideTestModeFrames()
 		frame:Hide()
 		frame:SetParent(nil)
 		frame.unit = nil
-		frame.ERF_isTestFrame = nil
-		frame.ERF_testData = nil
-		frame.ERF_unitAuras = nil
-		frame.ERF_suppressNextClick = nil
-		frame.ERF_draggingPreview = nil
-		frame.ERF_statusText:SetText("")
-		frame.ERF_floatingText:Hide()
+		frame.Triage_isTestFrame = nil
+		frame.Triage_testData = nil
+		frame.Triage_unitAuras = nil
+		frame.Triage_suppressNextClick = nil
+		frame.Triage_draggingPreview = nil
+		frame.Triage_statusText:SetText("")
+		frame.Triage_floatingText:Hide()
 		StopPreviewAnimations(frame)
 		pool.inactiveFrames[#pool.inactiveFrames + 1] = frame
 	end

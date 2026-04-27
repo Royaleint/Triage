@@ -125,8 +125,8 @@ function Triage:OnEnable()
 	-- Apply indicator mouse propagation settings that were skipped during combat lockdown.
 	self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
 		self:FlushDeferredMouseBehavior()
-		if self.ERF_pendingStockAuraVisibilityUpdate then
-			self.ERF_pendingStockAuraVisibilityUpdate = nil
+		if self.Triage_pendingStockAuraVisibilityUpdate then
+			self.Triage_pendingStockAuraVisibilityUpdate = nil
 			self:UpdateAllStockAuraVisibility()
 		end
 	end)
@@ -164,10 +164,10 @@ function Triage:OnEnable()
 		end
 		-- Clear stale indicators and immediately scan the new unit's auras
 		-- so there is no visible gap between reassignment and repopulation
-		if frame.ERF_indicatorFrames then
+		if frame.Triage_indicatorFrames then
 			for i = 1, 9 do
-				if frame.ERF_indicatorFrames[i] then
-					self:ClearIndicator(frame.ERF_indicatorFrames[i])
+				if frame.Triage_indicatorFrames[i] then
+					self:ClearIndicator(frame.Triage_indicatorFrames[i])
 				end
 			end
 		end
@@ -177,7 +177,7 @@ function Triage:OnEnable()
 			self:UpdateUnitAuras(frame, {}, true)
 		end
 		-- Refresh target marker
-		if frame.ERF_targetMarkerFrame then
+		if frame.Triage_targetMarkerFrame then
 			self:UpdateTargetMarker(frame)
 		end
 	end)

@@ -20,11 +20,11 @@ end
 -------------------------------------------------------------------------
 
 local function SyncPreviewAuras(parentFrame)
-	if not parentFrame or not parentFrame.ERF_isTestFrame or not parentFrame.ERF_testData then
+	if not parentFrame or not parentFrame.Triage_isTestFrame or not parentFrame.Triage_testData then
 		return false
 	end
 
-	parentFrame.ERF_unitAuras = parentFrame.ERF_testData.auras or {}
+	parentFrame.Triage_unitAuras = parentFrame.Triage_testData.auras or {}
 	Triage:UpdateIndicators(parentFrame)
 	return true
 end
@@ -33,9 +33,9 @@ end
 --- Creates a listener for the UNIT_AURA event attached to a specified raid frame
 ---@param frame table @The raid frame to create the listener for
 function Triage:CreateAuraListener(frame)
-	if frame.ERF_isTestFrame then
-		if frame.ERF_auraListenerFrame then
-			frame.ERF_auraListenerFrame:UnregisterAllEvents()
+	if frame.Triage_isTestFrame then
+		if frame.Triage_auraListenerFrame then
+			frame.Triage_auraListenerFrame:UnregisterAllEvents()
 		end
 		return
 	end
@@ -50,30 +50,30 @@ function Triage:CreateAuraListener(frame)
 		return
 	end
 
-	local listenerName = self:GetManagedChildFrameName(frame, "-ERF_auraListenerFrame")
+	local listenerName = self:GetManagedChildFrameName(frame, "-Triage_auraListenerFrame")
 
 	-- To stop us from creating redundant frames we should try to re-capture them when possible.
 	if listenerName and _G[listenerName] then
-		frame.ERF_auraListenerFrame = _G[listenerName]
+		frame.Triage_auraListenerFrame = _G[listenerName]
 		-- If we capture an old indicator frame, we should reattach it to the current unit frame.
-		frame.ERF_auraListenerFrame:SetParent(frame)
-	elseif frame.ERF_auraListenerFrame then
-		frame.ERF_auraListenerFrame:SetParent(frame)
+		frame.Triage_auraListenerFrame:SetParent(frame)
+	elseif frame.Triage_auraListenerFrame then
+		frame.Triage_auraListenerFrame:SetParent(frame)
 	else
-		frame.ERF_auraListenerFrame = CreateFrame("Frame", listenerName, frame)
+		frame.Triage_auraListenerFrame = CreateFrame("Frame", listenerName, frame)
 	end
 
 	-- Register the unit event
-	frame.ERF_auraListenerFrame:UnregisterAllEvents() -- Clear any existing events
-	frame.ERF_auraListenerFrame:RegisterUnitEvent("UNIT_AURA", unit)
+	frame.Triage_auraListenerFrame:UnregisterAllEvents() -- Clear any existing events
+	frame.Triage_auraListenerFrame:RegisterUnitEvent("UNIT_AURA", unit)
 
 	-- Assign the OnEvent callback for the listener frame
 	if not self.isWoWClassicEra and not self.isWoWClassic then
-		frame.ERF_auraListenerFrame:SetScript("OnEvent", function(_, _, _, payload)
+		frame.Triage_auraListenerFrame:SetScript("OnEvent", function(_, _, _, payload)
 			self:UpdateUnitAuras(frame, payload)
 		end)
 	else
-		frame.ERF_auraListenerFrame:SetScript("OnEvent", function()
+		frame.Triage_auraListenerFrame:SetScript("OnEvent", function()
 			self:UpdateUnitAuras_Classic(frame) -- Classic uses the legacy method prior to 10.0
 		end)
 	end
@@ -99,7 +99,7 @@ function Triage:UpdateAllAuras()
 end
 
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.
---- Unit aura information for tracked auras is stored in the ERF_unitAuras table.
+--- Unit aura information for tracked auras is stored in the Triage_unitAuras table.
 --- It uses the C_UnitAuras API that was added in 10.0.
 ---@param parentFrame table @The raid frame to update
 ---@param payload table @The payload from the UNIT_AURA event
@@ -117,13 +117,13 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		return
 	end
 	-- Create a listener frame for the unit if we don't happen to have one yet, or we're forcing a re-creation
-	if not parentFrame.ERF_auraListenerFrame or forceRefresh then
+	if not parentFrame.Triage_auraListenerFrame or forceRefresh then
 		self:CreateAuraListener(parentFrame)
 		payload.isFullUpdate = true -- Force a full update if we're forcing a refresh
 	end
 	-- Create the main table for the unit
-	if not parentFrame.ERF_unitAuras then
-		parentFrame.ERF_unitAuras = {}
+	if not parentFrame.Triage_unitAuras then
+		parentFrame.Triage_unitAuras = {}
 		payload.isFullUpdate = true -- Force a full update if we don't have a table for the unit yet
 	end
 
@@ -133,11 +133,11 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	-- If we get a full update signal, reset the table and rescan all auras for the unit
 	if payload.isFullUpdate then
 		-- Clear out the table
-		parentFrame.ERF_unitAuras = {}
+		parentFrame.Triage_unitAuras = {}
 		-- Iterate through all buffs and debuffs on the unit
 		for _, filter in pairs({ "HELPFUL", "HARMFUL" }) do
 			AuraUtil.ForEachAura(unit, filter, nil, function(auraData)
-				-- Add our auraData to the ERF_unitAuras table
+				-- Add our auraData to the Triage_unitAuras table
 				local updateFlag = self:addToAuraTable(parentFrame, auraData)
 				if updateFlag then
 					shouldRunUpdate = true
@@ -149,7 +149,7 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	-- If one or more new auras were added, update the table with their payload information
 	if payload.addedAuras then
 		for _, auraData in pairs(payload.addedAuras) do
-			-- Add our auraData to the ERF_unitAuras table
+			-- Add our auraData to the Triage_unitAuras table
 			local updateFlag = self:addToAuraTable(parentFrame, auraData)
 			if updateFlag then
 				shouldRunUpdate = true
@@ -163,7 +163,7 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			local auraData = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
 			-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
 			if auraData then
-				-- Add our auraData to the ERF_unitAuras table
+				-- Add our auraData to the Triage_unitAuras table
 				local updateFlag = self:addToAuraTable(parentFrame, auraData)
 				if updateFlag then
 					shouldRunUpdate = true
@@ -175,9 +175,9 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	-- If one or more auras was removed, remove them from the table
 	if payload.removedAuraInstanceIDs then
 		for _, auraInstanceID in pairs(payload.removedAuraInstanceIDs) do
-			if parentFrame.ERF_unitAuras[auraInstanceID] then
+			if parentFrame.Triage_unitAuras[auraInstanceID] then
 				-- Set the table entry to nil to remove it
-				parentFrame.ERF_unitAuras[auraInstanceID] = nil
+				parentFrame.Triage_unitAuras[auraInstanceID] = nil
 				shouldRunUpdate = true
 			end
 		end
@@ -228,12 +228,12 @@ function Triage:addToAuraTable(parentFrame, auraData)
 
 		if auraData.auraInstanceID then
 			-- For 10.0 and newer
-			-- Add our auraData to the ERF_unitAuras table using the auraInstanceID as the key
-			parentFrame.ERF_unitAuras[auraData.auraInstanceID] = auraData
+			-- Add our auraData to the Triage_unitAuras table using the auraInstanceID as the key
+			parentFrame.Triage_unitAuras[auraData.auraInstanceID] = auraData
 		else
 			-- For 9.x and older
-			-- Append our auraData to the ERF_unitAuras table
-			table.insert(parentFrame.ERF_unitAuras, auraData)
+			-- Append our auraData to the Triage_unitAuras table
+			table.insert(parentFrame.Triage_unitAuras, auraData)
 		end
 
 		-- Return true if we added or updated an aura
@@ -242,7 +242,7 @@ function Triage:addToAuraTable(parentFrame, auraData)
 end
 
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.
---- Unit aura information for tracked auras is stored in the ERF_unitAuras table.
+--- Unit aura information for tracked auras is stored in the Triage_unitAuras table.
 --- This function is less optimized than :UpdateUnitAuras(), but is still required for Classic and Classic Era.
 ---@param parentFrame table @The raid frame to update
 ---@param forceRefresh boolean @Whether or not to force a full refresh
@@ -261,18 +261,18 @@ function Triage:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 	end
 
 	-- Create a listener frame for the unit if we don't happen to have one yet, or we're forcing a re-creation
-	if not parentFrame.ERF_auraListenerFrame or forceRefresh then
+	if not parentFrame.Triage_auraListenerFrame or forceRefresh then
 		self:CreateAuraListener(parentFrame)
 	end
 
 	-- Keep a record of how many auras we had previously
 	local numPreviousAuras = 0
-	if parentFrame.ERF_unitAuras then
-		numPreviousAuras = #parentFrame.ERF_unitAuras
+	if parentFrame.Triage_unitAuras then
+		numPreviousAuras = #parentFrame.Triage_unitAuras
 	end
 
 	-- Create or clear out the tables for the unit
-	parentFrame.ERF_unitAuras = {}
+	parentFrame.Triage_unitAuras = {}
 
 	-- Iterate through all buffs and debuffs on the unit
 	for _, filter in pairs({ "HELPFUL", "HARMFUL" }) do
@@ -306,7 +306,7 @@ function Triage:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 				-- Add our auraIndex into the table
 				auraData.auraIndex = auraIndex
 
-				-- Add our auraData to the ERF_unitAuras table
+				-- Add our auraData to the Triage_unitAuras table
 				self:addToAuraTable(parentFrame, auraData)
 			else
 				shouldStop = true
@@ -319,7 +319,7 @@ function Triage:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 
 	-- Only update the indicators if we have at least 1 tracked aura in our table
 	-- or if we had a tracked aura in our table previously and now we don't (to clear indicators)
-	if #parentFrame.ERF_unitAuras > 0 or (#parentFrame.ERF_unitAuras == 0 and numPreviousAuras ~= 0) then
+	if #parentFrame.Triage_unitAuras > 0 or (#parentFrame.Triage_unitAuras == 0 and numPreviousAuras ~= 0) then
 		self:UpdateIndicators(parentFrame)
 	end
 end

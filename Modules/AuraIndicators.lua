@@ -35,7 +35,7 @@ function Triage:FlushDeferredMouseBehavior()
 	self.combatDeferredMouseBehavior = nil
 
 	for frame in pairs(deferred) do
-		if frame and frame.ERF_indicatorFrames then
+		if frame and frame.Triage_indicatorFrames then
 			self:SetMouseBehavior(frame)
 		end
 	end
@@ -44,25 +44,25 @@ end
 --- Creates all of our indicator frames on their respective raid frames
 --- @param frame table @The raid frame to create indicators on
 function Triage:CreateIndicators(frame)
-	frame.ERF_indicatorFrames = frame.ERF_indicatorFrames or {}
+	frame.Triage_indicatorFrames = frame.Triage_indicatorFrames or {}
 
 	-- Create indicators
 	for i = 1, 9 do
-		local indicatorName = self:GetManagedChildFrameName(frame, "-ERF_indicator-" .. i)
+		local indicatorName = self:GetManagedChildFrameName(frame, "-Triage_indicator-" .. i)
 
 		-- To stop us from creating redundant frames we should try to re-capture them when possible.
 		if indicatorName and _G[indicatorName] then
-			frame.ERF_indicatorFrames[i] = _G[indicatorName]
+			frame.Triage_indicatorFrames[i] = _G[indicatorName]
 			-- If we capture an old indicator frame, we should reattach it to the current unit frame.
-			frame.ERF_indicatorFrames[i]:SetParent(frame)
-		elseif frame.ERF_indicatorFrames[i] then
-			frame.ERF_indicatorFrames[i]:SetParent(frame)
+			frame.Triage_indicatorFrames[i]:SetParent(frame)
+		elseif frame.Triage_indicatorFrames[i] then
+			frame.Triage_indicatorFrames[i]:SetParent(frame)
 		else
-			frame.ERF_indicatorFrames[i] = CreateFrame("Button", indicatorName, frame, "ERF_indicatorTemplate")
+			frame.Triage_indicatorFrames[i] = CreateFrame("Button", indicatorName, frame, "Triage_indicatorTemplate")
 		end
 
 		-- Create local pointer for readability
-		local indicatorFrame = frame.ERF_indicatorFrames[i]
+		local indicatorFrame = frame.Triage_indicatorFrames[i]
 
 		-- Indicate the position of this particular frame for use later (i.e. 1->9)
 		indicatorFrame.position = i
@@ -74,7 +74,7 @@ function Triage:CreateIndicators(frame)
 				self:Tooltip_OnEnter(indicatorFrame, frame)
 			end)
 			indicatorFrame:SetScript("OnLeave", function()
-				if frame.ERF_isTestFrame then
+				if frame.Triage_isTestFrame then
 					return
 				end
 				GameTooltip:Hide()
@@ -104,7 +104,7 @@ function Triage:SetIndicatorAppearance(frame)
 	-- Loop over all 9 indicators and set their appearance
 	for i = 1, 9 do
 		-- Create local pointer for readability
-		local indicatorFrame = frame.ERF_indicatorFrames[i]
+		local indicatorFrame = frame.Triage_indicatorFrames[i]
 
 		-- Set icon size
 		indicatorFrame:SetWidth(self.db.profile["indicator-" .. i].indicatorSize)
@@ -191,7 +191,7 @@ end
 --- @param frame table @The raid frame to update mouse behavior for
 function Triage:SetMouseBehavior(frame)
 	-- Stop here if we don't have any indicators
-	if not frame.ERF_indicatorFrames then
+	if not frame.Triage_indicatorFrames then
 		return
 	end
 
@@ -210,7 +210,7 @@ function Triage:SetMouseBehavior(frame)
 	end
 
 	for i = 1, 9 do
-		local indicatorFrame = frame.ERF_indicatorFrames[i]
+		local indicatorFrame = frame.Triage_indicatorFrames[i]
 
 		if hasPropagation then
 			indicatorFrame:EnableMouse(true)
@@ -256,7 +256,7 @@ function Triage:UpdateIndicators(frame, setAppearance)
 	end
 
 	-- Create the indicator frame if it doesn't exist, otherwise just update the appearance
-	if not frame.ERF_indicatorFrames then
+	if not frame.Triage_indicatorFrames then
 		self:CreateIndicators(frame)
 	else
 		if setAppearance then
@@ -265,7 +265,7 @@ function Triage:UpdateIndicators(frame, setAppearance)
 	end
 
 	-- Loop over all 9 indicators and process them individually
-	for i, indicator in ipairs(frame.ERF_indicatorFrames) do
+	for i, indicator in ipairs(frame.Triage_indicatorFrames) do
 		--if we don't have any auraStrings for this indicator, stop here
 		if self.auraStrings[i][1] then
 			-- Check if we have at least 1 auraString for this location
@@ -344,14 +344,14 @@ function Triage:FindActiveAndTrackedAura(indicatorFrame)
 	local parentFrame = indicatorFrame:GetParent()
 
 	-- If our unitAura table doesn't exist, stop here
-	if not parentFrame.ERF_unitAuras then
+	if not parentFrame.Triage_unitAuras then
 		return
 	end
 
 	-- Loop through list of tracked auraStrings
 	for _, auraIdentifier in pairs(self.auraStrings[i]) do
 		-- Loop through list of the current auras on the unit
-		for _, aura in pairs(parentFrame.ERF_unitAuras) do
+		for _, aura in pairs(parentFrame.Triage_unitAuras) do
 			-- Check if the aura name matches our auraString
 			if aura.name == auraIdentifier
 					-- Check if the aura is a spellId and the spellId matches our auraString
@@ -703,7 +703,7 @@ function Triage:Tooltip_OnEnter(indicatorFrame, parentFrame)
 		return
 	end
 
-	if parentFrame.ERF_isTestFrame then
+	if parentFrame.Triage_isTestFrame then
 		return
 	end
 
@@ -746,10 +746,10 @@ end
 --- indicator geometry while the parent frame is hovered.
 --- @param frame table @The raid frame to set up scanning on
 function Triage:SetupClassicTooltipScanning(frame)
-	if frame.ERF_tooltipHooked then
+	if frame.Triage_tooltipHooked then
 		return
 	end
-	frame.ERF_tooltipHooked = true
+	frame.Triage_tooltipHooked = true
 
 	if not self:IsHooked(frame, "OnEnter") then
 		self:SecureHookScript(frame, "OnEnter", function()
@@ -771,11 +771,11 @@ end
 --- Start the hover-driven tooltip scanner while the parent is hovered
 --- @param frame table @The raid frame being hovered
 function Triage:StartClassicTooltipScanning(frame)
-	if frame.ERF_tooltipTicker then
+	if frame.Triage_tooltipTicker then
 		return
 	end
 	self:ScanClassicIndicatorTooltips(frame)
-	frame.ERF_tooltipTicker = self:ScheduleRepeatingTimer(function()
+	frame.Triage_tooltipTicker = self:ScheduleRepeatingTimer(function()
 		self:ScanClassicIndicatorTooltips(frame)
 	end, 0.1)
 end
@@ -783,30 +783,30 @@ end
 --- Stop the tooltip scanner when the parent is no longer hovered
 --- @param frame table @The raid frame no longer hovered
 function Triage:StopClassicTooltipScanning(frame)
-	if frame.ERF_tooltipTicker then
-		self:CancelTimer(frame.ERF_tooltipTicker)
-		frame.ERF_tooltipTicker = nil
+	if frame.Triage_tooltipTicker then
+		self:CancelTimer(frame.Triage_tooltipTicker)
+		frame.Triage_tooltipTicker = nil
 	end
-	if frame.ERF_activeTooltipIndicator then
-		frame.ERF_activeTooltipIndicator = nil
+	if frame.Triage_activeTooltipIndicator then
+		frame.Triage_activeTooltipIndicator = nil
 	end
 end
 
 --- Scan indicators for hover and show/restore tooltips accordingly
 --- @param frame table @The raid frame to scan
 function Triage:ScanClassicIndicatorTooltips(frame)
-	if not frame.ERF_indicatorFrames then
+	if not frame.Triage_indicatorFrames then
 		return
 	end
 
 	for i = 1, 9 do
-		local indicatorFrame = frame.ERF_indicatorFrames[i]
+		local indicatorFrame = frame.Triage_indicatorFrames[i]
 		if indicatorFrame and indicatorFrame:IsShown() and indicatorFrame:IsMouseOver()
 				and self.db.profile["indicator-" .. i].showTooltip
 				and indicatorFrame.thisAura then
 			-- Only update tooltip if the hovered indicator changed
-			if frame.ERF_activeTooltipIndicator ~= indicatorFrame then
-				frame.ERF_activeTooltipIndicator = indicatorFrame
+			if frame.Triage_activeTooltipIndicator ~= indicatorFrame then
+				frame.Triage_activeTooltipIndicator = indicatorFrame
 				self:Tooltip_OnEnter(indicatorFrame, frame)
 			end
 			return
@@ -814,10 +814,10 @@ function Triage:ScanClassicIndicatorTooltips(frame)
 	end
 
 	-- No indicator is hovered — restore parent tooltip if we were showing one
-	if frame.ERF_activeTooltipIndicator then
-		frame.ERF_activeTooltipIndicator = nil
+	if frame.Triage_activeTooltipIndicator then
+		frame.Triage_activeTooltipIndicator = nil
 		GameTooltip:Hide()
-		if not frame.ERF_isTestFrame then
+		if not frame.Triage_isTestFrame then
 			UnitFrame_UpdateTooltip(frame)
 		end
 	end

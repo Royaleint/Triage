@@ -130,33 +130,33 @@ function Triage:ClearManagedFrameState(frame)
 		return
 	end
 
-	if frame.ERF_auraListenerFrame then
-		frame.ERF_auraListenerFrame:UnregisterAllEvents()
+	if frame.Triage_auraListenerFrame then
+		frame.Triage_auraListenerFrame:UnregisterAllEvents()
 	end
 
-	if frame.ERF_indicatorFrames then
+	if frame.Triage_indicatorFrames then
 		for i = 1, 9 do
-			local indicatorFrame = frame.ERF_indicatorFrames[i]
+			local indicatorFrame = frame.Triage_indicatorFrames[i]
 			if indicatorFrame then
 				self:ClearIndicator(indicatorFrame)
 			end
 		end
 	end
 
-	if frame.ERF_targetMarkerFrame then
+	if frame.Triage_targetMarkerFrame then
 		self:ClearTargetMarker(frame)
 	end
 
-	if frame.ERF_dispelOverlay then
+	if frame.Triage_dispelOverlay then
 		self:HideDispelOverlay(frame)
 	end
 
-	if frame.ERF_tooltipTicker then
+	if frame.Triage_tooltipTicker then
 		self:StopClassicTooltipScanning(frame)
 	end
 
-	frame.ERF_activeTooltipIndicator = nil
-	frame.ERF_unitAuras = nil
+	frame.Triage_activeTooltipIndicator = nil
+	frame.Triage_unitAuras = nil
 end
 
 --- Register a frame in the central managed frame registry.

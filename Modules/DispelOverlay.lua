@@ -18,7 +18,7 @@ local StopGlow, GetGlowColor, EnsureGlow
 -------------------------------------------------------------------------
 
 local function GetGlowTarget(frame, overlay)
-	if frame.ERF_isTestFrame then
+	if frame.Triage_isTestFrame then
 		return overlay
 	end
 
@@ -40,7 +40,7 @@ local function GetGlowTarget(frame, overlay)
 end
 
 local function GetPreviewDispelType(frame)
-	local previewData = frame.ERF_testData
+	local previewData = frame.Triage_testData
 	if not previewData or previewData.status ~= "alive" then
 		return nil
 	end
@@ -64,7 +64,7 @@ function Triage:CreateDispelOverlay(frame)
 		return
 	end
 
-	if frame.ERF_dispelOverlay then
+	if frame.Triage_dispelOverlay then
 		return
 	end
 
@@ -119,7 +119,7 @@ function Triage:CreateDispelOverlay(frame)
 			return
 		end
 
-		if frame.ERF_isTestFrame then
+		if frame.Triage_isTestFrame then
 			local previewType = GetPreviewDispelType(frame)
 			if not previewType then
 				StopGlow(hiddenOverlay)
@@ -146,7 +146,7 @@ function Triage:CreateDispelOverlay(frame)
 		local glowState = useTypeColor and hiddenOverlay.currentDispelType or "neutral"
 		EnsureGlow(frame, hiddenOverlay, hiddenOverlay.currentDispelType, glowColor, glowState)
 	end)
-	frame.ERF_dispelOverlay = overlay
+	frame.Triage_dispelOverlay = overlay
 end
 
 --- Set the edge border color on an overlay
@@ -225,26 +225,26 @@ end
 ---@param frame table @The compact unit frame
 function Triage:UpdateDispelOverlay(frame)
 	if not self.ShouldContinue(frame, true) then
-		if frame.ERF_dispelOverlay then
+		if frame.Triage_dispelOverlay then
 			self:HideDispelOverlay(frame)
 		end
 		return
 	end
 
 	if not self.db.profile.dispelOverlay.enabled then
-		if frame.ERF_dispelOverlay then
+		if frame.Triage_dispelOverlay then
 			self:HideDispelOverlay(frame)
 		end
 		return
 	end
 
 	-- Create overlay on demand
-	if not frame.ERF_dispelOverlay then
+	if not frame.Triage_dispelOverlay then
 		self:CreateDispelOverlay(frame)
 	end
 
 	-- Respect party/raid toggle
-	local inRaid = (frame.ERF_isTestFrame and self.testModeState and self.testModeState.size > 5) or IsInRaid()
+	local inRaid = (frame.Triage_isTestFrame and self.testModeState and self.testModeState.size > 5) or IsInRaid()
 	if inRaid and not self.db.profile.dispelOverlay.showInRaid then
 		self:HideDispelOverlay(frame)
 		return
@@ -254,7 +254,7 @@ function Triage:UpdateDispelOverlay(frame)
 		return
 	end
 
-	if frame.ERF_isTestFrame then
+	if frame.Triage_isTestFrame then
 		local previewType = GetPreviewDispelType(frame)
 		if previewType then
 			self:ShowDispelOverlay(frame, previewType)
@@ -278,7 +278,7 @@ end
 ---@param frame table @The compact unit frame
 ---@param dispelType string @The debuff type to display
 function Triage:ShowDispelOverlay(frame, dispelType)
-	local overlay = frame.ERF_dispelOverlay
+	local overlay = frame.Triage_dispelOverlay
 	if not overlay then return end
 
 	local debuffColors = LibDispel:GetDebuffTypeColor()
@@ -325,7 +325,7 @@ end
 --- Hide the dispel overlay and remove glow
 ---@param frame table @The compact unit frame
 function Triage:HideDispelOverlay(frame)
-	local overlay = frame.ERF_dispelOverlay
+	local overlay = frame.Triage_dispelOverlay
 	if not overlay then return end
 
 	overlay:Hide()

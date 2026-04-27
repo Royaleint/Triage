@@ -63,14 +63,14 @@ end
 ---@param frame table @The frame to create the target marker for
 function Triage:CreateTargetMarker(frame)
 	-- Create a texture for our target marker
-	frame.ERF_targetMarkerFrame = frame:CreateTexture(nil, "OVERLAY")
+	frame.Triage_targetMarkerFrame = frame:CreateTexture(nil, "OVERLAY")
 	self:SetTargetMarkerAppearance(frame)
 end
 
 --- Set the appearance for our target marker for a given frame
 ---@param frame table @The frame to set the appearance for
 function Triage:SetTargetMarkerAppearance(frame)
-	local targetMarker = frame.ERF_targetMarkerFrame
+	local targetMarker = frame.Triage_targetMarkerFrame
 
 	local PAD = 3
 	local pos = self.db.profile.markerPosition
@@ -159,7 +159,7 @@ function Triage:UpdateTargetMarker(frame, setAppearance)
 	end
 
 	-- If our target marker doesn't exist, create it
-	if not frame.ERF_targetMarkerFrame then
+	if not frame.Triage_targetMarkerFrame then
 		self:CreateTargetMarker(frame)
 	else
 		if setAppearance then
@@ -175,8 +175,8 @@ function Triage:UpdateTargetMarker(frame, setAppearance)
 
 	-- Get target marker on unit
 	local index
-	if frame.ERF_isTestFrame and frame.ERF_testData then
-		index = frame.ERF_testData.raidTargetIndex
+	if frame.Triage_isTestFrame and frame.Triage_testData then
+		index = frame.Triage_testData.raidTargetIndex
 	else
 		index = GetRaidTargetIndexByGUID(unit)
 	end
@@ -185,12 +185,12 @@ function Triage:UpdateTargetMarker(frame, setAppearance)
 	-- avoid addon-side numeric comparisons/math and let Blizzard's texture helper
 	-- consume the value directly, matching TargetFrameMixin:UpdateRaidTargetIcon.
 	if IsSecretValue(index) then
-		frame.ERF_targetMarkerFrame:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons", nil, nil, "TRILINEAR")
+		frame.Triage_targetMarkerFrame:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons", nil, nil, "TRILINEAR")
 		if SetRaidTargetIconTexture then
-			SetRaidTargetIconTexture(frame.ERF_targetMarkerFrame, index)
+			SetRaidTargetIconTexture(frame.Triage_targetMarkerFrame, index)
 		end
-		frame.ERF_targetMarkerFrame:SetAlpha(self.db.profile.markerAlpha)
-		frame.ERF_targetMarkerFrame:Show()
+		frame.Triage_targetMarkerFrame:SetAlpha(self.db.profile.markerAlpha)
+		frame.Triage_targetMarkerFrame:Show()
 		return
 	end
 
@@ -217,16 +217,16 @@ function Triage:UpdateTargetMarker(frame, setAppearance)
 		end
 
 		-- Set the marker texture using trilinear filtering (reduces pixelation)
-		frame.ERF_targetMarkerFrame:SetTexture(texture, nil, nil, "TRILINEAR")
+		frame.Triage_targetMarkerFrame:SetTexture(texture, nil, nil, "TRILINEAR")
 
 		-- Set the texture coordinates to the correct icon of the larger texture
-		frame.ERF_targetMarkerFrame:SetTexCoord(tCoordLeft, tCoordRight, tCoordTop, tCoordBottom)
+		frame.Triage_targetMarkerFrame:SetTexCoord(tCoordLeft, tCoordRight, tCoordTop, tCoordBottom)
 
 		-- Set the marker opacity
-		frame.ERF_targetMarkerFrame:SetAlpha(self.db.profile.markerAlpha)
+		frame.Triage_targetMarkerFrame:SetAlpha(self.db.profile.markerAlpha)
 
 		-- Show the marker
-		frame.ERF_targetMarkerFrame:Show()
+		frame.Triage_targetMarkerFrame:Show()
 	else
 		self:ClearTargetMarker(frame)
 	end
@@ -242,7 +242,7 @@ end
 --- Clear the target marker for a given frame
 ---@param frame table @The frame to clear the target marker for
 function Triage:ClearTargetMarker(frame)
-	local targetMarker = frame.ERF_targetMarkerFrame
+	local targetMarker = frame.Triage_targetMarkerFrame
 	targetMarker:Hide()
 	targetMarker:SetAlpha(1)
 end
