@@ -3,8 +3,8 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Slice 1 ships the schema surface only. Content entries are added only after
 -- live readability checks prove which fields are safe in each content type.
@@ -22,9 +22,9 @@ local EnhancedRaidFrames = _G.EnhancedRaidFrames
 --     },
 --     fallback = "active-only",
 -- }
-EnhancedRaidFrames.DispelWhitelist = {}
+Triage.DispelWhitelist = {}
 
-function EnhancedRaidFrames:GetDispelWhitelistEntry(spellID)
+function Triage:GetDispelWhitelistEntry(spellID)
 	if not spellID then
 		return nil
 	end

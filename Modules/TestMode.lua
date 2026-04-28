@@ -3,7 +3,7 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 -- luacheck: globals IsInGroup IsInRaid
 
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+local Triage = _G.Triage
 
 local DEFAULT_TEST_MODE_SIZE = 5
 local TEST_MODE_ROTATION_INTERVAL = 8
@@ -14,7 +14,7 @@ end
 
 local function ParseSizeToken(token)
 	local size = tonumber(token)
-	if EnhancedRaidFrames:IsValidTestModeSize(size) then
+	if Triage:IsValidTestModeSize(size) then
 		return size
 	end
 
@@ -23,7 +23,7 @@ end
 
 --- Return the persisted preview roster size.
 ---@return number
-function EnhancedRaidFrames:GetLastTestModeSize()
+function Triage:GetLastTestModeSize()
 	local size = self.db and self.db.profile and self.db.profile.testModeLastSize or DEFAULT_TEST_MODE_SIZE
 	if self:IsValidTestModeSize(size) then
 		return size
@@ -34,13 +34,13 @@ end
 
 --- Return true when preview mode is active.
 ---@return boolean
-function EnhancedRaidFrames:IsTestModeActive()
+function Triage:IsTestModeActive()
 	return self.testModeState and self.testModeState.active == true
 end
 
 --- Stop preview mode and release all synthetic frames.
 ---@param suppressRefresh boolean|nil
-function EnhancedRaidFrames:StopTestMode(suppressRefresh)
+function Triage:StopTestMode(suppressRefresh)
 	if not self.testModeState then
 		return
 	end
@@ -65,7 +65,7 @@ end
 
 --- Start preview mode for the requested synthetic roster size.
 ---@param size number|nil
-function EnhancedRaidFrames:StartTestMode(size)
+function Triage:StartTestMode(size)
 	size = size or DEFAULT_TEST_MODE_SIZE
 	if not self:IsValidTestModeSize(size) or InCombatLockdown() or IsInRealGroup() then
 		return
@@ -109,7 +109,7 @@ end
 --- Handle `/triage test` commands during the phased rollout.
 ---@param input string
 ---@return boolean
-function EnhancedRaidFrames:HandleTestModeChatCommand(input)
+function Triage:HandleTestModeChatCommand(input)
 	local command, rest = input:match("^(%S*)%s*(.-)%s*$")
 	if command ~= "test" then
 		return false

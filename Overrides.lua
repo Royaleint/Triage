@@ -3,8 +3,8 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 
 -------------------------------------------------------------------------
@@ -25,7 +25,7 @@ local function IsRetailPrivateAuraContainer(frame)
 end
 
 --- Set the visibility on the stock buff/debuff frames
-function EnhancedRaidFrames:UpdateAllStockAuraVisibility()
+function Triage:UpdateAllStockAuraVisibility()
 	if IsRetailClient(self) then
 		self:EnsureRetailStockAuraVisibilityEvents()
 	end
@@ -46,12 +46,12 @@ function EnhancedRaidFrames:UpdateAllStockAuraVisibility()
 end
 
 --- Register catch-up events for Retail's private-aura attribute path.
-function EnhancedRaidFrames:EnsureRetailStockAuraVisibilityEvents()
-	if self.ERF_stockAuraVisibilityEventsRegistered then
+function Triage:EnsureRetailStockAuraVisibilityEvents()
+	if self.Triage_stockAuraVisibilityEventsRegistered then
 		return
 	end
 
-	self.ERF_stockAuraVisibilityEventsRegistered = true
+	self.Triage_stockAuraVisibilityEventsRegistered = true
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
 		self:UpdateAllStockAuraVisibility()
 	end)
@@ -60,13 +60,13 @@ end
 --- Apply Retail 12.0.5+ stock aura visibility via Blizzard_PrivateAurasUI attributes.
 ---@param frame table @The frame to update
 ---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
-function EnhancedRaidFrames:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
+function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
 	if not IsRetailPrivateAuraContainer(frame) then
 		return false
 	end
 
 	if InCombatLockdown() then
-		self.ERF_pendingStockAuraVisibilityUpdate = true
+		self.Triage_pendingStockAuraVisibilityUpdate = true
 		return true
 	end
 
@@ -75,8 +75,8 @@ function EnhancedRaidFrames:ApplyRetailStockAuraVisibility(frame, notifyPrivateA
 	end
 
 	if notifyPrivateAuraUI then
-		frame.ERF_privateAuraSettingsVersion = not frame.ERF_privateAuraSettingsVersion
-		frame:SetAttribute("update-settings", frame.ERF_privateAuraSettingsVersion)
+		frame.Triage_privateAuraSettingsVersion = not frame.Triage_privateAuraSettingsVersion
+		frame:SetAttribute("update-settings", frame.Triage_privateAuraSettingsVersion)
 	end
 
 	return true
@@ -84,13 +84,13 @@ end
 
 --- Ensure Blizzard setting rewrites cannot restore stock auras over Triage indicators.
 ---@param frame table @The frame to hook
-function EnhancedRaidFrames:EnsureRetailStockAuraVisibilityHook(frame)
+function Triage:EnsureRetailStockAuraVisibilityHook(frame)
 	if not IsRetailPrivateAuraContainer(frame) then
 		return false
 	end
 
-	if not frame.ERF_stockAuraVisibilityHooked then
-		frame.ERF_stockAuraVisibilityHooked = true
+	if not frame.Triage_stockAuraVisibilityHooked then
+		frame.Triage_stockAuraVisibilityHooked = true
 		hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", function(hookedFrame)
 			self:ApplyRetailStockAuraVisibility(hookedFrame)
 		end)
@@ -102,8 +102,8 @@ end
 --- Set the visibility on the stock buff/debuff frames for a single frame
 --- This function hooks the "OnShow" event of the stock buff/debuff frames.
 ---@param frame table @The frame to set the visibility on
-function EnhancedRaidFrames:UpdateStockAuraVisibility(frame)
-	if frame.ERF_isTestFrame then
+function Triage:UpdateStockAuraVisibility(frame)
+	if frame.Triage_isTestFrame then
 		return
 	end
 
@@ -157,8 +157,8 @@ end
 --- This function is secure hooked to the CompactUnitFrame_UpdateAuras function.
 --- We can't hide the private aura frames directly, so we'll hide their anchor frames instead.
 ---@param frame table @The frame to set the visibility on
-function EnhancedRaidFrames:UpdatePrivateAuraVisOverrides(frame)
-	if frame.ERF_isTestFrame then
+function Triage:UpdatePrivateAuraVisOverrides(frame)
+	if frame.Triage_isTestFrame then
 		return
 	end
 
@@ -185,13 +185,13 @@ end
 --- Hooked to CompactUnitFrame_UpdateInRange and CompactUnitFrame_UpdateCenterStatusIcon.
 ---@param frame table @The frame to update the alpha on
 ---@param rangeChecker function|nil @Optional cached LibRangeCheck checker for this update pass
-function EnhancedRaidFrames:UpdateInRange(frame, rangeChecker)
+function Triage:UpdateInRange(frame, rangeChecker)
 	if not self.ShouldContinue(frame, true) then
 		return
 	end
 
-	if frame.ERF_isTestFrame then
-		local previewData = frame.ERF_testData
+	if frame.Triage_isTestFrame then
+		local previewData = frame.Triage_testData
 		if not previewData then
 			frame:SetAlpha(1)
 			return
@@ -237,7 +237,7 @@ function EnhancedRaidFrames:UpdateInRange(frame, rangeChecker)
 end
 
 --- Update the range alpha state for all active compact frames.
-function EnhancedRaidFrames:UpdateAllRanges()
+function Triage:UpdateAllRanges()
 	local rangeChecker
 	if self.db.profile.customRangeCheck then
 		rangeChecker = LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange)
@@ -249,7 +249,7 @@ function EnhancedRaidFrames:UpdateAllRanges()
 end
 
 --- Start or stop the custom range polling timer based on the user's settings.
-function EnhancedRaidFrames:RefreshRangeTicker()
+function Triage:RefreshRangeTicker()
 	if self.rangeTicker then
 		self:CancelTimer(self.rangeTicker)
 		self.rangeTicker = nil
@@ -266,7 +266,7 @@ end
 
 --- Set the background alpha amount based on a defined value by the user.
 ---@param frame table @The frame to set the background alpha on
-function EnhancedRaidFrames:UpdateBackgroundAlpha(frame)
+function Triage:UpdateBackgroundAlpha(frame)
 	if not self.ShouldContinue(frame) then
 		return
 	end
@@ -278,7 +278,7 @@ function EnhancedRaidFrames:UpdateBackgroundAlpha(frame)
 end
 
 --- Set the scale of the overall raid frame container.
-function EnhancedRaidFrames:UpdateScale()
+function Triage:UpdateScale()
 	if not InCombatLockdown() then
 		if CompactRaidFrameContainer then
 			CompactRaidFrameContainer:SetScale(self.db.profile.frameScale)

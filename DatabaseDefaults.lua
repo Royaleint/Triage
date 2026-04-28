@@ -3,17 +3,17 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Latest Database Version (<major>.<minor>)
-EnhancedRaidFrames.DATABASE_VERSION = 2.3
+Triage.DATABASE_VERSION = 2.3
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
 --- Create a table containing our default database values
-function EnhancedRaidFrames:CreateDefaults()
+function Triage:CreateDefaults()
 	local defaults = {}
 
 	defaults.profile = {

@@ -3,10 +3,11 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
+-- AceLocale namespace frozen; paired with NewLocale("EnhancedRaidFrames", ...) registrations.
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 
@@ -15,7 +16,7 @@ local LibDeflate = LibStub:GetLibrary("LibDeflate")
 
 --- Serialize and compress the profile for copy+paste.
 ---@return string @The serialized and compressed profile
-function EnhancedRaidFrames:SerializeAndCompressProfile()
+function Triage:SerializeAndCompressProfile()
 	local serialized = self:Serialize(self.db.profile) -- Serialize the database into a single string value
 	local compressed = LibDeflate:CompressZlib(serialized) -- Compress the serialized data
 	local encoded = LibDeflate:EncodeForPrint(compressed) -- Encode the compressed data for print for easy copy+paste
@@ -24,7 +25,7 @@ end
 
 --- Deserialize and decompress the profile from copy+paste.
 ---@param input string @The input string to deserialize and decompress
-function EnhancedRaidFrames:DeserializeAndDecompressProfile(input)
+function Triage:DeserializeAndDecompressProfile(input)
 	-- Stop here if the input is empty
 	if input == "" then
 		self:Print(L["No data to import."] .. " " .. L["Aborting."])

@@ -3,7 +3,7 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 -- luacheck: globals GetSpecialization GetSpecializationInfo
 
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+local Triage = _G.Triage
 
 local function IsBlank(value)
 	return type(value) ~= "string" or value:match("^%s*$") ~= nil
@@ -22,7 +22,7 @@ local function NotifyIndicatorOptionsChanged()
 	end
 end
 
-function EnhancedRaidFrames:GetCurrentSpecDefaultsID()
+function Triage:GetCurrentSpecDefaultsID()
 	if self.isWoWClassicEra or self.isWoWClassic then
 		return nil
 	end
@@ -36,7 +36,7 @@ function EnhancedRaidFrames:GetCurrentSpecDefaultsID()
 	return specID
 end
 
-function EnhancedRaidFrames:GetCurrentSpecAuraDefaults()
+function Triage:GetCurrentSpecAuraDefaults()
 	local specID = self:GetCurrentSpecDefaultsID()
 	if not specID or not self.SpecDefaults then
 		return nil, specID
@@ -45,12 +45,12 @@ function EnhancedRaidFrames:GetCurrentSpecAuraDefaults()
 	return self.SpecDefaults[specID], specID
 end
 
-function EnhancedRaidFrames:HasCurrentSpecAuraDefaults()
+function Triage:HasCurrentSpecAuraDefaults()
 	local defaults = self:GetCurrentSpecAuraDefaults()
 	return defaults ~= nil
 end
 
-function EnhancedRaidFrames:ApplyCurrentSpecAuraDefaults(overwrite)
+function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
 	if not self.db or not self.db.profile then
 		return 0, 0, nil
 	end

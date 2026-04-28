@@ -2,7 +2,7 @@
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+local Triage = _G.Triage
 
 local VALID_TEST_MODE_SIZES = {
 	[5] = true,
@@ -219,14 +219,14 @@ end
 --- Test whether a requested test mode size is valid.
 ---@param size number
 ---@return boolean
-function EnhancedRaidFrames:IsValidTestModeSize(size)
+function Triage:IsValidTestModeSize(size)
 	return VALID_TEST_MODE_SIZES[size] == true
 end
 
 --- Build a fresh preview session for the requested roster size.
 ---@param size number
 ---@return table|nil
-function EnhancedRaidFrames:CreateTestModeSession(size)
+function Triage:CreateTestModeSession(size)
 	if not self:IsValidTestModeSize(size) then
 		return nil
 	end
@@ -240,7 +240,7 @@ end
 
 --- Advance the preview session by degrading one or two active members.
 ---@param session table
-function EnhancedRaidFrames:AdvanceTestModeSession(session)
+function Triage:AdvanceTestModeSession(session)
 	if not session or not session.members then
 		return
 	end

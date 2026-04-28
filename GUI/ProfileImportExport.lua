@@ -3,17 +3,18 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
+-- AceLocale namespace frozen; paired with NewLocale("EnhancedRaidFrames", ...) registrations.
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
 --- Populate our "Profile Import/Export" options table for our Blizzard interface options
-function EnhancedRaidFrames:CreateProfileImportExportOptions()
+function Triage:CreateProfileImportExportOptions()
 	local import_export = {
 		name = L["Profile"] .. " " .. L["Import"] .. "/" .. L["Export"],
 		type = "group",
@@ -41,10 +42,10 @@ function EnhancedRaidFrames:CreateProfileImportExportOptions()
 				end,
 				validate = false,
 					set = function(_, input)
-						EnhancedRaidFrames:DeserializeAndDecompressProfile(input)
+						Triage:DeserializeAndDecompressProfile(input)
 					end,
 				get = function()
-					return EnhancedRaidFrames:SerializeAndCompressProfile()
+					return Triage:SerializeAndCompressProfile()
 				end,
 				width = "full",
 			},

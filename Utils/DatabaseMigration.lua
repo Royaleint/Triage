@@ -3,17 +3,18 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
+-- AceLocale namespace frozen; paired with NewLocale("EnhancedRaidFrames", ...) registrations.
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
 --- Handle the migration of the database from one version to another
-function EnhancedRaidFrames:MigrateDatabase()
+function Triage:MigrateDatabase()
 	if not self.db.profile.DB_VERSION or self.db.profile.DB_VERSION < self.DATABASE_VERSION then
 		-- Migrate the database to the current specification
 		self:Print(L["The database is being migrated to version:"] .. " " .. self.DATABASE_VERSION)

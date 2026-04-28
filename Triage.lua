@@ -2,16 +2,22 @@
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
---- EnhancedRaidFrames is the main addon object for the Enhanced Raid Frames add-on.
----@class EnhancedRaidFrames : AceAddon-3.0 @The main addon object for the Enhanced Raid Frames add-on
+--- Triage is the main addon object.
+---@class Triage : AceAddon-3.0 @The main addon object for Triage
+-- AceAddon registration name is frozen. External addons, including Triage_Dev,
+-- hook _G.EnhancedRaidFrames; _G.Triage below is the canonical internal handle.
 _G.EnhancedRaidFrames = LibStub("AceAddon-3.0"):NewAddon("EnhancedRaidFrames", "AceTimer-3.0", "AceHook-3.0",
 		"AceEvent-3.0", "AceBucket-3.0", "AceConsole-3.0", "AceSerializer-3.0")
 
+-- Backwards-compatibility alias and canonical internal handle as of TRI-036.
+_G.Triage = _G.EnhancedRaidFrames
+
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
+-- AceLocale namespace frozen; paired with NewLocale("EnhancedRaidFrames", ...) registrations.
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 local AceDBOptions = LibStub("AceDBOptions-3.0")
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
@@ -23,7 +29,7 @@ local AceDB = LibStub("AceDB-3.0")
 
 --- Called directly after the addon is fully loaded.
 --- We do initialization tasks here, such as loading our saved variables or setting up slash commands.
-function EnhancedRaidFrames:OnInitialize()
+function Triage:OnInitialize()
 	-- Set up our database
 	self:InitializeDatabase()
 
@@ -57,7 +63,7 @@ end
 -------------------------------------------------------------------------
 
 --- Initialize the minimap button using LibDataBroker and LibDBIcon
-function EnhancedRaidFrames:InitializeMinimapButton()
+function Triage:InitializeMinimapButton()
 	local LDB = LibStub("LibDataBroker-1.1", true)
 	local LDBIcon = LibStub("LibDBIcon-1.0", true)
 
@@ -88,8 +94,9 @@ end
 --- Called during the PLAYER_LOGIN event when most of the data provided by the game is already present.
 --- We perform more startup tasks here, such as registering events, hooking functions, creating frames, or getting
 --- information from the game that wasn't yet available during :OnInitialize()
-function EnhancedRaidFrames:OnEnable()
+function Triage:OnEnable()
 	-- Register slash commands first so they're available even if startup hits an error
+	-- /erf slash alias frozen; preserves command muscle memory for old ERF users.
 	self:RegisterChatCommand("erf", "ChatCommand")
 	self:RegisterChatCommand("triage", "ChatCommand")
 	self:RegisterChatCommand("tri", "ChatCommand")
@@ -119,8 +126,8 @@ function EnhancedRaidFrames:OnEnable()
 	-- Apply indicator mouse propagation settings that were skipped during combat lockdown.
 	self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
 		self:FlushDeferredMouseBehavior()
-		if self.ERF_pendingStockAuraVisibilityUpdate then
-			self.ERF_pendingStockAuraVisibilityUpdate = nil
+		if self.Triage_pendingStockAuraVisibilityUpdate then
+			self.Triage_pendingStockAuraVisibilityUpdate = nil
 			self:UpdateAllStockAuraVisibility()
 		end
 	end)
@@ -158,10 +165,10 @@ function EnhancedRaidFrames:OnEnable()
 		end
 		-- Clear stale indicators and immediately scan the new unit's auras
 		-- so there is no visible gap between reassignment and repopulation
-		if frame.ERF_indicatorFrames then
+		if frame.Triage_indicatorFrames then
 			for i = 1, 9 do
-				if frame.ERF_indicatorFrames[i] then
-					self:ClearIndicator(frame.ERF_indicatorFrames[i])
+				if frame.Triage_indicatorFrames[i] then
+					self:ClearIndicator(frame.Triage_indicatorFrames[i])
 				end
 			end
 		end
@@ -171,7 +178,7 @@ function EnhancedRaidFrames:OnEnable()
 			self:UpdateUnitAuras(frame, {}, true)
 		end
 		-- Refresh target marker
-		if frame.ERF_targetMarkerFrame then
+		if frame.Triage_targetMarkerFrame then
 			self:UpdateTargetMarker(frame)
 		end
 	end)
@@ -194,7 +201,7 @@ function EnhancedRaidFrames:OnEnable()
 end
 
 --- Open the standalone Triage config window.
-function EnhancedRaidFrames:OpenConfigWindow()
+function Triage:OpenConfigWindow()
 	AceConfigDialog:Open("Triage")
 
 	local openFrames = AceConfigDialog.OpenFrames
@@ -212,7 +219,7 @@ end
 
 --- Open the Triage settings panel or handle slash subcommands.
 ---@param input string|nil
-function EnhancedRaidFrames:ChatCommand(input)
+function Triage:ChatCommand(input)
 	input = input or ""
 	if self:HandleTestModeChatCommand(input) then
 		return
@@ -228,7 +235,7 @@ end
 
 --- Called when our addon is manually being disabled during a running session.
 --- We primarily use this to unhook scripts, unregister events, or hide frames that we created.
-function EnhancedRaidFrames:OnDisable()
+function Triage:OnDisable()
 	if self.rangeTicker then
 		self:CancelTimer(self.rangeTicker)
 		self.rangeTicker = nil
@@ -241,15 +248,16 @@ end
 -------------------------------------------------------------------------
 
 --- Create a table containing our default database values
-function EnhancedRaidFrames:InitializeDatabase()
+function Triage:InitializeDatabase()
 	-- Set up database defaults
 	local defaults = self:CreateDefaults()
 	-- Create database object
-	self.db = AceDB:New("EnhancedRaidFramesDB", defaults) --EnhancedRaidFramesDB is our saved variable table
+	self.db = AceDB:New("EnhancedRaidFramesDB", defaults) -- SavedVariables key frozen; matches Triage.toc.
 	-- Enhance database and profile options using LibDualSpec
 	if not self.isWoWClassicEra then
 		-- Not available in Classic Era
 		-- Enhance the database object with per spec profile features
+		-- LibDualSpec namespace frozen; changing it would orphan dual-spec profile bindings.
 		LibStub("LibDualSpec-1.0"):EnhanceDatabase(self.db, "EnhancedRaidFrames")
 		-- Enhance the profile options table with per spec profile features
 		LibStub("LibDualSpec-1.0"):EnhanceOptions(AceDBOptions:GetOptionsTable(self.db), self.db)
@@ -257,7 +265,7 @@ function EnhancedRaidFrames:InitializeDatabase()
 end
 
 --- Set up our configuration panels and add them to the Blizzard interface options
-function EnhancedRaidFrames:InitializeConfigPanels()
+function Triage:InitializeConfigPanels()
 	-- Build our config panels
 	AceConfigRegistry:RegisterOptionsTable("Triage", self:CreateGeneralOptions())
 	AceConfigRegistry:RegisterOptionsTable("Triage Indicator Options", self:CreateIndicatorOptions())
@@ -275,7 +283,7 @@ function EnhancedRaidFrames:InitializeConfigPanels()
 end
 
 --- Refresh everything that is affected by changes to the configuration
-function EnhancedRaidFrames:RefreshConfig()
+function Triage:RefreshConfig()
 	self:GenerateAuraStrings()
 	self:UpdateAllAuras() -- Update all auras to reflect new settings
 	self:RefreshRangeTicker()

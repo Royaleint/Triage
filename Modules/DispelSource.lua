@@ -3,12 +3,12 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 local PRIORITY_ORDER = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
 
-EnhancedRaidFrames.UNKNOWN_DISPEL_TYPE = "unknown-active"
+Triage.UNKNOWN_DISPEL_TYPE = "unknown-active"
 
 local function IsSecretValue(value)
 	return issecretvalue and issecretvalue(value)
@@ -53,7 +53,7 @@ local function CallMethod(object, methodName)
 	return result, true
 end
 
-function EnhancedRaidFrames:GetDispelCapabilities()
+function Triage:GetDispelCapabilities()
 	local isRetail = not self.isWoWClassicEra and not self.isWoWClassic
 	return {
 		supportsBlizzardDispelOverlayState = isRetail,
@@ -122,13 +122,13 @@ local function GetActiveDispelTypeRetail(frame)
 	end
 
 	if foundUnknownActive then
-		return EnhancedRaidFrames.UNKNOWN_DISPEL_TYPE
+		return Triage.UNKNOWN_DISPEL_TYPE
 	end
 
 	return nil
 end
 
-function EnhancedRaidFrames:GetActiveDispelType(frame)
+function Triage:GetActiveDispelType(frame)
 	local caps = self:GetDispelCapabilities()
 	if caps.supportsLegacyFrameDispels then
 		return GetActiveDispelTypeLegacy(frame)

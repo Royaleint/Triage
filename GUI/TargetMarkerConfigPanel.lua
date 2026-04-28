@@ -3,10 +3,11 @@
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
 -- Create a local handle to our addon table
----@type EnhancedRaidFrames
-local EnhancedRaidFrames = _G.EnhancedRaidFrames
+---@type Triage
+local Triage = _G.Triage
 
 -- Import libraries
+-- AceLocale namespace frozen; paired with NewLocale("EnhancedRaidFrames", ...) registrations.
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 
 -- Constants
@@ -15,7 +16,7 @@ local THIRD_WIDTH = 1.25
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 --- Populate our "Target Marker" options table for our Blizzard interface options
-function EnhancedRaidFrames:CreateIconOptions()
+function Triage:CreateIconOptions()
 	local markerOptions = {
 		type = "group",
 		childGroups = "tree",

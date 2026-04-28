@@ -7,6 +7,7 @@ exclude_files = {
 globals = {
     -- Addon global (intentionally written)
     "EnhancedRaidFrames",
+    "Triage",
 
     -- Slash commands
     "SlashCmdList",
@@ -138,6 +139,10 @@ read_globals = {
     _G = {
         fields = {
             EnhancedRaidFrames = {
+                read_only = false,
+                other_fields = true,
+            },
+            Triage = {
                 read_only = false,
                 other_fields = true,
             },
