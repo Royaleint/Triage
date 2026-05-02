@@ -51,6 +51,21 @@ function Triage:CreateDefaults()
 		keepIndicatorsVisible = false,
 
 		-------------------------------
+		-------- Triage Focus ---------
+		-------------------------------
+		triageFocus = {
+			enabled = true,
+			forceEnabled = false,
+			rangeMode = "auto",
+			fixedRange = 40,
+			minDeficitPercent = 15,
+			updateInterval = 0.3,
+			color = { 0.1, 0.85, 1, 0.9 },
+			width = 2,
+			glowStyle = "both",     -- "border", "pulse", "both"
+		},
+
+		-------------------------------
 		---- Dispel Overlay (Retail) ---
 		-------------------------------
 		dispelOverlay = {

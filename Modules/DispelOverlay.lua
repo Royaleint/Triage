@@ -280,6 +280,9 @@ end
 function Triage:ShowDispelOverlay(frame, dispelType)
 	local overlay = frame.Triage_dispelOverlay
 	if not overlay then return end
+	if self.HideTriageFocusOverlay then
+		self:HideTriageFocusOverlay(frame)
+	end
 
 	local debuffColors = LibDispel:GetDebuffTypeColor()
 	local color = debuffColors[dispelType] or debuffColors["None"]

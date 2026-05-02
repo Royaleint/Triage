@@ -9,13 +9,17 @@ local Triage = _G.Triage
 local GROUP_UNIT_PREFIXES = {
 	player = true,
 	party = true,
+	partypet = true,
 	raid = true,
+	raidpet = true,
 }
 
 local REGISTRY_UNIT_PREFIXES = {
 	player = true,
 	party = true,
+	partypet = true,
 	raid = true,
+	raidpet = true,
 	boss = true,
 }
 
@@ -113,7 +117,13 @@ function Triage:IsSupportedUnitToken(unit, allowedUnitPrefixes)
 	if allowedUnitPrefixes.party and unit:match("^party%d+$") then
 		return true
 	end
+	if allowedUnitPrefixes.partypet and unit:match("^partypet%d+$") then
+		return true
+	end
 	if allowedUnitPrefixes.raid and unit:match("^raid%d+$") then
+		return true
+	end
+	if allowedUnitPrefixes.raidpet and unit:match("^raidpet%d+$") then
 		return true
 	end
 	if allowedUnitPrefixes.boss and unit:match("^boss%d+$") then
@@ -149,6 +159,10 @@ function Triage:ClearManagedFrameState(frame)
 
 	if frame.Triage_dispelOverlay then
 		self:HideDispelOverlay(frame)
+	end
+
+	if frame.Triage_focusOverlay and self.HideTriageFocusOverlay then
+		self:HideTriageFocusOverlay(frame)
 	end
 
 	if frame.Triage_tooltipTicker then

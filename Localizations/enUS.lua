@@ -133,6 +133,27 @@ L["keepIndicatorsVisible_desc"] = "Keep aura indicators at full opacity when the
 
 L["customRangeUnavailable"] = "No range checker available for %d yards with your current spells. Frames will stay visible until you learn a spell that reaches that range or pick a lower distance."
 
+L["Triage Focus"] = true
+L["Enable Triage Focus"] = true
+L["triageFocusEnabled_desc"] = "Highlight the in-range party or raid member with the largest healing need."
+L["Force Enable"] = true
+L["triageFocusForceEnabled_desc"] = "Enable Triage Focus even when your current specialization is not detected as a healer."
+L["Range Mode"] = true
+L["triageFocusRangeMode_desc"] = "Auto uses a conservative healing range for your class. Fixed uses the selected yard value."
+L["Auto"] = true
+L["Fixed"] = true
+L["Fixed Range"] = true
+L["triageFocusFixedRange_desc"] = "The fixed range used when Range Mode is set to Fixed."
+L["Minimum Deficit"] = true
+L["triageFocusThreshold_desc"] = "The minimum health deficit after incoming heals before a unit can be highlighted."
+L["Update Interval"] = true
+L["triageFocusInterval_desc"] = "How often Triage Focus rescans party and raid frames."
+L["triageFocusGlowStyle_desc"] = "Border Only: colored edge border. Pulse Only: pulsing glow animation. Both: colored border and pulsing glow."
+L["Border Width"] = true
+L["triageFocusWidth_desc"] = "The width of the Triage Focus border in pixels."
+L["triageFocusColor_desc"] = "The border and glow color for the focused heal target."
+L["triageFocusRangeUnavailable"] = "No Triage Focus range checker is available for %d yards with your current spells. Pick a lower fixed range or use Auto."
+
 L["Test Mode"] = true
 L["testModeDescription_desc"] = "Spawn synthetic preview frames without joining a real group."
 L["Preview Group Size"] = true

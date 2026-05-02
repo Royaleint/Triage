@@ -29,6 +29,18 @@ local function WarnIfNoRangeChecker(self)
 	end
 end
 
+local function WarnIfNoTriageFocusRangeChecker(self)
+	local focus = self.db.profile.triageFocus
+	if not focus or not focus.enabled then
+		return
+	end
+
+	local range = self:GetTriageFocusRange()
+	if not LibRangeCheck:GetFriendMinChecker(range) then
+		self:Print(L["triageFocusRangeUnavailable"]:format(range))
+	end
+end
+
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
@@ -241,10 +253,10 @@ function Triage:CreateGeneralOptions()
 				width = THIRD_WIDTH,
 				order = 43,
 			},
-			keepIndicatorsVisible = {
-				type = "toggle",
-				name = L["Keep Indicators Visible Out of Range"],
-				desc = L["keepIndicatorsVisible_desc"],
+				keepIndicatorsVisible = {
+					type = "toggle",
+					name = L["Keep Indicators Visible Out of Range"],
+					desc = L["keepIndicatorsVisible_desc"],
 				get = function()
 					return self.db.profile.keepIndicatorsVisible
 				end,
@@ -252,19 +264,194 @@ function Triage:CreateGeneralOptions()
 					self.db.profile.keepIndicatorsVisible = value
 					self:RefreshConfig()
 				end,
-				width = THIRD_WIDTH,
-				order = 44,
-			},
-			testModeHeader = {
-				type = "header",
-				name = L["Test Mode"],
-				order = 60,
-			},
+					width = THIRD_WIDTH,
+					order = 44,
+				},
+				triageFocusHeader = {
+					type = "header",
+					name = L["Triage Focus"],
+					order = 50,
+				},
+				triageFocusEnabled = {
+					type = "toggle",
+					name = L["Enable Triage Focus"],
+					desc = L["triageFocusEnabled_desc"],
+					get = function()
+						return self.db.profile.triageFocus.enabled
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.enabled = value
+						self:RefreshConfig()
+						WarnIfNoTriageFocusRangeChecker(self)
+					end,
+					width = THIRD_WIDTH,
+					order = 51,
+				},
+				triageFocusForceEnabled = {
+					type = "toggle",
+					name = L["Force Enable"],
+					desc = L["triageFocusForceEnabled_desc"],
+					get = function()
+						return self.db.profile.triageFocus.forceEnabled
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.forceEnabled = value
+						self:RefreshConfig()
+						WarnIfNoTriageFocusRangeChecker(self)
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled
+					end,
+					width = THIRD_WIDTH,
+					order = 52,
+				},
+				triageFocusRangeMode = {
+					type = "select",
+					name = L["Range Mode"],
+					desc = L["triageFocusRangeMode_desc"],
+					values = { auto = L["Auto"], fixed = L["Fixed"] },
+					get = function()
+						return self.db.profile.triageFocus.rangeMode
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.rangeMode = value
+						self:RefreshConfig()
+						WarnIfNoTriageFocusRangeChecker(self)
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled
+					end,
+					width = THIRD_WIDTH,
+					order = 53,
+				},
+				triageFocusFixedRange = {
+					type = "select",
+					name = L["Fixed Range"],
+					desc = L["triageFocusFixedRange_desc"],
+					values = { [30] = L["30 yards"], [35] = L["35 yards"], [40] = L["40 yards"],
+							   [45] = L["45 yards"], [50] = L["50 yards"], [55] = L["55 yards"],
+							   [60] = L["60 yards"] },
+					get = function()
+						return self.db.profile.triageFocus.fixedRange
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.fixedRange = value
+						self:RefreshConfig()
+						WarnIfNoTriageFocusRangeChecker(self)
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled or self.db.profile.triageFocus.rangeMode ~= "fixed"
+					end,
+					width = THIRD_WIDTH,
+					order = 54,
+				},
+				triageFocusThreshold = {
+					type = "range",
+					name = L["Minimum Deficit"],
+					desc = L["triageFocusThreshold_desc"],
+					isPercent = true,
+					min = 0.01,
+					max = 1,
+					step = 0.01,
+					get = function()
+						return self.db.profile.triageFocus.minDeficitPercent / 100
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.minDeficitPercent = value * 100
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled
+					end,
+					width = THIRD_WIDTH,
+					order = 55,
+				},
+				triageFocusInterval = {
+					type = "range",
+					name = L["Update Interval"],
+					desc = L["triageFocusInterval_desc"],
+					min = 0.1,
+					max = 1,
+					step = 0.05,
+					get = function()
+						return self.db.profile.triageFocus.updateInterval
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.updateInterval = value
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled
+					end,
+					width = THIRD_WIDTH,
+					order = 56,
+				},
+				triageFocusGlowStyle = {
+					type = "select",
+					name = L["Glow Style"],
+					desc = L["triageFocusGlowStyle_desc"],
+					values = { ["border"] = L["Border Only"], ["pulse"] = L["Pulse Only"], ["both"] = L["Both"] },
+					get = function()
+						return self.db.profile.triageFocus.glowStyle
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.glowStyle = value
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled
+					end,
+					width = THIRD_WIDTH,
+					order = 57,
+				},
+				triageFocusWidth = {
+					type = "range",
+					name = L["Border Width"],
+					desc = L["triageFocusWidth_desc"],
+					min = 1,
+					max = 8,
+					step = 1,
+					get = function()
+						return self.db.profile.triageFocus.width
+					end,
+					set = function(_, value)
+						self.db.profile.triageFocus.width = value
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled
+					end,
+					width = THIRD_WIDTH,
+					order = 58,
+				},
+				triageFocusColor = {
+					type = "color",
+					name = L["Color"],
+					desc = L["triageFocusColor_desc"],
+					hasAlpha = true,
+					get = function()
+						return unpack(self.db.profile.triageFocus.color)
+					end,
+					set = function(_, r, g, b, a)
+						self.db.profile.triageFocus.color = { r, g, b, a }
+						self:RefreshConfig()
+					end,
+					disabled = function()
+						return not self.db.profile.triageFocus.enabled
+					end,
+					width = THIRD_WIDTH,
+					order = 59,
+				},
+				testModeHeader = {
+					type = "header",
+					name = L["Test Mode"],
+					order = 80,
+				},
 			testModeDescription = {
 				type = "description",
 				name = L["testModeDescription_desc"],
 				fontSize = "medium",
-				order = 61,
+					order = 81,
 			},
 			testModeSize = {
 				type = "select",
@@ -278,7 +465,7 @@ function Triage:CreateGeneralOptions()
 					self.db.profile.testModeLastSize = value
 				end,
 				width = THIRD_WIDTH,
-				order = 62,
+					order = 82,
 			},
 			testModeToggle = {
 				type = "execute",
@@ -300,13 +487,13 @@ function Triage:CreateGeneralOptions()
 					return InCombatLockdown() or (not self:IsTestModeActive() and (IsInGroup() or IsInRaid()))
 				end,
 				width = THIRD_WIDTH,
-				order = 63,
+					order = 83,
 			},
 			testModeLabel = {
 				type = "description",
 				name = L["testModeLabel_desc"],
 				fontSize = "medium",
-				order = 64,
+					order = 84,
 			},
 		}
 	}
@@ -324,11 +511,11 @@ function Triage:CreateGeneralOptions()
 		customRangeValues[60] = L["60 yards"]
 
 		-- Dispel Overlay settings (Retail only)
-		generalOptions.args.dispelOverlayHeader = {
-			type = "header",
-			name = L["Dispel Overlay"],
-			order = 50,
-		}
+			generalOptions.args.dispelOverlayHeader = {
+				type = "header",
+				name = L["Dispel Overlay"],
+				order = 70,
+			}
 		generalOptions.args.dispelOverlayEnabled = {
 			type = "toggle",
 			name = L["Enable Dispel Overlay"],
@@ -341,7 +528,7 @@ function Triage:CreateGeneralOptions()
 				self:RefreshConfig()
 			end,
 			width = THIRD_WIDTH,
-			order = 51,
+				order = 71,
 		}
 		generalOptions.args.dispelOverlayColorByType = {
 			type = "toggle",
@@ -358,7 +545,7 @@ function Triage:CreateGeneralOptions()
 				return not self.db.profile.dispelOverlay.enabled
 			end,
 			width = THIRD_WIDTH,
-			order = 53,
+				order = 73,
 		}
 		generalOptions.args.dispelOverlayGlowStyle = {
 			type = "select",
@@ -376,7 +563,7 @@ function Triage:CreateGeneralOptions()
 				return not self.db.profile.dispelOverlay.enabled
 			end,
 			width = THIRD_WIDTH,
-			order = 54,
+				order = 74,
 		}
 		generalOptions.args.dispelOverlayAlpha = {
 			type = "range",
@@ -397,7 +584,7 @@ function Triage:CreateGeneralOptions()
 				return not self.db.profile.dispelOverlay.enabled
 			end,
 			width = THIRD_WIDTH,
-			order = 55,
+				order = 75,
 		}
 		generalOptions.args.dispelOverlayShowInParty = {
 			type = "toggle",
@@ -414,7 +601,7 @@ function Triage:CreateGeneralOptions()
 				return not self.db.profile.dispelOverlay.enabled
 			end,
 			width = THIRD_WIDTH,
-			order = 56,
+				order = 76,
 		}
 		generalOptions.args.dispelOverlayShowInRaid = {
 			type = "toggle",
@@ -431,7 +618,7 @@ function Triage:CreateGeneralOptions()
 				return not self.db.profile.dispelOverlay.enabled
 			end,
 			width = THIRD_WIDTH,
-			order = 57,
+				order = 77,
 		}
 	end
 

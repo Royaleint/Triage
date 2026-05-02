@@ -254,6 +254,10 @@ function Triage:RefreshRangeTicker()
 		self:CancelTimer(self.rangeTicker)
 		self.rangeTicker = nil
 	end
+	if self.triageFocusTicker then
+		self:CancelTimer(self.triageFocusTicker)
+		self.triageFocusTicker = nil
+	end
 
 	if self.db.profile.customRangeCheck then
 		-- Blizzard only updates its in-range state when the native 40yd result changes.
@@ -261,6 +265,12 @@ function Triage:RefreshRangeTicker()
 		self.rangeTicker = self:ScheduleRepeatingTimer(function()
 			self:UpdateAllRanges()
 		end, 0.2)
+	end
+
+	if self:IsTriageFocusActive() then
+		self.triageFocusTicker = self:ScheduleRepeatingTimer(function()
+			self:UpdateTriageFocus()
+		end, self:GetTriageFocusUpdateInterval())
 	end
 end
 

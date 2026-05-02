@@ -114,6 +114,8 @@ function Triage:OnEnable()
 	self:RegisterBucketEvent("GROUP_ROSTER_UPDATE", 1, function() -- 1 second throttle to avoid lagging the game
 		self:RefreshManagedFrameRegistry()
 		self:UpdateAllAuras()
+		self:RefreshRangeTicker()
+		self:UpdateTriageFocus()
 	end)
 
 	-- Force a full update of all stock aura visibilities, target markers, and ranges when the group roster changes
@@ -121,6 +123,20 @@ function Triage:OnEnable()
 		self:RefreshManagedFrameRegistry()
 		self:UpdateAllStockAuraVisibility()
 		self:UpdateAllTargetMarkers()
+		self:RefreshRangeTicker()
+		self:UpdateTriageFocus()
+	end)
+
+	self:RegisterEvent("UNIT_HEALTH", function(_, unit)
+		self:UpdateTriageFocusForUnit(unit)
+	end)
+
+	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
+		self:RefreshRangeTicker()
+		self:UpdateTriageFocus()
+		if not self.isWoWClassicEra and not self.isWoWClassic then
+			self:UpdateAllStockAuraVisibility()
+		end
 	end)
 
 	-- Apply indicator mouse propagation settings that were skipped during combat lockdown.
@@ -240,6 +256,10 @@ function Triage:OnDisable()
 		self:CancelTimer(self.rangeTicker)
 		self.rangeTicker = nil
 	end
+	if self.triageFocusTicker then
+		self:CancelTimer(self.triageFocusTicker)
+		self.triageFocusTicker = nil
+	end
 
 	self:StopTestMode(true)
 end
@@ -296,4 +316,5 @@ function Triage:RefreshConfig()
 		self:UpdateStockAuraVisibility(frame)
 		self:UpdateDispelOverlay(frame)
 	end)
+	self:UpdateTriageFocus()
 end
