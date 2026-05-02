@@ -286,8 +286,8 @@ function Triage:ProcessIndicator(indicatorFrame, unit)
 
 	indicatorFrame.thisAura = nil
 
-	-- Stop here if we're only showing the aura on the player and the player is not the unit
-	if self.db.profile["indicator-" .. i].meOnly and unit ~= "player" then
+	-- Unit tokens can be aliases like raidN/partyN for the player.
+	if self.db.profile["indicator-" .. i].meOnly and not UnitIsUnit(unit, "player") then
 		return
 	end
 

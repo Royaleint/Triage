@@ -117,6 +117,7 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	if not unit then
 		return
 	end
+	payload = payload or { isFullUpdate = true }
 	-- Create a listener frame for the unit if we don't happen to have one yet, or we're forcing a re-creation
 	if not parentFrame.Triage_auraListenerFrame or forceRefresh then
 		self:CreateAuraListener(parentFrame)
