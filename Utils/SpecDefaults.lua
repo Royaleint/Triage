@@ -65,12 +65,17 @@ function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
 	for i = 1, 9 do
 		local auraList = defaults[i]
 		local indicatorDB = self.db.profile["indicator-" .. i]
-		if auraList and indicatorDB then
-			if overwrite or IsBlank(indicatorDB.auras) then
-				indicatorDB.auras = auraList
+		if indicatorDB then
+			if overwrite then
+				indicatorDB.auras = auraList or ""
 				applied = applied + 1
-			else
-				skipped = skipped + 1
+			elseif auraList then
+				if IsBlank(indicatorDB.auras) then
+					indicatorDB.auras = auraList
+					applied = applied + 1
+				else
+					skipped = skipped + 1
+				end
 			end
 		end
 	end

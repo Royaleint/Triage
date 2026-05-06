@@ -28,6 +28,7 @@ L["resetSpecDefaults_desc"] = "Overwrite all indicator aura lists with the curat
 L["No spec aura defaults available."] = true
 L["Spec aura defaults applied."] = "%d spec aura default slots applied. %d customized slots skipped."
 L["Spec aura defaults reset."] = "%d spec aura default slots reset. %d customized slots skipped."
+L["resetSpecDefaults_confirm"] = "Are you sure you want to reset ALL indicator aura lists for this character?"
 L["Copy Indicator Settings"] = true
 L["Copy From"] = true
 L["copyIndicatorSource_desc"] = "The indicator position to copy settings from."
