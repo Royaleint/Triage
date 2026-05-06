@@ -13,6 +13,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 -- Constants
 local THIRD_WIDTH = 1.14
 local RESET_ALL_INDICATORS_POPUP = "TRIAGE_RESET_ALL_INDICATOR_SETTINGS"
+local RESET_SPEC_DEFAULTS_POPUP = "TRIAGE_RESET_SPEC_AURA_DEFAULTS"
 
 local copySource = "1"
 local copyTarget = "all"
@@ -161,6 +162,15 @@ local function ExecuteIndicatorSettingsReset(addon)
 	addon:Print(L["Indicator settings reset."]:format(resetCount))
 end
 
+local function ExecuteCurrentSpecDefaultsReset(addon)
+	local applied, skipped, specID = addon:ApplyCurrentSpecAuraDefaults(true)
+	if applied == 0 and not specID then
+		addon:Print(L["No spec aura defaults available."])
+	else
+		addon:Print(L["Spec aura defaults reset."]:format(applied, skipped))
+	end
+end
+
 local popupDialogs = rawget(_G, "StaticPopupDialogs")
 if popupDialogs then
 	popupDialogs[RESET_ALL_INDICATORS_POPUP] = {
@@ -170,6 +180,20 @@ if popupDialogs then
 		OnAccept = function(_, data)
 			if data and data.addon then
 				ExecuteIndicatorSettingsReset(data.addon)
+			end
+		end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+		preferredIndex = 3,
+	}
+	popupDialogs[RESET_SPEC_DEFAULTS_POPUP] = {
+		text = L["resetSpecDefaults_confirm"],
+		button1 = L["Yes"],
+		button2 = L["No"],
+		OnAccept = function(_, data)
+			if data and data.addon then
+				ExecuteCurrentSpecDefaultsReset(data.addon)
 			end
 		end,
 		timeout = 0,
@@ -192,6 +216,16 @@ local function ConfirmOrExecuteIndicatorSettingsReset(addon)
 	end
 
 	ExecuteIndicatorSettingsReset(addon)
+end
+
+local function ConfirmOrExecuteCurrentSpecDefaultsReset(addon)
+	local showPopup = rawget(_G, "StaticPopup_Show")
+	if showPopup then
+		showPopup(RESET_SPEC_DEFAULTS_POPUP, nil, nil, { addon = addon })
+		return
+	end
+
+	ExecuteCurrentSpecDefaultsReset(addon)
 end
 
 -------------------------------------------------------------------------
@@ -244,12 +278,7 @@ function Triage:CreateIndicatorOptions()
 				name = L["Reset Current Spec Defaults"],
 				desc = L["resetSpecDefaults_desc"],
 				func = function()
-					local applied, skipped, specID = self:ApplyCurrentSpecAuraDefaults(true)
-					if applied == 0 and not specID then
-						self:Print(L["No spec aura defaults available."])
-					else
-						self:Print(L["Spec aura defaults reset."]:format(applied, skipped))
-					end
+					ConfirmOrExecuteCurrentSpecDefaultsReset(self)
 				end,
 				disabled = function()
 					return not self:HasCurrentSpecAuraDefaults()
