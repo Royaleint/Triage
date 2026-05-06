@@ -13,6 +13,8 @@ end
 -------------------------------------------------------------------------
 
 L["General"] = true
+L["Yes"] = true
+L["No"] = true
 
 L["General Options"] = true
 L["Indicator Options"] = true
@@ -43,6 +45,7 @@ L["All Positions"] = true
 L["Reset Settings"] = true
 L["resetIndicatorSettings_desc"] = "Reset the selected setting categories to defaults without changing aura watch lists."
 L["Indicator settings reset."] = "Indicator settings reset for %d position(s)."
+L["resetAllIndicatorSettings_confirm"] = "Are you sure you want to reset ALL indicators for this character?"
 
 L["Vertical Offset"] = true
 L["verticalOffset_desc"] = "The vertical offset percentage relative to the starting position and the width of the frame"
