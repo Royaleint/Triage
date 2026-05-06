@@ -15,6 +15,19 @@ local function EnsureDefaultsState(profile)
 	return profile.defaultsState
 end
 
+local function CopyValue(value)
+	if type(value) ~= "table" then
+		return value
+	end
+
+	local copied = {}
+	for k, v in pairs(value) do
+		copied[k] = CopyValue(v)
+	end
+
+	return copied
+end
+
 local function NotifyIndicatorOptionsChanged()
 	local AceConfigRegistry = LibStub("AceConfigRegistry-3.0", true)
 	if AceConfigRegistry then
@@ -62,11 +75,16 @@ function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
 
 	local applied = 0
 	local skipped = 0
+	local baseDefaults = overwrite and self:CreateDefaults()
 	for i = 1, 9 do
 		local auraList = defaults[i]
 		local indicatorDB = self.db.profile["indicator-" .. i]
 		if indicatorDB then
 			if overwrite then
+				local defaultDB = baseDefaults.profile["indicator-" .. i]
+				for key, value in pairs(defaultDB) do
+					indicatorDB[key] = CopyValue(value)
+				end
 				indicatorDB.auras = auraList or ""
 				applied = applied + 1
 			elseif auraList then
