@@ -77,7 +77,7 @@ function Triage:InitializeMinimapButton()
 		icon = "Interface\\Icons\\spell_holy_borrowedtime",
 		OnClick = function(_, button)
 			if button == "LeftButton" then
-				self:ChatCommand()
+				self:OpenBlizzardOptions()
 			end
 		end,
 		OnTooltipShow = function(tooltip)
@@ -216,6 +216,21 @@ function Triage:OnEnable()
 
 end
 
+--- Open the Triage panel inside the Blizzard addon settings UI.
+function Triage:OpenBlizzardOptions()
+	if InCombatLockdown() then
+		self:Print("Cannot open settings during combat.")
+		return
+	end
+
+	if self.generalOptionsCategoryID and Settings and Settings.OpenToCategory then
+		Settings.OpenToCategory(self.generalOptionsCategoryID)
+		return
+	end
+
+	self:OpenConfigWindow()
+end
+
 --- Open the standalone Triage config window.
 function Triage:OpenConfigWindow()
 	AceConfigDialog:Open("Triage")
@@ -294,7 +309,7 @@ function Triage:InitializeConfigPanels()
 	AceConfigRegistry:RegisterOptionsTable("Triage Import Export Profile Options", self:CreateProfileImportExportOptions())
 
 	-- Add config panels to in-game interface options
-	AceConfigDialog:AddToBlizOptions("Triage", "Triage")
+	self.generalOptionsFrame, self.generalOptionsCategoryID = AceConfigDialog:AddToBlizOptions("Triage", "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Indicator Options", L["Indicator Options"], "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Target Marker Options", L["Target Marker Options"], "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Profiles", L["Profiles"], "Triage")
