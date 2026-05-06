@@ -15,6 +15,7 @@ local THIRD_WIDTH = 1.14
 
 local copySource = "1"
 local copyTarget = "all"
+local resetScope = "current"
 local copyCategories = {
 	visibility = true,
 	icon = true,
@@ -125,6 +126,32 @@ local function CopyIndicatorSettings(addon)
 	end
 
 	return copiedTargets
+end
+
+local function ResetIndicatorSettings(addon)
+	local defaults = addon:CreateDefaults()
+	local resetCount = 0
+
+	for targetIndex = 1, 9 do
+		if resetScope == "all" or targetIndex == tonumber(copySource) then
+			local defaultDB = defaults.profile["indicator-" .. targetIndex]
+			local targetDB = addon.db.profile["indicator-" .. targetIndex]
+
+			for category, keys in pairs(INDICATOR_COPY_KEYS) do
+				if copyCategories[category] then
+					for _, key in ipairs(keys) do
+						if defaultDB[key] ~= nil then
+							targetDB[key] = CopyValue(defaultDB[key])
+						end
+					end
+				end
+			end
+
+			resetCount = resetCount + 1
+		end
+	end
+
+	return resetCount
 end
 
 -------------------------------------------------------------------------
@@ -308,6 +335,42 @@ function Triage:CreateIndicatorOptions()
 						end,
 						width = THIRD_WIDTH,
 						order = 20,
+					},
+					resetScope = {
+						type = "select",
+						name = L["Reset Scope"],
+						desc = L["resetIndicatorScope_desc"],
+						style = "dropdown",
+						values = {
+							current = L["Copy From Position"],
+							all = L["All Positions"],
+						},
+						sorting = { [1] = "current", [2] = "all" },
+						get = function()
+							return resetScope
+						end,
+						set = function(_, value)
+							resetScope = value
+						end,
+						width = THIRD_WIDTH,
+						order = 30,
+					},
+					resetIndicatorSettings = {
+						type = "execute",
+						name = L["Reset Settings"],
+						desc = L["resetIndicatorSettings_desc"],
+						func = function()
+							if CountSelectedCopyCategories() == 0 then
+								self:Print(L["No indicator setting categories selected."])
+								return
+							end
+
+							local resetCount = ResetIndicatorSettings(self)
+							self:RefreshConfig()
+							self:Print(L["Indicator settings reset."]:format(resetCount))
+						end,
+						width = THIRD_WIDTH,
+						order = 31,
 					},
 				},
 			},

@@ -36,6 +36,13 @@ L["Copy Settings"] = true
 L["copyIndicatorSettings_desc"] = "Copy the selected setting categories from one indicator position to another without changing aura watch lists."
 L["No indicator setting categories selected."] = true
 L["Indicator settings copied."] = "Indicator settings copied to %d position(s)."
+L["Reset Scope"] = true
+L["resetIndicatorScope_desc"] = "Choose whether Reset Settings affects the Copy From position or every indicator position."
+L["Copy From Position"] = true
+L["All Positions"] = true
+L["Reset Settings"] = true
+L["resetIndicatorSettings_desc"] = "Reset the selected setting categories to defaults without changing aura watch lists."
+L["Indicator settings reset."] = "Indicator settings reset for %d position(s)."
 
 L["Vertical Offset"] = true
 L["verticalOffset_desc"] = "The vertical offset percentage relative to the starting position and the width of the frame"
