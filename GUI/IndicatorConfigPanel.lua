@@ -13,6 +13,120 @@ local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 -- Constants
 local THIRD_WIDTH = 1.14
 
+local copySource = "1"
+local copyTarget = "all"
+local copyCategories = {
+	visibility = true,
+	icon = true,
+	text = true,
+	animation = true,
+}
+
+local INDICATOR_COPY_KEYS = {
+	visibility = {
+		"casterFilter",
+		"meOnly",
+		"missingOnly",
+		"showTooltip",
+		"tooltipLocation",
+	},
+	icon = {
+		"indicatorSize",
+		"indicatorHorizontalOffset",
+		"indicatorVerticalOffset",
+		"showIcon",
+		"indicatorAlpha",
+		"indicatorColor",
+		"colorIndicatorByDebuff",
+		"colorIndicatorByTime",
+		"colorIndicatorByTime_low",
+		"colorIndicatorByTime_high",
+	},
+	text = {
+		"showCountdownText",
+		"showStackSize",
+		"stackSizeLocation",
+		"countdownLocation",
+		"textColor",
+		"colorTextByTime",
+		"colorTextByTime_low",
+		"colorTextByTime_high",
+		"colorTextByDebuff",
+		"textSize",
+		"textAlpha",
+	},
+	animation = {
+		"showCountdownSwipe",
+		"indicatorGlow",
+		"glowRemainingSecs",
+	},
+}
+
+local function CopyValue(value)
+	if type(value) ~= "table" then
+		return value
+	end
+
+	local copied = {}
+	for k, v in pairs(value) do
+		copied[k] = CopyValue(v)
+	end
+
+	return copied
+end
+
+local function GetIndicatorPositionValues(addon, includeAll)
+	local values = {}
+
+	if includeAll then
+		values.all = L["All Other Positions"]
+	end
+
+	for i, position in ipairs(addon.POSITIONS) do
+		values[tostring(i)] = i .. ": " .. position
+	end
+
+	return values
+end
+
+local function CountSelectedCopyCategories()
+	local selected = 0
+
+	for _, enabled in pairs(copyCategories) do
+		if enabled then
+			selected = selected + 1
+		end
+	end
+
+	return selected
+end
+
+local function CopyIndicatorSettings(addon)
+	local sourceIndex = tonumber(copySource)
+	local sourceDB = addon.db.profile["indicator-" .. sourceIndex]
+	local copiedTargets = 0
+
+	for targetIndex = 1, 9 do
+		if (copyTarget == "all" and targetIndex ~= sourceIndex) or targetIndex == tonumber(copyTarget) then
+			local targetDB = addon.db.profile["indicator-" .. targetIndex]
+
+			for category, keys in pairs(INDICATOR_COPY_KEYS) do
+				if copyCategories[category] then
+					for _, key in ipairs(keys) do
+						if sourceDB[key] ~= nil then
+							targetDB[key] = CopyValue(sourceDB[key])
+						end
+					end
+				end
+			end
+
+			copiedTargets = copiedTargets + 1
+		end
+	end
+
+	return copiedTargets
+end
+
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
@@ -78,6 +192,124 @@ function Triage:CreateIndicatorOptions()
 				end,
 				width = THIRD_WIDTH * 1.5,
 				order = 4,
+			},
+			copySettingsHeader = {
+				type = "header",
+				name = L["Copy Indicator Settings"],
+				order = 5,
+			},
+			copySettings = {
+				type = "group",
+				name = L["Copy Indicator Settings"],
+				inline = true,
+				order = 6,
+				args = {
+					copySource = {
+						type = "select",
+						name = L["Copy From"],
+						desc = L["copyIndicatorSource_desc"],
+						style = "dropdown",
+						values = function()
+							return GetIndicatorPositionValues(self, false)
+						end,
+						get = function()
+							return copySource
+						end,
+						set = function(_, value)
+							copySource = value
+							if copyTarget == value then
+								copyTarget = "all"
+							end
+						end,
+						width = THIRD_WIDTH,
+						order = 1,
+					},
+					copyTarget = {
+						type = "select",
+						name = L["Copy To"],
+						desc = L["copyIndicatorTarget_desc"],
+						style = "dropdown",
+						values = function()
+							return GetIndicatorPositionValues(self, true)
+						end,
+						get = function()
+							return copyTarget
+						end,
+						set = function(_, value)
+							copyTarget = value
+						end,
+						width = THIRD_WIDTH,
+						order = 2,
+					},
+					copyVisibility = {
+						type = "toggle",
+						name = L["Visibility and Behavior"],
+						get = function()
+							return copyCategories.visibility
+						end,
+						set = function(_, value)
+							copyCategories.visibility = value
+						end,
+						width = THIRD_WIDTH,
+						order = 10,
+					},
+					copyIcon = {
+						type = "toggle",
+						name = L["Icon and Visuals"],
+						get = function()
+							return copyCategories.icon
+						end,
+						set = function(_, value)
+							copyCategories.icon = value
+						end,
+						width = THIRD_WIDTH,
+						order = 11,
+					},
+					copyText = {
+						type = "toggle",
+						name = L["Text"],
+						get = function()
+							return copyCategories.text
+						end,
+						set = function(_, value)
+							copyCategories.text = value
+						end,
+						width = THIRD_WIDTH,
+						order = 12,
+					},
+					copyAnimation = {
+						type = "toggle",
+						name = L["Animations"],
+						get = function()
+							return copyCategories.animation
+						end,
+						set = function(_, value)
+							copyCategories.animation = value
+						end,
+						width = THIRD_WIDTH,
+						order = 13,
+					},
+					copyIndicatorSettings = {
+						type = "execute",
+						name = L["Copy Settings"],
+						desc = L["copyIndicatorSettings_desc"],
+						func = function()
+							if CountSelectedCopyCategories() == 0 then
+								self:Print(L["No indicator setting categories selected."])
+								return
+							end
+
+							local copiedTargets = CopyIndicatorSettings(self)
+							self:RefreshConfig()
+							self:Print(L["Indicator settings copied."]:format(copiedTargets))
+						end,
+						disabled = function()
+							return copyTarget == copySource
+						end,
+						width = THIRD_WIDTH,
+						order = 20,
+					},
+				},
 			},
 		}
 	}

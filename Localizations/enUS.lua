@@ -26,6 +26,16 @@ L["resetSpecDefaults_desc"] = "Overwrite all indicator aura lists with the curat
 L["No spec aura defaults available."] = true
 L["Spec aura defaults applied."] = "%d spec aura default slots applied. %d customized slots skipped."
 L["Spec aura defaults reset."] = "%d spec aura default slots reset. %d customized slots skipped."
+L["Copy Indicator Settings"] = true
+L["Copy From"] = true
+L["copyIndicatorSource_desc"] = "The indicator position to copy settings from."
+L["Copy To"] = true
+L["copyIndicatorTarget_desc"] = "The indicator position to copy settings to. Aura watch lists are never copied."
+L["All Other Positions"] = true
+L["Copy Settings"] = true
+L["copyIndicatorSettings_desc"] = "Copy the selected setting categories from one indicator position to another without changing aura watch lists."
+L["No indicator setting categories selected."] = true
+L["Indicator settings copied."] = "Indicator settings copied to %d position(s)."
 
 L["Vertical Offset"] = true
 L["verticalOffset_desc"] = "The vertical offset percentage relative to the starting position and the width of the frame"
