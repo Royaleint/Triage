@@ -47,6 +47,12 @@ L["Reset Settings"] = true
 L["resetIndicatorSettings_desc"] = "Reset the selected setting categories to defaults without changing aura watch lists."
 L["Indicator settings reset."] = "Indicator settings reset for %d position(s)."
 L["resetAllIndicatorSettings_confirm"] = "Are you sure you want to reset ALL indicators for this character?"
+L["Reset Selected Aura List"] = true
+L["resetSelectedAuraList_desc"] = "Clear the aura watch list for the Copy From indicator position without changing indicator settings."
+L["Reset All Aura Lists"] = true
+L["resetAllAuraLists_desc"] = "Clear all indicator aura watch lists without changing indicator settings."
+L["Aura watch lists reset."] = "Aura watch lists reset for %d position(s)."
+L["resetAllAuraWatchLists_confirm"] = "Are you sure you want to reset ALL aura watch lists for this character?"
 
 L["Vertical Offset"] = true
 L["verticalOffset_desc"] = "The vertical offset percentage relative to the starting position and the width of the frame"
