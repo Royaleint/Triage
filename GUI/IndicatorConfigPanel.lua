@@ -13,6 +13,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 -- Constants
 local THIRD_WIDTH = 1.14
 local RESET_ALL_INDICATORS_POPUP = "TRIAGE_RESET_ALL_INDICATOR_SETTINGS"
+local RESET_ALL_AURA_LISTS_POPUP = "TRIAGE_RESET_ALL_AURA_LISTS"
 local RESET_SPEC_DEFAULTS_POPUP = "TRIAGE_RESET_SPEC_AURA_DEFAULTS"
 
 local copySource = "1"
@@ -162,6 +163,23 @@ local function ExecuteIndicatorSettingsReset(addon)
 	addon:Print(L["Indicator settings reset."]:format(resetCount))
 end
 
+local function ResetAuraWatchLists(addon, resetAll)
+	local resetCount = 0
+
+	for targetIndex = 1, 9 do
+		if resetAll or targetIndex == tonumber(copySource) then
+			local indicatorDB = addon.db.profile["indicator-" .. targetIndex]
+			if indicatorDB then
+				indicatorDB.auras = ""
+				resetCount = resetCount + 1
+			end
+		end
+	end
+
+	addon:RefreshConfig()
+	addon:Print(L["Aura watch lists reset."]:format(resetCount))
+end
+
 local function ExecuteCurrentSpecDefaultsReset(addon)
 	local applied, skipped, specID = addon:ApplyCurrentSpecAuraDefaults(true)
 	if applied == 0 and not specID then
@@ -180,6 +198,20 @@ if popupDialogs then
 		OnAccept = function(_, data)
 			if data and data.addon then
 				ExecuteIndicatorSettingsReset(data.addon)
+			end
+		end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+		preferredIndex = 3,
+	}
+	popupDialogs[RESET_ALL_AURA_LISTS_POPUP] = {
+		text = L["resetAllAuraWatchLists_confirm"],
+		button1 = L["Yes"],
+		button2 = L["No"],
+		OnAccept = function(_, data)
+			if data and data.addon then
+				ResetAuraWatchLists(data.addon, true)
 			end
 		end,
 		timeout = 0,
@@ -216,6 +248,16 @@ local function ConfirmOrExecuteIndicatorSettingsReset(addon)
 	end
 
 	ExecuteIndicatorSettingsReset(addon)
+end
+
+local function ConfirmOrExecuteAllAuraWatchListsReset(addon)
+	local showPopup = rawget(_G, "StaticPopup_Show")
+	if showPopup then
+		showPopup(RESET_ALL_AURA_LISTS_POPUP, nil, nil, { addon = addon })
+		return
+	end
+
+	ResetAuraWatchLists(addon, true)
 end
 
 local function ConfirmOrExecuteCurrentSpecDefaultsReset(addon)
@@ -438,6 +480,31 @@ function Triage:CreateIndicatorOptions()
 						end,
 						width = THIRD_WIDTH,
 						order = 31,
+					},
+					auraListHeader = {
+						type = "header",
+						name = L["Aura Watch Lists"],
+						order = 40,
+					},
+					resetSelectedAuraList = {
+						type = "execute",
+						name = L["Reset Selected Aura List"],
+						desc = L["resetSelectedAuraList_desc"],
+						func = function()
+							ResetAuraWatchLists(self, false)
+						end,
+						width = THIRD_WIDTH,
+						order = 41,
+					},
+					resetAllAuraLists = {
+						type = "execute",
+						name = L["Reset All Aura Lists"],
+						desc = L["resetAllAuraLists_desc"],
+						func = function()
+							ConfirmOrExecuteAllAuraWatchListsReset(self)
+						end,
+						width = THIRD_WIDTH,
+						order = 42,
 					},
 				},
 			},
