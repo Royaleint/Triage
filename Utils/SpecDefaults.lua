@@ -76,13 +76,13 @@ function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
 	local applied = 0
 	local skipped = 0
 	local baseDefaults = overwrite and self:CreateDefaults()
+	local defaultIndicatorSettings = baseDefaults and baseDefaults.profile["indicator-1"]
 	for i = 1, 9 do
 		local auraList = defaults[i]
 		local indicatorDB = self.db.profile["indicator-" .. i]
 		if indicatorDB then
 			if overwrite then
-				local defaultDB = baseDefaults.profile["indicator-" .. i]
-				for key, value in pairs(defaultDB) do
+				for key, value in pairs(defaultIndicatorSettings) do
 					indicatorDB[key] = CopyValue(value)
 				end
 				indicatorDB.auras = auraList or ""
