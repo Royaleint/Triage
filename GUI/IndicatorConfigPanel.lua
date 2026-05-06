@@ -132,11 +132,11 @@ end
 
 local function ResetIndicatorSettings(addon)
 	local defaults = addon:CreateDefaults()
+	local defaultDB = defaults.profile["indicator-1"]
 	local resetCount = 0
 
 	for targetIndex = 1, 9 do
 		if resetScope == "all" or targetIndex == tonumber(copySource) then
-			local defaultDB = defaults.profile["indicator-" .. targetIndex]
 			local targetDB = addon.db.profile["indicator-" .. targetIndex]
 
 			for category, keys in pairs(INDICATOR_COPY_KEYS) do
