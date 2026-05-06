@@ -18,6 +18,7 @@ L["No"] = true
 
 L["General Options"] = true
 L["Indicator Options"] = true
+L["Indicator Tools"] = true
 L["Target Marker Options"] = true
 L["Profiles"] = true
 L["Spec Aura Defaults"] = true
@@ -47,6 +48,7 @@ L["Reset Settings"] = true
 L["resetIndicatorSettings_desc"] = "Reset the selected setting categories to defaults without changing aura watch lists."
 L["Indicator settings reset."] = "Indicator settings reset for %d position(s)."
 L["resetAllIndicatorSettings_confirm"] = "Are you sure you want to reset ALL indicators for this character?"
+L["Aura Watch Lists"] = true
 L["Reset Selected Aura List"] = true
 L["resetSelectedAuraList_desc"] = "Clear the aura watch list for the Copy From indicator position without changing indicator settings."
 L["Reset All Aura Lists"] = true

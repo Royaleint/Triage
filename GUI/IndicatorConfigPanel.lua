@@ -273,19 +273,12 @@ end
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
---- Populate our "Indicator" options table for our Blizzard interface options
-function Triage:CreateIndicatorOptions()
-	local indicatorOptions = {
+function Triage:CreateIndicatorToolsOptions()
+	return {
 		type = "group",
-		childGroups = "select",
-		name = L["Indicator Options"],
+		childGroups = "tree",
+		name = L["Indicator Tools"],
 		args = {
-			instructions = {
-				type = "description",
-				name = L["indicatorOptions_desc"] .. ":",
-				fontSize = "medium",
-				order = 1,
-			},
 			specDefaultsHeader = {
 				type = "header",
 				name = L["Spec Aura Defaults"],
@@ -508,8 +501,31 @@ function Triage:CreateIndicatorOptions()
 					},
 				},
 			},
-		}
+		},
 	}
+end
+
+-------------------------------------------------------------------------
+-------------------------------------------------------------------------
+
+--- Populate our "Indicator" options table for our Blizzard interface options
+function Triage:CreateIndicatorOptions()
+	local indicatorOptions = {
+		type = "group",
+		childGroups = "tree",
+		name = L["Indicator Options"],
+		args = {
+			instructions = {
+				type = "description",
+				name = L["indicatorOptions_desc"] .. ":",
+				fontSize = "medium",
+				order = 1,
+			},
+		},
+	}
+
+	indicatorOptions.args.tools = self:CreateIndicatorToolsOptions()
+	indicatorOptions.args.tools.order = 2
 
 	-- Add options for each indicator
 	for i, v in ipairs(self.POSITIONS) do
