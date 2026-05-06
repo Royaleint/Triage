@@ -12,6 +12,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 
 -- Constants
 local THIRD_WIDTH = 1.14
+local RESET_ALL_INDICATORS_POPUP = "TRIAGE_RESET_ALL_INDICATOR_SETTINGS"
 
 local copySource = "1"
 local copyTarget = "all"
@@ -152,6 +153,45 @@ local function ResetIndicatorSettings(addon)
 	end
 
 	return resetCount
+end
+
+local function ExecuteIndicatorSettingsReset(addon)
+	local resetCount = ResetIndicatorSettings(addon)
+	addon:RefreshConfig()
+	addon:Print(L["Indicator settings reset."]:format(resetCount))
+end
+
+local popupDialogs = rawget(_G, "StaticPopupDialogs")
+if popupDialogs then
+	popupDialogs[RESET_ALL_INDICATORS_POPUP] = {
+		text = L["resetAllIndicatorSettings_confirm"],
+		button1 = L["Yes"],
+		button2 = L["No"],
+		OnAccept = function(_, data)
+			if data and data.addon then
+				ExecuteIndicatorSettingsReset(data.addon)
+			end
+		end,
+		timeout = 0,
+		whileDead = true,
+		hideOnEscape = true,
+		preferredIndex = 3,
+	}
+end
+
+local function ConfirmOrExecuteIndicatorSettingsReset(addon)
+	if resetScope ~= "all" then
+		ExecuteIndicatorSettingsReset(addon)
+		return
+	end
+
+	local showPopup = rawget(_G, "StaticPopup_Show")
+	if showPopup then
+		showPopup(RESET_ALL_INDICATORS_POPUP, nil, nil, { addon = addon })
+		return
+	end
+
+	ExecuteIndicatorSettingsReset(addon)
 end
 
 -------------------------------------------------------------------------
@@ -365,9 +405,7 @@ function Triage:CreateIndicatorOptions()
 								return
 							end
 
-							local resetCount = ResetIndicatorSettings(self)
-							self:RefreshConfig()
-							self:Print(L["Indicator settings reset."]:format(resetCount))
+							ConfirmOrExecuteIndicatorSettingsReset(self)
 						end,
 						width = THIRD_WIDTH,
 						order = 31,
