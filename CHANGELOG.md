@@ -1,10 +1,33 @@
 # Triage Changelog
 
-## Unreleased
+## v1.2.0 (2026-05-06)
 
-### What's fixed
-- Target markers now appear correctly on Blizzard party and raid frames in Midnight.
-- Added a target-marker vertical nudge control and a reset button for target-marker defaults.
+New healing-focus highlight, spec aura defaults, indicator copy and reset tools, and a wave of fixes for target markers, dispel highlights, stock auras, and combat-safe options.
+
+---
+
+### New
+
+- **Triage Focus.** Highlights the party or raid member with the biggest health deficit so you can find them without scanning every bar. Tune the range, minimum deficit, update speed, color, border width, and glow style under General options.
+- **Spec aura defaults.** Fill empty indicator slots with curated aura watch lists for your current specialization. Existing custom aura lists are left alone when you apply defaults.
+- **Indicator copy tools.** Copy selected settings — visibility, icon, text, animation — from one indicator position to another without touching aura watch lists. Build one indicator the way you want it, then reuse the look on the other eight.
+- **Indicator reset tools.** Reset selected setting categories on one indicator position or every position at once.
+- **Aura watch list reset.** Clear the selected indicator's aura watch list, or wipe all of them in one go.
+- **Reset confirmations.** Broad indicator and spec-default resets now ask for confirmation, so a stray click can't wipe nine indicators or your spec defaults.
+
+### Improved
+
+- Minimap button click now opens Triage inside the Blizzard settings UI, so options live in one place with the rest of your addons instead of in a separate window.
+- Resetting current spec defaults now clears indicator settings and aura watch lists before applying the curated list, so the reset button actually resets instead of layering defaults on top of old settings.
+- Indicator setting resets now use the same baseline defaults for every position, so all nine indicators reset consistently.
+- Neutral dispel highlights now use Blizzard's stock dispel highlight when color-by-type is off, matching the look of the default game UI.
+- Dispel overlay behavior stays in sync when you switch between colored and neutral dispel highlights.
+
+### Bug Fixes
+
+- Fix target markers not appearing on Blizzard party and raid frames. Markers also stay matched to the correct unit when raid frames update, move, or get reassigned.
+- Keep stock Blizzard buff and debuff icons hidden on Retail when their Triage visibility options are turned off. The toggles were being ignored on the Midnight client.
+- Stop indicator mouse setup from firing protected changes during combat. Changes that aren't combat-safe now wait until combat ends instead of triggering Lua errors.
 
 ## v1.1.0
 
