@@ -10,6 +10,7 @@ body:
       options:
         - Retail (Midnight 12.0+)
         - Classic Era
+        - TBC Classic Anniversary
         - Pandaria Classic
     validations:
       required: true

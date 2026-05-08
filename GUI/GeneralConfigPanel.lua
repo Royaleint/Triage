@@ -499,26 +499,28 @@ function Triage:CreateGeneralOptions()
 	}
 
 	-- Retail-only extensions
-	if not self.isWoWClassicEra and not self.isWoWClassic then
-		-- Extended range options (Retail only) — Classic Era and Pandaria Classic
+	if self.supportsExtendedRangeOptions then
+		-- Extended range options (Retail only) — Classic clients
 		-- healer spells cap at or below 40yd, and LibRangeCheck has no reliable
 		-- checkers beyond that range on those clients. Exposing 45-60yd there
 		-- would produce a setting that silently does nothing and invite bug reports.
 		local customRangeValues = generalOptions.args.customRange.values
 		customRangeValues[45] = L["45 yards"]
-		customRangeValues[50] = L["50 yards"]
-		customRangeValues[55] = L["55 yards"]
-		customRangeValues[60] = L["60 yards"]
+			customRangeValues[50] = L["50 yards"]
+			customRangeValues[55] = L["55 yards"]
+			customRangeValues[60] = L["60 yards"]
+		end
 
 		-- Dispel Overlay settings (Retail only)
+		if self.supportsDispelOverlay then
 			generalOptions.args.dispelOverlayHeader = {
 				type = "header",
 				name = L["Dispel Overlay"],
 				order = 70,
 			}
-		generalOptions.args.dispelOverlayEnabled = {
-			type = "toggle",
-			name = L["Enable Dispel Overlay"],
+			generalOptions.args.dispelOverlayEnabled = {
+				type = "toggle",
+				name = L["Enable Dispel Overlay"],
 			desc = L["dispelOverlayEnabled_desc"],
 			get = function()
 				return self.db.profile.dispelOverlay.enabled
@@ -526,10 +528,10 @@ function Triage:CreateGeneralOptions()
 			set = function(_, value)
 				self.db.profile.dispelOverlay.enabled = value
 				self:RefreshConfig()
-			end,
-			width = THIRD_WIDTH,
+				end,
+				width = THIRD_WIDTH,
 				order = 71,
-		}
+			}
 		generalOptions.args.dispelOverlayColorByType = {
 			type = "toggle",
 			name = L["Color by Debuff Type"],
@@ -543,10 +545,10 @@ function Triage:CreateGeneralOptions()
 			end,
 			disabled = function()
 				return not self.db.profile.dispelOverlay.enabled
-			end,
-			width = THIRD_WIDTH,
+				end,
+				width = THIRD_WIDTH,
 				order = 73,
-		}
+			}
 		generalOptions.args.dispelOverlayGlowStyle = {
 			type = "select",
 			name = L["Glow Style"],
@@ -561,10 +563,10 @@ function Triage:CreateGeneralOptions()
 			end,
 			disabled = function()
 				return not self.db.profile.dispelOverlay.enabled
-			end,
-			width = THIRD_WIDTH,
+				end,
+				width = THIRD_WIDTH,
 				order = 74,
-		}
+			}
 		generalOptions.args.dispelOverlayAlpha = {
 			type = "range",
 			name = L["Border Opacity"],
@@ -582,10 +584,10 @@ function Triage:CreateGeneralOptions()
 			end,
 			disabled = function()
 				return not self.db.profile.dispelOverlay.enabled
-			end,
-			width = THIRD_WIDTH,
+				end,
+				width = THIRD_WIDTH,
 				order = 75,
-		}
+			}
 		generalOptions.args.dispelOverlayShowInParty = {
 			type = "toggle",
 			name = L["Show in Party"],
@@ -599,10 +601,10 @@ function Triage:CreateGeneralOptions()
 			end,
 			disabled = function()
 				return not self.db.profile.dispelOverlay.enabled
-			end,
-			width = THIRD_WIDTH,
+				end,
+				width = THIRD_WIDTH,
 				order = 76,
-		}
+			}
 		generalOptions.args.dispelOverlayShowInRaid = {
 			type = "toggle",
 			name = L["Show in Raid"],
@@ -616,10 +618,10 @@ function Triage:CreateGeneralOptions()
 			end,
 			disabled = function()
 				return not self.db.profile.dispelOverlay.enabled
-			end,
-			width = THIRD_WIDTH,
+				end,
+				width = THIRD_WIDTH,
 				order = 77,
-		}
+			}
 	end
 
 	return generalOptions

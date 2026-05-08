@@ -13,12 +13,30 @@ local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
--- Set Classic and Classic_Era flags
-if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+-- Set client flags
+if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+	Triage.isRetail = true
+elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 	Triage.isWoWClassicEra = true
+elseif WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
+	Triage.isWoWClassicTBC = true
 elseif WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC then
 	Triage.isWoWClassic = true
 end
+
+-- Client capabilities. Prefer these over broad Classic/Retail checks so new
+-- flavors like TBC cannot accidentally inherit Retail-only behavior.
+Triage.supportsUnitAuraPayloads = Triage.isRetail == true
+Triage.usesLegacyUnitAura = not Triage.supportsUnitAuraPayloads
+Triage.needsLibClassicDurations = Triage.isWoWClassicEra == true
+Triage.supportsLibDualSpec = Triage.isRetail == true or Triage.isWoWClassic == true
+Triage.supportsSpecDefaults = Triage.isRetail == true
+Triage.supportsRetailMousePropagation = Triage.isRetail == true
+Triage.supportsRetailStockAuraAttributes = Triage.isRetail == true
+Triage.supportsPrivateAuraSuppression = Triage.isRetail == true
+Triage.supportsExtendedRangeOptions = Triage.isRetail == true
+Triage.supportsRetailIncomingHeals = Triage.isRetail == true
+Triage.supportsDispelOverlay = Triage.isRetail == true
 
 -- Declare Color Global Constants
 Triage.NORMAL_COLOR = NORMAL_FONT_COLOR or CreateColor(1.0, 0.82, 0.0) --the default game yellow text color

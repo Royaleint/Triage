@@ -69,7 +69,7 @@ function Triage:CreateIndicators(frame)
 
 		-- On Retail, indicators keep mouse enabled so native OnEnter/OnLeave drive tooltips.
 		-- Propagation is set via XML template (propagateMouseInput="Both"), not runtime.
-		if not self.isWoWClassicEra and not self.isWoWClassic then
+		if self.supportsRetailMousePropagation then
 			indicatorFrame:SetScript("OnEnter", function()
 				self:Tooltip_OnEnter(indicatorFrame, frame)
 			end)
@@ -90,7 +90,7 @@ function Triage:CreateIndicators(frame)
 	self:SetMouseBehavior(frame)
 
 	-- On Classic, set up parent-level tooltip scanning since indicators have mouse disabled
-	if self.isWoWClassicEra or self.isWoWClassic then
+	if not self.supportsRetailMousePropagation then
 		self:SetupClassicTooltipScanning(frame)
 	end
 
@@ -199,7 +199,7 @@ function Triage:SetMouseBehavior(frame)
 	-- On Retail (11.0+), propagation is set via XML template attributes, so indicators
 	-- can keep mouse enabled for tooltips while clicks/motion pass through to the parent.
 	-- On Classic clients without propagation APIs, disable mouse entirely for click-cast safety.
-	local hasPropagation = not self.isWoWClassicEra and not self.isWoWClassic
+	local hasPropagation = self.supportsRetailMousePropagation == true
 	if hasPropagation and InCombatLockdown() then
 		-- Guard the whole Retail mouse setup: EnableMouse, SetMouseClickEnabled,
 		-- and propagation calls can be restricted when compact frames are updated in combat.

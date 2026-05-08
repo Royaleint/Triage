@@ -134,7 +134,7 @@ function Triage:OnEnable()
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
 		self:RefreshRangeTicker()
 		self:UpdateTriageFocus()
-		if not self.isWoWClassicEra and not self.isWoWClassic then
+		if self.supportsRetailStockAuraAttributes then
 			self:UpdateAllStockAuraVisibility()
 		end
 	end)
@@ -174,36 +174,38 @@ function Triage:OnEnable()
 	-- Hook frame unit assignment to refresh indicators and listeners when a frame gets a new unit.
 	-- Without this, indicators and aura listeners become stale until the next GROUP_ROSTER_UPDATE
 	-- throttle interval (1 second) when frames are reassigned.
-	self:SecureHook("CompactUnitFrame_SetUnit", function(frame, unit)
-		self:UpdateManagedFrameUnit(frame, unit, "blizzard")
-		if not self.ShouldContinue(frame, true) then
-			return
-		end
-		-- Clear stale indicators and immediately scan the new unit's auras
-		-- so there is no visible gap between reassignment and repopulation
-		if frame.Triage_indicatorFrames then
-			for i = 1, 9 do
-				if frame.Triage_indicatorFrames[i] then
-					self:ClearIndicator(frame.Triage_indicatorFrames[i])
+	if rawget(_G, "CompactUnitFrame_SetUnit") then
+		self:SecureHook("CompactUnitFrame_SetUnit", function(frame, unit)
+			self:UpdateManagedFrameUnit(frame, unit, "blizzard")
+			if not self.ShouldContinue(frame, true) then
+				return
+			end
+			-- Clear stale indicators and immediately scan the new unit's auras
+			-- so there is no visible gap between reassignment and repopulation
+			if frame.Triage_indicatorFrames then
+				for i = 1, 9 do
+					if frame.Triage_indicatorFrames[i] then
+						self:ClearIndicator(frame.Triage_indicatorFrames[i])
+					end
 				end
 			end
-		end
-		if self.isWoWClassicEra or self.isWoWClassic then
-			self:UpdateUnitAuras_Classic(frame, true)
-		else
-			self:UpdateUnitAuras(frame, {}, true)
-		end
-		-- Refresh target marker
-		if frame.Triage_targetMarkerFrame then
-			self:UpdateTargetMarker(frame)
-		end
-	end)
+			if self.usesLegacyUnitAura then
+				self:UpdateUnitAuras_Classic(frame, true)
+			else
+				self:UpdateUnitAuras(frame, {}, true)
+			end
+			-- Refresh target marker
+			if frame.Triage_targetMarkerFrame then
+				self:UpdateTargetMarker(frame)
+			end
+		end)
+	end
 
 	-- Hook aura updates to refresh dispel overlay (Retail DispelSource path;
 	-- legacy clients keep the frame.dispels fallback when refreshed elsewhere).
 	-- No explicit hide on SetUnit — the aura hook handles it. Blizzard's SetUnit calls UpdateAll
 	-- which calls UpdateAuras before our SetUnit hook runs, so hiding here would blank valid overlays.
-	if not self.isWoWClassicEra and not self.isWoWClassic then
+	if self.supportsUnitAuraPayloads then
 		if CompactUnitFrame_UpdateAuras then
 			self:SecureHook("CompactUnitFrame_UpdateAuras", function(frame)
 				if not self.ShouldContinue(frame, true) then
@@ -289,8 +291,8 @@ function Triage:InitializeDatabase()
 	-- Create database object
 	self.db = AceDB:New("EnhancedRaidFramesDB", defaults) -- SavedVariables key frozen; matches Triage.toc.
 	-- Enhance database and profile options using LibDualSpec
-	if not self.isWoWClassicEra then
-		-- Not available in Classic Era
+	if self.supportsLibDualSpec then
+		-- Not available on Classic Era or TBC Classic Anniversary
 		-- Enhance the database object with per spec profile features
 		-- LibDualSpec namespace frozen; changing it would orphan dual-spec profile bindings.
 		LibStub("LibDualSpec-1.0"):EnhanceDatabase(self.db, "EnhancedRaidFrames")

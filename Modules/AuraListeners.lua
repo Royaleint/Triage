@@ -9,7 +9,7 @@ local Triage = _G.Triage
 -- Import libraries
 local LibDispel = LibStub("LibDispel-1.0")
 
-if Triage.isWoWClassicEra then
+if Triage.needsLibClassicDurations then
 	-- Set up LibClassicDurations
 	local LibClassicDurations = LibStub("LibClassicDurations")
 	-- LibClassicDurations registration string frozen; library API uses string-keyed registration.
@@ -69,7 +69,7 @@ function Triage:CreateAuraListener(frame)
 	frame.Triage_auraListenerFrame:RegisterUnitEvent("UNIT_AURA", unit)
 
 	-- Assign the OnEvent callback for the listener frame
-	if not self.isWoWClassicEra and not self.isWoWClassic then
+	if self.supportsUnitAuraPayloads then
 		frame.Triage_auraListenerFrame:SetScript("OnEvent", function(_, _, _, payload)
 			self:UpdateUnitAuras(frame, payload)
 		end)
@@ -91,7 +91,7 @@ function Triage:UpdateAllAuras()
 		if SyncPreviewAuras(frame) then
 			return
 		end
-		if self.isWoWClassicEra or self.isWoWClassic then
+		if self.usesLegacyUnitAura then
 			self:UpdateUnitAuras_Classic(frame, true)
 		else
 			self:UpdateUnitAuras(frame, {}, true)
@@ -286,11 +286,11 @@ function Triage:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 			local shouldStop = false
 			local auraData = {}
 
-			if not self.isWoWClassicEra then
+			if not self.needsLibClassicDurations then
 				auraData.name, auraData.icon, auraData.applications, auraData.dispelName, auraData.duration, auraData.expirationTime,
 				auraData.sourceUnit, _, _, auraData.spellId, _, _, _, _, auraData.timeMod = UnitAura(unit, auraIndex, filter)
 			else
-					-- For wow classic we use LibClassicDurations instead of UnitAura() because by default the
+				-- For wow classic we use LibClassicDurations instead of UnitAura() because by default the
 				-- game doesn't provide any aura duration information.
 				auraData.name, auraData.icon, auraData.applications, auraData.dispelName, auraData.duration, auraData.expirationTime,
 				auraData.sourceUnit, _, _, auraData.spellId, _, _, _, _, auraData.timeMod = self.UnitAuraWrapper(unit, auraIndex, filter)

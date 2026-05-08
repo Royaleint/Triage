@@ -38,6 +38,16 @@ if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 			Disease = 15007,
 		},
 	}
+elseif WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
+	PROJECT_PREVIEW_SPELLS = {
+		helpful = 17,
+		harmful = {
+			Magic = 118,
+			Curse = 1714,
+			Poison = 2818,
+			Disease = 15007,
+		},
+	}
 elseif WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC then
 	PROJECT_PREVIEW_SPELLS = {
 		helpful = 17,

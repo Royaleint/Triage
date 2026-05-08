@@ -1,6 +1,6 @@
 # Triage - Enhanced Raid Frames Reforged
 
-Enhanced Raid Frames, reforged for Midnight and still supporting Classic and Pandaria.
+Enhanced Raid Frames, reforged for Midnight and still supporting Classic Era, TBC Classic, and Pandaria Classic.
 
 Triage continues the work of [Enhanced Raid Frames](https://github.com/brittyazel/EnhancedRaidFrames) by Britt W. Yazel (Soyier), which enhanced Blizzard's built-in raid frames with configurable aura indicators, target markers, range checking, and more.
 
@@ -14,7 +14,7 @@ When Midnight changed the addon landscape, ERF's development ended. Triage picks
 - **Frame scaling:** adjustable raid frame scale
 - **Stock aura visibility:** show/hide default buff, debuff, and dispel frames
 - **Profile system:** per-character, per-spec profiles with import/export
-- **Classic support:** full support for Classic Era and Pandaria Classic
+- **Classic support:** support for Classic Era, TBC Classic Anniversary, and Pandaria Classic
 
 ## Commands
 

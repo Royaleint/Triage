@@ -215,7 +215,7 @@ function Triage:GetTriageFocusRange()
 end
 
 function Triage:GetTriageFocusIncomingHeals(unit)
-	if not self.isWoWClassicEra and not self.isWoWClassic then
+	if self.supportsRetailIncomingHeals then
 		local retailIncoming = TryRetailIncomingHeals(unit)
 		if retailIncoming then
 			return retailIncoming

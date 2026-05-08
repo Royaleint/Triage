@@ -36,7 +36,7 @@ local function NotifyIndicatorOptionsChanged()
 end
 
 function Triage:GetCurrentSpecDefaultsID()
-	if self.isWoWClassicEra or self.isWoWClassic then
+	if not self.supportsSpecDefaults then
 		return nil
 	end
 

@@ -17,7 +17,7 @@ local STOCK_AURA_ATTRIBUTES = {
 }
 
 local function IsRetailClient(addon)
-	return not addon.isWoWClassicEra and not addon.isWoWClassic
+	return addon.supportsRetailStockAuraAttributes == true
 end
 
 local function IsRetailPrivateAuraContainer(frame)
@@ -36,7 +36,7 @@ function Triage:UpdateAllStockAuraVisibility()
 
 	-- In retail, there's a special type of boss aura called a "private aura" that is not accessible to addons.
 	-- We can attempt to hide these auras by hooking the default CompactUnitFrame_UpdatePrivateAuras function.
-	if not self.isWoWClassicEra and not self.isWoWClassic then
+	if self.supportsPrivateAuraSuppression then
 		if CompactUnitFrame_UpdatePrivateAuras and not self:IsHooked("CompactUnitFrame_UpdatePrivateAuras") then
 			self:SecureHook("CompactUnitFrame_UpdatePrivateAuras", function(frame)
 				self:UpdatePrivateAuraVisOverrides(frame)

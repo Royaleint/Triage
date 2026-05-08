@@ -54,12 +54,11 @@ local function CallMethod(object, methodName)
 end
 
 function Triage:GetDispelCapabilities()
-	local isRetail = not self.isWoWClassicEra and not self.isWoWClassic
 	return {
-		supportsBlizzardDispelOverlayState = isRetail,
-		supportsReadableAuraDispelFields = isRetail and "conditional" or false,
+		supportsBlizzardDispelOverlayState = self.supportsPrivateAuraSuppression == true,
+		supportsReadableAuraDispelFields = self.supportsPrivateAuraSuppression and "conditional" or false,
 		supportsLibDispelPlayerCapability = true,
-		supportsLegacyFrameDispels = not isRetail,
+		supportsLegacyFrameDispels = not self.supportsPrivateAuraSuppression,
 	}
 end
 

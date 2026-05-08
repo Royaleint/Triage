@@ -224,6 +224,13 @@ end
 --- Resolve dispel state and update the overlay
 ---@param frame table @The compact unit frame
 function Triage:UpdateDispelOverlay(frame)
+	if not self.supportsDispelOverlay then
+		if frame and frame.Triage_dispelOverlay then
+			self:HideDispelOverlay(frame)
+		end
+		return
+	end
+
 	if not self.ShouldContinue(frame, true) then
 		if frame.Triage_dispelOverlay then
 			self:HideDispelOverlay(frame)

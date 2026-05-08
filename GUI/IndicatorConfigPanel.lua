@@ -283,7 +283,7 @@ function Triage:CreateIndicatorToolsOptions()
 				type = "header",
 				name = L["Spec Aura Defaults"],
 				hidden = function()
-					return self.isWoWClassicEra or self.isWoWClassic
+					return not self.supportsSpecDefaults
 				end,
 				order = 2,
 			},
@@ -303,7 +303,7 @@ function Triage:CreateIndicatorToolsOptions()
 					return not self:HasCurrentSpecAuraDefaults()
 				end,
 				hidden = function()
-					return self.isWoWClassicEra or self.isWoWClassic
+					return not self.supportsSpecDefaults
 				end,
 				width = THIRD_WIDTH * 1.5,
 				order = 3,
@@ -319,7 +319,7 @@ function Triage:CreateIndicatorToolsOptions()
 					return not self:HasCurrentSpecAuraDefaults()
 				end,
 				hidden = function()
-					return self.isWoWClassicEra or self.isWoWClassic
+					return not self.supportsSpecDefaults
 				end,
 				width = THIRD_WIDTH * 1.5,
 				order = 4,
