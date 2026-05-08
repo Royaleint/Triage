@@ -81,7 +81,6 @@ L["colorByTime_low_desc"] = "The time (in seconds) for the lower boundary"
 L["Time #2"] = true
 L["colorByTime_high_desc"] = "The time (in seconds) for the upper boundary"
 
-L["Dispel"] = true
 L["Poison"] = true
 L["Curse"] = true
 L["Disease"] = true
@@ -143,9 +142,6 @@ L["backgroundAlpha_desc"] = "The opacity percentage of the raid frame background
 L["Indicator Font"] = true
 L["indicatorFont_desc"] = "The the font used for the indicators"
 
-L["Mouseover Cast Compatibility"] = true
-L["mouseoverCast_desc"] = "Enable compatibility with mouseover casting functionality. Consequently, this option will disable tooltips when hovering over indicators."
-
 L["Out-of-Range"] = true
 
 L["Override Default Distance"] = true
@@ -166,7 +162,7 @@ L["Triage Focus"] = true
 L["Enable Triage Focus"] = true
 L["triageFocusEnabled_desc"] = "Highlight the in-range party or raid member with the largest healing need."
 L["Force Enable"] = true
-L["triageFocusForceEnabled_desc"] = "Enable Triage Focus even when your current specialization is not detected as a healer."
+L["triageFocusForceEnabled_desc"] = "Enable Triage Focus even when Triage does not detect you as a healer."
 L["Range Mode"] = true
 L["triageFocusRangeMode_desc"] = "Auto uses a conservative healing range for your class. Fixed uses the selected yard value."
 L["Auto"] = true
@@ -222,7 +218,7 @@ L["Target marker defaults reset."] = true
 ------------------ Indicator Panel -----------------
 ----------------------------------------------------
 
-L["indicatorOptions_desc"] = "Please select an indicator position from the dropdown menu below"
+L["indicatorOptions_desc"] = "Select Indicator Tools or an indicator position from the list."
 
 L["instructions_desc1"] = "The box to the right contains the list of auras to watch at the selected position"
 
@@ -368,15 +364,3 @@ L["Decoding failed."] = true
 L["Decompression failed."] = true
 L["Data import Failed."] = true
 L["Aborting."] = true
-
-L["Experimental"] = true
-L["Experimental Options"] = true
-L["Experimental_Options_Warning"] = [[
-
-Warning:
-
-Here you will fill find experimental and potentially dangerous options.
-
-Use at your own risk.
-
-]]
