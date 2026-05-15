@@ -177,6 +177,7 @@ function Triage:OnEnable()
 	if rawget(_G, "CompactUnitFrame_SetUnit") then
 		self:SecureHook("CompactUnitFrame_SetUnit", function(frame, unit)
 			self:UpdateManagedFrameUnit(frame, unit, "blizzard")
+			self:UpdateStockAuraVisibility(frame)
 			if not self.ShouldContinue(frame, true) then
 				return
 			end

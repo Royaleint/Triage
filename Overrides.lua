@@ -26,10 +26,6 @@ end
 
 --- Set the visibility on the stock buff/debuff frames
 function Triage:UpdateAllStockAuraVisibility()
-	if IsRetailClient(self) then
-		self:EnsureRetailStockAuraVisibilityEvents()
-	end
-
 	self:ForEachManagedFrame(function(frame)
 		self:UpdateStockAuraVisibility(frame)
 	end)
@@ -43,18 +39,6 @@ function Triage:UpdateAllStockAuraVisibility()
 			end)
 		end
 	end
-end
-
---- Register catch-up events for Retail's private-aura attribute path.
-function Triage:EnsureRetailStockAuraVisibilityEvents()
-	if self.Triage_stockAuraVisibilityEventsRegistered then
-		return
-	end
-
-	self.Triage_stockAuraVisibilityEventsRegistered = true
-	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
-		self:UpdateAllStockAuraVisibility()
-	end)
 end
 
 --- Apply Retail 12.0.5+ stock aura visibility via Blizzard_PrivateAurasUI attributes.
