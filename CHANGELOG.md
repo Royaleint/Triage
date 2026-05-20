@@ -1,5 +1,19 @@
 # Triage Changelog
 
+## v1.3.0 (2026-05-19)
+
+Burning Crusade Classic support and a stock-aura visibility fix.
+
+---
+
+### New
+
+- **TBC Classic support.** Triage now runs on the Burning Crusade Classic Anniversary client, joining Retail, Pandaria Classic, and Classic Era.
+
+### Bug Fixes
+
+- Fix stock Blizzard buff and debuff icons reappearing on raid frames after a unit was assigned or reassigned, even with their Triage visibility options turned off.
+
 ## v1.2.0 (2026-05-06)
 
 New healing-focus highlight, spec aura defaults, indicator copy and reset tools, and a wave of fixes for target markers, dispel highlights, stock auras, and combat-safe options.
