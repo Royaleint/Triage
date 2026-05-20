@@ -1,5 +1,15 @@
 # Triage Changelog
 
+## v1.3.1 (2026-05-20)
+
+Packaging fix so Triage installs from a single download across all supported clients.
+
+---
+
+### Bug Fixes
+
+- Triage now installs from one download that covers Retail, Classic Era, Burning Crusade Classic, and Pandaria Classic, instead of a separate file for each version.
+
 ## v1.3.0 (2026-05-19)
 
 Burning Crusade Classic support and a stock-aura visibility fix.
