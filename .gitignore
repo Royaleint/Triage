@@ -25,6 +25,11 @@ __pycache__/
 # Downloaded archives
 *.zip
 
+# Generated at CI time by the release workflow (extracted from CHANGELOG.md
+# and pandoc-converted to HTML for CurseForge compatibility)
+RELEASE_NOTES.md
+RELEASE_NOTES.html
+
 # Copy/backup files
 *- Copy.lua
 *_backup.lua
