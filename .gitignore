@@ -6,6 +6,10 @@ Tri_Tracker.md
 Tri_Completed.md
 .codex/skills/triage/
 
+# Third-party addon source kept locally for pattern study only — must never
+# ship or be copied into Triage code (data-contamination rule). See TRI-039.
+dbm-research/
+
 # Claude Code config (local)
 .claude/
 
