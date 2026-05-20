@@ -72,37 +72,15 @@ jobs:
           echo "--- Converted HTML uploaded to CurseForge / Wago ---"
           cat RELEASE_NOTES.html
 
-      - name: Package and Release (Retail)
+      # Single packager run, no -g flag. Triage.toc carries a multi-flavor
+      # "## Interface: 11508, 20505, 50503, 120005" line and .pkgmeta sets
+      # enable-toc-creation, so one run builds ONE zip with per-flavor TOCs and
+      # uploads it as a SINGLE CurseForge/Wago file tagged for all four clients
+      # (Retail, Classic Era, TBC, Mists). This replaces the previous four -g
+      # steps, which produced four separate CF downloads and confused users
+      # expecting one package. See TRI-040.
+      - name: Package and Release
         uses: BigWigsMods/packager@v2
-        with:
-          args: -g retail
-        env:
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package and Release (Classic Era)
-        uses: BigWigsMods/packager@v2
-        with:
-          args: -g classic
-        env:
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package and Release (TBC Classic)
-        uses: BigWigsMods/packager@v2
-        with:
-          args: -g bcc
-        env:
-          CF_API_KEY: ${{ secrets.CF_API_KEY }}
-          WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
-          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Package and Release (Pandaria Classic)
-        uses: BigWigsMods/packager@v2
-        with:
-          args: -g mists
         env:
           CF_API_KEY: ${{ secrets.CF_API_KEY }}
           WAGO_API_TOKEN: ${{ secrets.WAGO_API_TOKEN }}
