@@ -3,9 +3,13 @@
 local Triage = _G.Triage
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 local LibRangeCheck = LibStub("LibRangeCheck-3.0", true)
+local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 local OptionsModel = {}
 Triage.OptionsModel = OptionsModel
+
+local importExportBuffer = ""
+local importExportStatus = ""
 
 local function GetProfile()
 	return Triage and Triage.db and Triage.db.profile
@@ -64,6 +68,14 @@ local function BuildFontValues()
 	table.sort(values, function(left, right)
 		return tostring(left.label) < tostring(right.label)
 	end)
+	return values
+end
+
+local function BuildPositionValues()
+	local values = {}
+	for index, label in ipairs(Triage.POSITIONS or {}) do
+		values[#values + 1] = { key = index, label = label }
+	end
 	return values
 end
 
@@ -657,6 +669,247 @@ OptionsModel.sections = {
 				end,
 				disabled = function()
 					return not GetProfile().dispelOverlay.enabled
+				end,
+			},
+		},
+	},
+	{
+		key = "targetMarkers",
+		label = L["Target Marker Options"],
+		description = L["markerOptions_desc"] .. ":",
+		rows = {
+			{
+				key = "generalHeader",
+				type = "header",
+				label = L["General"],
+			},
+			{
+				key = "showTargetMarkers",
+				type = "checkbox",
+				label = L["Show Target Markers"],
+				tooltip = L["showTargetMarkers_desc"],
+				get = function()
+					return GetProfile().showTargetMarkers
+				end,
+				set = function(value)
+					GetProfile().showTargetMarkers = value
+					RefreshConfig()
+				end,
+			},
+			{
+				key = "markerSize",
+				type = "slider",
+				label = L["Target Marker Size"],
+				tooltip = L["markerSize_desc"],
+				min = 1,
+				max = 40,
+				step = 1,
+				get = function()
+					return GetProfile().markerSize
+				end,
+				set = function(value)
+					GetProfile().markerSize = value
+					RefreshConfig()
+				end,
+				disabled = function()
+					return not GetProfile().showTargetMarkers
+				end,
+			},
+			{
+				key = "markerAlpha",
+				type = "slider",
+				label = L["Target Marker Opacity"],
+				tooltip = L["markerAlpha_desc"],
+				isPercent = true,
+				min = 0,
+				max = 1,
+				step = 0.01,
+				get = function()
+					return GetProfile().markerAlpha
+				end,
+				set = function(value)
+					GetProfile().markerAlpha = value
+					RefreshConfig()
+				end,
+				disabled = function()
+					return not GetProfile().showTargetMarkers
+				end,
+			},
+			{
+				key = "positionOptions",
+				type = "header",
+				label = L["Position"],
+			},
+			{
+				key = "markerPosition",
+				type = "dropdown",
+				label = L["Marker Position"],
+				tooltip = L["markerPosition_desc"],
+				values = BuildPositionValues,
+				get = function()
+					return GetProfile().markerPosition
+				end,
+				set = function(value)
+					GetProfile().markerPosition = value
+					RefreshConfig()
+				end,
+				disabled = function()
+					return not GetProfile().showTargetMarkers
+				end,
+			},
+			{
+				key = "markerVerticalOffset",
+				type = "slider",
+				label = L["Vertical Offset"],
+				tooltip = L["verticalOffset_desc"],
+				isPercent = true,
+				min = -1,
+				max = 1,
+				step = 0.01,
+				get = function()
+					return GetProfile().markerVerticalOffset
+				end,
+				set = function(value)
+					GetProfile().markerVerticalOffset = value
+					RefreshConfig()
+				end,
+				disabled = function()
+					return not GetProfile().showTargetMarkers
+				end,
+			},
+			{
+				key = "markerVerticalNudge",
+				type = "slider",
+				label = L["Marker Vertical Nudge"],
+				tooltip = L["markerVerticalNudge_desc"],
+				min = -10,
+				max = 10,
+				step = 1,
+				get = function()
+					return GetProfile().markerVerticalNudge or 0
+				end,
+				set = function(value)
+					GetProfile().markerVerticalNudge = value
+					RefreshConfig()
+				end,
+				disabled = function()
+					return not GetProfile().showTargetMarkers
+				end,
+			},
+			{
+				key = "markerHorizontalOffset",
+				type = "slider",
+				label = L["Horizontal Offset"],
+				tooltip = L["horizontalOffset_desc"],
+				isPercent = true,
+				min = -1,
+				max = 1,
+				step = 0.01,
+				get = function()
+					return GetProfile().markerHorizontalOffset
+				end,
+				set = function(value)
+					GetProfile().markerHorizontalOffset = value
+					RefreshConfig()
+				end,
+				disabled = function()
+					return not GetProfile().showTargetMarkers
+				end,
+			},
+			{
+				key = "resetTargetMarkerDefaults",
+				type = "button",
+				label = L["Reset Target Marker Defaults"],
+				tooltip = L["resetTargetMarkerDefaults_desc"],
+				run = function()
+					Triage:ResetTargetMarkerDefaults()
+					Triage:Print(L["Target marker defaults reset."])
+				end,
+			},
+		},
+	},
+	{
+		key = "profiles",
+		label = L["Profiles"],
+		description = L["Profiles"],
+		rows = {
+			{
+				key = "openAceProfiles",
+				type = "button",
+				label = L["Profiles"],
+				tooltip = L["Profiles"],
+				run = function()
+					if Triage.OptionsFrame and Triage.OptionsFrame.Hide then
+						Triage.OptionsFrame:Hide()
+					end
+					AceConfigDialog:Open("Triage Profiles")
+				end,
+			},
+		},
+	},
+	{
+		key = "importExport",
+		label = L["Profile"] .. " " .. L["Import"] .. "/" .. L["Export"],
+		description = L["ImportExport_Desc"],
+		rows = {
+			{
+				key = "importExportWarning",
+				type = "description",
+				label = L["ImportExport_WarningDesc"],
+				height = 48,
+			},
+			{
+				key = "importExportText",
+				type = "multiline",
+				label = L["Import or Export the current profile:"],
+				tooltip = L["ImportExport_WarningDesc"],
+				height = 280,
+				get = function()
+					return importExportBuffer
+				end,
+				onTextChanged = function(value)
+					importExportBuffer = value
+					importExportStatus = ""
+				end,
+			},
+			{
+				key = "exportCurrentProfile",
+				type = "button",
+				label = L["Export"],
+				run = function()
+					importExportBuffer = Triage:SerializeAndCompressProfile()
+					importExportStatus = L["Export"] .. " complete."
+				end,
+			},
+			{
+				key = "importCurrentProfile",
+				type = "button",
+				label = L["Import"],
+				tooltip = L["ImportWarning"],
+				run = function()
+					if importExportBuffer == "" then
+						importExportStatus = L["No data to import."] .. " " .. L["Aborting."]
+						return
+					end
+					Triage:DeserializeAndDecompressProfile(importExportBuffer)
+					importExportStatus = L["Import"] .. " attempted. Check chat for the result."
+					RefreshConfig()
+				end,
+			},
+			{
+				key = "clearImportExportBuffer",
+				type = "button",
+				label = "Clear",
+				run = function()
+					importExportBuffer = ""
+					importExportStatus = ""
+				end,
+			},
+			{
+				key = "importExportStatus",
+				type = "status",
+				get = function()
+					return importExportStatus
 				end,
 			},
 		},
