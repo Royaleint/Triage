@@ -10,6 +10,9 @@ Tri_Completed.md
 # ship or be copied into Triage code (data-contamination rule). See TRI-039.
 dbm-research/
 
+# Git worktrees (studio standard — live inside the repo, never committed)
+.worktrees/
+
 # Claude Code config (local)
 .claude/
 
