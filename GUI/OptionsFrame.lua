@@ -1,7 +1,6 @@
 -- Triage - Native Options Frame
 
 local Triage = _G.Triage
-local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 
 local OptionsFrame = {}
 Triage.OptionsFrame = OptionsFrame
@@ -364,7 +363,7 @@ local function CreateTitleHitBox(ownerFrame)
 end
 
 local function SetTitle(ownerFrame)
-	local title = L["Triage"] or "Triage"
+	local title = "Triage"
 	if ownerFrame.TitleContainer and ownerFrame.TitleContainer.TitleText then
 		ownerFrame.TitleContainer.TitleText:SetText(title)
 		return
