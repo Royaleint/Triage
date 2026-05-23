@@ -67,9 +67,24 @@ local function GetProfile()
 	return Triage and Triage.db and Triage.db.profile
 end
 
+local function GetOptionsFrameSettings()
+	local profile = GetProfile()
+	if not profile then
+		return nil
+	end
+	profile.optionsFrame = profile.optionsFrame or {}
+	return profile.optionsFrame
+end
+
 local function RefreshConfig()
 	if Triage and Triage.RefreshConfig then
 		Triage:RefreshConfig()
+	end
+end
+
+local function RefreshOptionsFrame()
+	if Triage and Triage.OptionsFrame and Triage.OptionsFrame.Refresh then
+		Triage.OptionsFrame:Refresh()
 	end
 end
 
@@ -521,6 +536,27 @@ OptionsModel.sections = {
 				set = function(value)
 					GetProfile().backgroundAlpha = value
 					RefreshConfig()
+				end,
+			},
+			{
+				key = "optionsFrameOpacity",
+				type = "slider",
+				label = "Options Window Opacity",
+				tooltip = "Adjust the native Triage options window opacity.",
+				isPercent = true,
+				min = 0.2,
+				max = 1,
+				step = 0.01,
+				get = function()
+					local settings = GetOptionsFrameSettings()
+					return (settings and settings.opacity) or 0.82
+				end,
+				set = function(value)
+					local settings = GetOptionsFrameSettings()
+					if settings then
+						settings.opacity = value
+					end
+					RefreshOptionsFrame()
 				end,
 			},
 			{
