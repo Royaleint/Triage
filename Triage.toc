@@ -60,3 +60,6 @@ GUI\GeneralConfigPanel.lua
 GUI\IndicatorConfigPanel.lua
 GUI\TargetMarkerConfigPanel.lua
 GUI\ProfileImportExport.lua
+GUI\OptionsControls.lua
+GUI\OptionsModel.lua
+GUI\OptionsFrame.lua

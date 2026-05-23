@@ -234,10 +234,27 @@ function Triage:OpenBlizzardOptions()
 	self:OpenConfigWindow()
 end
 
+--- Return whether the current client has the native UI primitives required
+--- for Triage's standalone Blizzard-style options frame.
+function Triage:SupportsNativeOptionsFrame()
+	local scrollUtil = rawget(_G, "ScrollUtil")
+	return type(rawget(_G, "CreateScrollBoxListLinearView")) == "function"
+			and type(rawget(_G, "CreateDataProvider")) == "function"
+			and type(scrollUtil) == "table"
+			and type(scrollUtil.InitScrollBoxListWithScrollBar) == "function"
+end
+
 --- Open the standalone Triage config window.
 function Triage:OpenConfigWindow()
 	if InCombatLockdown() then
 		self:Print("Cannot open settings during combat.")
+		return
+	end
+
+	if self:SupportsNativeOptionsFrame()
+			and self.OptionsFrame
+			and self.OptionsFrame.Open then
+		self.OptionsFrame:Open()
 		return
 	end
 
@@ -261,6 +278,16 @@ end
 function Triage:ChatCommand(input)
 	input = input or ""
 	if self:HandleTestModeChatCommand(input) then
+		return
+	end
+
+	if input == "native" then
+		if self.OptionsFrame and self.OptionsFrame.Open then
+			self.OptionsFrame:Open()
+		end
+		return
+	elseif input == "aceconfig" then
+		AceConfigDialog:Open("Triage")
 		return
 	end
 
@@ -323,6 +350,10 @@ function Triage:InitializeConfigPanels()
 	AceConfigDialog:AddToBlizOptions("Triage Profiles", L["Profiles"], "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Import Export Profile Options",
 			(L["Profile"] .. " " .. L["Import"] .. "/" .. L["Export"]), "Triage")
+
+	if self.OptionsFrame and self.OptionsFrame.Initialize then
+		self.OptionsFrame:Initialize()
+	end
 end
 
 --- Refresh everything that is affected by changes to the configuration
