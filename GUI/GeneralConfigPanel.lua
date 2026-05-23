@@ -73,6 +73,59 @@ function Triage:CreateGeneralOptions()
 				width = THIRD_WIDTH * 1.5,
 				order = 4,
 			},
+			testModeHeader = {
+				type = "header",
+				name = L["Test Mode"],
+				order = 6,
+			},
+			testModeDescription = {
+				type = "description",
+				name = L["testModeDescription_desc"],
+				fontSize = "medium",
+				order = 7,
+			},
+			testModeSize = {
+				type = "select",
+				name = L["Preview Group Size"],
+				desc = L["testModeSize_desc"],
+				values = { [5] = "5", [10] = "10", [25] = "25", [40] = "40" },
+				get = function()
+					return self:GetLastTestModeSize()
+				end,
+				set = function(_, value)
+					self.db.profile.testModeLastSize = value
+				end,
+				width = THIRD_WIDTH,
+				order = 8,
+			},
+			testModeToggle = {
+				type = "execute",
+				name = function()
+					if self:IsTestModeActive() then
+						return L["Disable Test Mode"]
+					end
+					return L["Enable Test Mode"]
+				end,
+				desc = L["testModeToggle_desc"],
+				func = function()
+					if self:IsTestModeActive() then
+						self:StopTestMode()
+					else
+						self:StartTestMode(self:GetLastTestModeSize())
+					end
+				end,
+				disabled = function()
+					return InCombatLockdown() or (not self:IsTestModeActive() and (IsInGroup() or IsInRaid()))
+				end,
+				width = THIRD_WIDTH,
+				order = 9,
+			},
+			testModeLabel = {
+				type = "description",
+				name = L["testModeLabel_desc"],
+				fontSize = "medium",
+				order = 9.1,
+			},
 			-------------------------------------------------
 			textHeader = {
 				type = "header",
@@ -442,61 +495,8 @@ function Triage:CreateGeneralOptions()
 					width = THIRD_WIDTH,
 					order = 59,
 				},
-				testModeHeader = {
-					type = "header",
-					name = L["Test Mode"],
-					order = 80,
-				},
-			testModeDescription = {
-				type = "description",
-				name = L["testModeDescription_desc"],
-				fontSize = "medium",
-					order = 81,
-			},
-			testModeSize = {
-				type = "select",
-				name = L["Preview Group Size"],
-				desc = L["testModeSize_desc"],
-				values = { [5] = "5", [10] = "10", [25] = "25", [40] = "40" },
-				get = function()
-					return self:GetLastTestModeSize()
-				end,
-				set = function(_, value)
-					self.db.profile.testModeLastSize = value
-				end,
-				width = THIRD_WIDTH,
-					order = 82,
-			},
-			testModeToggle = {
-				type = "execute",
-				name = function()
-					if self:IsTestModeActive() then
-						return L["Disable Test Mode"]
-					end
-					return L["Enable Test Mode"]
-				end,
-				desc = L["testModeToggle_desc"],
-				func = function()
-					if self:IsTestModeActive() then
-						self:StopTestMode()
-					else
-						self:StartTestMode(self:GetLastTestModeSize())
-					end
-				end,
-				disabled = function()
-					return InCombatLockdown() or (not self:IsTestModeActive() and (IsInGroup() or IsInRaid()))
-				end,
-				width = THIRD_WIDTH,
-					order = 83,
-			},
-			testModeLabel = {
-				type = "description",
-				name = L["testModeLabel_desc"],
-				fontSize = "medium",
-					order = 84,
-			},
+			}
 		}
-	}
 
 	-- Retail-only extensions
 	if self.supportsExtendedRangeOptions then

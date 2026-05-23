@@ -77,7 +77,7 @@ function Triage:InitializeMinimapButton()
 		icon = "Interface\\Icons\\spell_holy_borrowedtime",
 		OnClick = function(_, button)
 			if button == "LeftButton" then
-				self:OpenBlizzardOptions()
+				self:OpenConfigWindow()
 			end
 		end,
 		OnTooltipShow = function(tooltip)
@@ -236,6 +236,11 @@ end
 
 --- Open the standalone Triage config window.
 function Triage:OpenConfigWindow()
+	if InCombatLockdown() then
+		self:Print("Cannot open settings during combat.")
+		return
+	end
+
 	AceConfigDialog:Open("Triage")
 
 	local openFrames = AceConfigDialog.OpenFrames
