@@ -16,6 +16,9 @@ dbm-research/
 # Claude Code config (local)
 .claude/
 
+# Brainstorm-companion artifacts (visual companion cache)
+.superpowers/
+
 # MCP config (copied from BawrLabs, not committed)
 .mcp.json
 
