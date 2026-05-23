@@ -234,6 +234,16 @@ function Triage:OpenBlizzardOptions()
 	self:OpenConfigWindow()
 end
 
+--- Return whether the current client has the native UI primitives required
+--- for Triage's standalone Blizzard-style options frame.
+function Triage:SupportsNativeOptionsFrame()
+	local scrollUtil = rawget(_G, "ScrollUtil")
+	return type(rawget(_G, "CreateScrollBoxListLinearView")) == "function"
+			and type(rawget(_G, "CreateDataProvider")) == "function"
+			and type(scrollUtil) == "table"
+			and type(scrollUtil.InitScrollBoxListWithScrollBar) == "function"
+end
+
 --- Open the standalone Triage config window.
 function Triage:OpenConfigWindow()
 	if InCombatLockdown() then
