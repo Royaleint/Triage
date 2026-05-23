@@ -50,6 +50,20 @@ local function IsDisabled(row)
 	return false
 end
 
+local function ResolveLabel(label)
+	if type(label) == "function" then
+		return label()
+	end
+	return label
+end
+
+local function ResolveValues(row)
+	if row and type(row.values) == "function" then
+		return row.values() or {}
+	end
+	return (row and row.values) or {}
+end
+
 local function SetControlEnabled(control, enabled)
 	if not control then
 		return
@@ -95,7 +109,7 @@ local function CreateLabel(parent, row)
 	label:SetPoint("LEFT", parent, "LEFT", 0, 0)
 	label:SetWidth(LEFT_WIDTH)
 	label:SetJustifyH("LEFT")
-	label:SetText(row.label or "")
+	label:SetText(ResolveLabel(row.label) or "")
 	return label
 end
 
@@ -132,12 +146,12 @@ end
 
 local function GetDropdownLabel(row)
 	local selected = SafeGet(row, nil)
-	for _, value in ipairs(row.values or {}) do
+	for _, value in ipairs(ResolveValues(row)) do
 		if value.key == selected then
 			return value.label
 		end
 	end
-	return row.label or ""
+	return ResolveLabel(row.label) or ""
 end
 
 local function SetDropdownText(dropdown, row)
@@ -160,7 +174,7 @@ function Controls.AttachTooltip(frame, title, body)
 		return
 	end
 
-	frame.triageTooltipTitle = title
+	frame.triageTooltipTitle = ResolveLabel(title)
 	frame.triageTooltipBody = body
 	frame:EnableMouse(true)
 
@@ -199,7 +213,7 @@ function Controls.CreateHeader(parent, row)
 
 	local label = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
 	label:SetPoint("LEFT", frame, "LEFT", 0, -3)
-	label:SetText(row.label or "")
+	label:SetText(ResolveLabel(row.label) or "")
 	label:SetTextColor(1, 0.96, 0.84, 1)
 	frame.separator = CreateHeaderSeparator(frame, label)
 
@@ -214,7 +228,7 @@ function Controls.CreateDescription(parent, row)
 	text:SetPoint("LEFT", frame, "LEFT", 0, 0)
 	text:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
 	text:SetJustifyH("LEFT")
-	text:SetText(row.label or "")
+	text:SetText(ResolveLabel(row.label) or "")
 
 	return frame
 end
@@ -258,9 +272,10 @@ function Controls.CreateButton(parent, row, refresh)
 	local button = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	button:SetPoint("LEFT", frame, "LEFT", 0, 0)
 	button:SetSize(row.width or 220, 24)
-	button:SetText(row.label or "")
+	button:SetText(ResolveLabel(row.label) or "")
 
 	frame.triageRefresh = function()
+		button:SetText(ResolveLabel(row.label) or "")
 		SetControlEnabled(button, not IsDisabled(row))
 	end
 	frame.triageRefresh()
@@ -357,8 +372,8 @@ function Controls.CreateDropdown(parent, row, refresh)
 
 	if dropdown.SetupMenu then
 		dropdown:SetupMenu(function(_, root)
-			root:CreateTitle(row.label or "")
-			for _, value in ipairs(row.values or {}) do
+			root:CreateTitle(ResolveLabel(row.label) or "")
+			for _, value in ipairs(ResolveValues(row)) do
 				root:CreateRadio(value.label, function()
 					return SafeGet(row, nil) == value.key
 				end, function()
@@ -519,7 +534,7 @@ function Controls.CreateMultiline(parent, row, refresh)
 
 	local label = frame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 	label:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -2)
-	label:SetText(row.label or "")
+	label:SetText(ResolveLabel(row.label) or "")
 
 	local editBox = CreateFrame("EditBox", nil, frame)
 	editBox:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -8)
@@ -565,7 +580,7 @@ function Controls.CreateStatus(parent, row)
 	text:SetJustifyH("LEFT")
 
 	frame.triageRefresh = function()
-		local label = row.get and row.get() or row.label
+		local label = row.get and row.get() or ResolveLabel(row.label)
 		text:SetText(label or "")
 	end
 	frame.triageRefresh()
