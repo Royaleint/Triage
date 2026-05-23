@@ -274,6 +274,16 @@ function Triage:ChatCommand(input)
 		return
 	end
 
+	if input == "native" then
+		if self.OptionsFrame and self.OptionsFrame.Open then
+			self.OptionsFrame:Open()
+		end
+		return
+	elseif input == "aceconfig" then
+		AceConfigDialog:Open("Triage")
+		return
+	end
+
 	if InCombatLockdown() then
 		self:Print("Cannot open settings during combat.")
 		return
@@ -333,6 +343,10 @@ function Triage:InitializeConfigPanels()
 	AceConfigDialog:AddToBlizOptions("Triage Profiles", L["Profiles"], "Triage")
 	AceConfigDialog:AddToBlizOptions("Triage Import Export Profile Options",
 			(L["Profile"] .. " " .. L["Import"] .. "/" .. L["Export"]), "Triage")
+
+	if self.OptionsFrame and self.OptionsFrame.Initialize then
+		self.OptionsFrame:Initialize()
+	end
 end
 
 --- Refresh everything that is affected by changes to the configuration

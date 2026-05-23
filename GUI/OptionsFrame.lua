@@ -539,6 +539,10 @@ local function RegisterSettingsBridge()
 end
 
 function OptionsFrame:Initialize()
+	if Triage.SupportsNativeOptionsFrame and not Triage:SupportsNativeOptionsFrame() then
+		return nil
+	end
+
 	if not frame then
 		frame = CreateShell()
 	end
@@ -548,7 +552,9 @@ function OptionsFrame:Initialize()
 end
 
 function OptionsFrame:Open(sectionKey)
-	self:Initialize()
+	if not self:Initialize() then
+		return
+	end
 	RestoreGeometry()
 	frame:Show()
 	frame:Raise()
