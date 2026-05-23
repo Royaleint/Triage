@@ -251,6 +251,13 @@ function Triage:OpenConfigWindow()
 		return
 	end
 
+	if self:SupportsNativeOptionsFrame()
+			and self.OptionsFrame
+			and self.OptionsFrame.Open then
+		self.OptionsFrame:Open()
+		return
+	end
+
 	AceConfigDialog:Open("Triage")
 
 	local openFrames = AceConfigDialog.OpenFrames
