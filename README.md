@@ -4,7 +4,18 @@ Enhanced Raid Frames, reforged for Midnight and still supporting Classic Era, TB
 
 Triage continues the work of [Enhanced Raid Frames](https://github.com/brittyazel/EnhancedRaidFrames) by Britt W. Yazel (Soyier), which enhanced Blizzard's built-in raid frames with configurable aura indicators, target markers, range checking, and more.
 
-When Midnight changed the addon landscape, ERF's development ended. Triage picks up the foundation, ports it to WoW 12.0, fixes known issues, and will add a healing intelligence layer in future releases.
+When Midnight changed the addon landscape, ERF's development ended. Triage picked up the foundation, ported it to WoW 12.0, and fixed known issues across Retail and the Classic-family clients.
+
+> ## Maintenance mode
+>
+> Triage is in maintenance mode. It works and stays compatible with current
+> game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic,
+> and critical bugs will be fixed — but active feature development has ended and
+> there is no roadmap.
+>
+> Bug reports are welcome; critical breakage (the addon erroring or failing to
+> load after a game patch) is what gets prioritized. Background on the decision:
+> [SHELVED.md](SHELVED.md).
 
 ## Features (v1.0: Triage - Enhanced Raid Frames Reforged)
 
