@@ -1,5 +1,9 @@
 # Triage Changelog
 
+## Maintenance mode (2026-05-24)
+
+Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
+
 ## v1.3.1 (2026-05-20)
 
 Packaging fix so Triage installs from a single download across all supported clients.
