@@ -233,6 +233,15 @@ L["diseaseWildcard_desc"] = "any disease debuffs"
 L["magicWildcard_desc"] = "any magic debuffs"
 L["bleedWildcard_desc"] = "any bleed debuffs (retail only)"
 
+L["Recognized"] = true
+L["Wildcard"] = true
+L["Inactive wildcard"] = "Recognized, but will not match on this client"
+L["Unknown spell ID"] = true
+L["Unverified entry"] = "Not in your spellbook — unverified (may still be valid)"
+L["Did you mean format"] = "Did you mean %s?"
+L["More entries format"] = "+%d more (%d flagged)"
+L["Suggestions"] = true
+
 L["Transforming Spells"] = true
 L["transformSpells_desc"] = "Some spells change name when they proc (e.g. Cenarion Ward becomes Cenarion Ward HoT). Add both forms on separate lines so the indicator stays active through both phases."
 
