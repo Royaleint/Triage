@@ -440,21 +440,20 @@ function Controls.CreateAuraInput(parent, row, refresh)
 		end
 	end)
 
-	-- Tab accepts the highlighted suggestion when the popup is shown; otherwise
-	-- it is a no-op (OnTabPressed has no engine default to fall through to).
-	-- Enter is intentionally left bound to the multiline newline.
+	-- Accept is CLICK-only: click a suggestion row to accept it. Having BOTH Tab and
+	-- click accept was unintuitive, and Tab-accept could only ever take the TOP
+	-- suggestion (keyboard navigation to other rows is deferred — see below), so click
+	-- (which picks any row) is the single, complete accept method. Tab just dismisses
+	-- the popup; Enter stays the multiline newline.
 	editBox:SetScript("OnTabPressed", function()
-		if popup and popup:IsShown() and popup.owner == editBox then
-			AcceptSelected()
-		end
+		HidePopup()
 	end)
 
-	-- Keyboard suggestion navigation (Up/Down) is intentionally NOT wired for v1.
-	-- On a multiline EditBox, OnArrowPressed only fires under SetAltArrowKeyMode(true),
-	-- which then suppresses normal caret movement — a genuine conflict that needs
-	-- in-game tuning. v1 accepts the top (highlighted) suggestion via Tab, or any row
-	-- via click. Deferred to a follow-up: toggle SetAltArrowKeyMode while the popup is
-	-- shown and dismiss the popup on Left/Right. (TRI-014 Gate-2 / v1.1 item.)
+	-- Keyboard suggestion nav (Up/Down) and keyboard accept are intentionally NOT wired
+	-- for v1: on a multiline EditBox, OnArrowPressed only fires under
+	-- SetAltArrowKeyMode(true), which suppresses normal caret movement — a conflict that
+	-- needs in-game tuning. v1 accept is click-only (pick any row). Deferred to a
+	-- follow-up: a full keyboard flow (alt-arrow nav + Tab/Enter accept). (TRI-014 v1.1.)
 
 	-- Recompute as the caret moves (focus + non-empty line) — routed through the
 	-- shared debounce timer so the strip + popup rebuild at most once per ~0.25s
