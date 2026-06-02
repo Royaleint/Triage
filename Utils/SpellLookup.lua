@@ -253,8 +253,11 @@ local function EnsureEventFrame()
 		return
 	end
 	eventFrame = CreateFrame("Frame")
+	-- SPELLS_CHANGED fires on any spellbook change (including learning a spell),
+	-- which is all we need to invalidate the cache. LEARNED_SPELL_IN_TAB was removed
+	-- in Dragonflight, and RegisterEvent THROWS on an unknown event on Retail/Midnight,
+	-- so we register only SPELLS_CHANGED — it already covers the learn case on every client.
 	eventFrame:RegisterEvent("SPELLS_CHANGED")
-	eventFrame:RegisterEvent("LEARNED_SPELL_IN_TAB")
 	eventFrame:SetScript("OnEvent", InvalidatePlayerSpells)
 end
 
