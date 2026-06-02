@@ -654,6 +654,8 @@ function OptionsFrame:RenderRow(rowFrame, row)
 			child = controls.CreateEditBox(rowFrame, row, function() OptionsFrame:Refresh() end)
 		elseif row.type == "multiline" then
 			child = controls.CreateMultiline(rowFrame, row, function() OptionsFrame:Refresh() end)
+		elseif row.type == "auraInput" then
+			child = controls.CreateAuraInput(rowFrame, row, function() OptionsFrame:Refresh() end)
 		elseif row.type == "status" then
 			child = controls.CreateStatus(rowFrame, row)
 		end

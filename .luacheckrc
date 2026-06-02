@@ -42,6 +42,8 @@ read_globals = {
     -- WoW frames / UI globals
     "CreateFrame",
     "CreateColor",
+    "ClearCursor",
+    "GetCursorInfo",
     "UIParent",
     "GameTooltip",
     "GameMenuFrame",
@@ -61,6 +63,7 @@ read_globals = {
     "GetInventorySlotInfo",
     "GetNumSpellTabs",
     "GetPlayerMapPosition",
+    "GetSpellBookItemInfo",
     "GetSpellBookItemName",
     "GetSpellInfo",
     "GetSpellTabInfo",

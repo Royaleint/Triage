@@ -1436,10 +1436,10 @@ local function CreateIndicatorSection(index, position)
 			},
 			{
 				key = "indicator" .. index .. "Auras",
-				type = "multiline",
+				type = "auraInput",
 				label = L["Aura Watch List"],
 				tooltip = L["auras_desc"],
-				height = 170,
+				height = 280,
 				get = function()
 					return indicator().auras
 				end,

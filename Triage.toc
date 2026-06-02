@@ -30,6 +30,7 @@ Overrides.lua
 # Utils
 Utils/FrameRegistry.lua
 Utils/Utilities.lua
+Utils/SpellLookup.lua
 Utils/DatabaseMigration.lua
 Utils/SpecDefaults.lua
 Utils/TestModeData.lua
@@ -61,5 +62,6 @@ GUI\IndicatorConfigPanel.lua
 GUI\TargetMarkerConfigPanel.lua
 GUI\ProfileImportExport.lua
 GUI\OptionsControls.lua
+GUI\AuraInputControl.lua
 GUI\OptionsModel.lua
 GUI\OptionsFrame.lua
