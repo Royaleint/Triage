@@ -44,6 +44,7 @@ read_globals = {
     "CreateColor",
     "ClearCursor",
     "GetCursorInfo",
+    "MouseIsOver",
     "UIParent",
     "GameTooltip",
     "GameMenuFrame",

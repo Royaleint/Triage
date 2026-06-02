@@ -347,11 +347,11 @@ function Controls.CreateAuraInput(parent, row, refresh)
 			return false
 		end
 
-		local text = editBox:GetText() or ""
-		local cursorByte = editBox:GetCursorPosition()
-		local _, startByte, endByte = CurrentLineRange(text, cursorByte)
-
-		editBox:HighlightText(startByte, endByte)
+		-- Clicking a popup row blurs the editbox; HighlightText/Insert require focus,
+		-- so re-focus first. Replace the line byte-range captured when the popup was
+		-- shown (the live cursor may have moved on blur), not a fresh GetCursorPosition.
+		editBox:SetFocus()
+		editBox:HighlightText(popup.lineStart or 0, popup.lineEnd or 0)
 		editBox:Insert(entry.name)
 		-- Insert() is a programmatic mutation: it does NOT fire OnTextChanged with
 		-- userInput=true, so the config-write path never runs. Persist explicitly,
@@ -373,7 +373,7 @@ function Controls.CreateAuraInput(parent, row, refresh)
 
 		local text = editBox:GetText() or ""
 		local cursorByte = editBox:GetCursorPosition()
-		local lineText = CurrentLineRange(text, cursorByte)
+		local lineText, lineStart, lineEnd = CurrentLineRange(text, cursorByte)
 		local prefix = strtrim(lineText or "")
 
 		if prefix == "" or not editBox:HasFocus() then
@@ -390,6 +390,11 @@ function Controls.CreateAuraInput(parent, row, refresh)
 		popup.owner = editBox
 		popup.suggestions = suggestions
 		popup.selected = 1
+		-- Remember the line range these suggestions are for: an accept happens after
+		-- the click has blurred the box and moved the live cursor, so AcceptSelected
+		-- replaces this stored range rather than re-reading the cursor.
+		popup.lineStart = lineStart
+		popup.lineEnd = lineEnd
 
 		for i = 1, #suggestions do
 			local entry = suggestions[i]
@@ -465,6 +470,11 @@ function Controls.CreateAuraInput(parent, row, refresh)
 	end)
 
 	editBox:HookScript("OnEditFocusLost", function()
+		-- A click on a suggestion row blurs the editbox; don't hide the popup in that
+		-- case or the row's OnClick never lands. AcceptSelected re-focuses and hides.
+		if popup and popup:IsShown() and MouseIsOver(popup) then
+			return
+		end
 		HidePopup()
 	end)
 
