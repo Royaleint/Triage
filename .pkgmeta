@@ -19,6 +19,7 @@ ignore:
   - "!README.md"
   - "!CHANGELOG.md"
   - RELEASE_NOTES.html
+  - tests
   - Triage_Dev
 
 # Externals migration (v1.0.0): switched from `embedded-libraries` to `externals`

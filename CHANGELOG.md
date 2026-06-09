@@ -4,6 +4,16 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
+## v1.3.2 (2026-06-08)
+
+Hotfix for Classic-family raid frame fading in combat.
+
+---
+
+### Bug Fixes
+
+- Fix Pandaria Classic raid frames fading when combat starts and staying faded until combat ends, even when players are in range. The same Classic-family range handling is also corrected for Classic Era and Burning Crusade Classic.
+
 ## v1.3.1 (2026-05-20)
 
 Packaging fix so Triage installs from a single download across all supported clients.

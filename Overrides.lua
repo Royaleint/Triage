@@ -20,6 +20,29 @@ local function IsRetailClient(addon)
 	return addon.supportsRetailStockAuraAttributes == true
 end
 
+local function GetFriendRangeChecker(range)
+	return LibRangeCheck:GetFriendMinChecker(range, InCombatLockdown() == true)
+end
+
+local function ApplyRangeAlpha(addon, frame, rangeChecker)
+	local effectiveUnit = addon:GetManagedFrameUnit(frame)
+	if not effectiveUnit then
+		frame:SetAlpha(1)
+		return
+	end
+
+	if rangeChecker then
+		local inRange = rangeChecker(effectiveUnit)
+		if not inRange then
+			frame:SetAlpha(addon.db.profile.rangeAlpha)
+		else
+			frame:SetAlpha(1)
+		end
+	else
+		frame:SetAlpha(1)
+	end
+end
+
 local function IsRetailPrivateAuraContainer(frame)
 	return frame and type(frame.SetPrivateAuraAnchorSettings) == "function" and type(frame.SetAttribute) == "function"
 end
@@ -195,36 +218,31 @@ function Triage:UpdateInRange(frame, rangeChecker)
 	end
 
 	if not self.db.profile.customRangeCheck then
+		if not self.isRetail then
+			ApplyRangeAlpha(self, frame, rangeChecker or GetFriendRangeChecker(40))
+		end
 		-- Default range: Blizzard handles 40yd range correctly via privileged code
 		-- (immune to C_Secrets). frame.outOfRange, GetAlpha(), and UnitInRange() are
 		-- all secret-tainted and unreadable from addon code. Let Blizzard's hardcoded
-		-- 0.3 alpha stand. Users who want custom dim alpha should enable Custom Range.
+		-- 0.3 alpha stand on Retail. Classic-family clients can safely override stale
+		-- combat fades with LibRangeCheck; if no safe checker exists, keep frames visible.
+		-- Users who want custom dim alpha should enable Custom Range.
 		return
 	end
 
 	-- Custom range: use LibRangeCheck since Blizzard only checks the default 40yd boundary.
 	-- CompactUnitFrame_UpdateInRange only flips when Blizzard's UnitInRange state changes,
 	-- so crossing a custom threshold inside 40yd needs our own polling pass.
-	local effectiveUnit = self:GetManagedFrameUnit(frame)
-	rangeChecker = rangeChecker or LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange)
-
-	if rangeChecker then
-		local inRange = rangeChecker(effectiveUnit)
-		if not inRange then
-			frame:SetAlpha(self.db.profile.rangeAlpha)
-		else
-			frame:SetAlpha(1)
-		end
-	else
-		frame:SetAlpha(1)
-	end
+	ApplyRangeAlpha(self, frame, rangeChecker or GetFriendRangeChecker(self.db.profile.customRange))
 end
 
 --- Update the range alpha state for all active compact frames.
 function Triage:UpdateAllRanges()
 	local rangeChecker
 	if self.db.profile.customRangeCheck then
-		rangeChecker = LibRangeCheck:GetFriendMinChecker(self.db.profile.customRange)
+		rangeChecker = GetFriendRangeChecker(self.db.profile.customRange)
+	elseif not self.isRetail then
+		rangeChecker = GetFriendRangeChecker(40)
 	end
 
 	self:ForEachManagedFrame(function(frame)
