@@ -16,6 +16,14 @@ local STOCK_AURA_ATTRIBUTES = {
 	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs" },
 }
 
+local STOCK_AURA_SUBCHANNEL_ATTRIBUTES = {
+	{ option = "showBuffs", attribute = "max-buffs", hiddenValue = 0 },
+	{ option = "showDebuffs", attribute = "max-debuffs", hiddenValue = 0 },
+	{ option = "showDispellableDebuffs", attribute = "max-dispel-debuffs", hiddenValue = 0 },
+	{ option = "showBuffs", attribute = "show-big-defensive", hiddenValue = false },
+	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false },
+}
+
 local function IsRetailClient(addon)
 	return addon.supportsRetailStockAuraAttributes == true
 end
@@ -45,6 +53,16 @@ end
 
 local function IsRetailPrivateAuraContainer(frame)
 	return frame and type(frame.SetPrivateAuraAnchorSettings) == "function" and type(frame.SetAttribute) == "function"
+			and type(frame.GetAttribute) == "function"
+end
+
+local function CaptureRetailStockAuraBaseAttributes(frame)
+	local baseAttributes = frame.Triage_stockAuraBaseAttributes or {}
+	frame.Triage_stockAuraBaseAttributes = baseAttributes
+
+	for _, mapping in ipairs(STOCK_AURA_SUBCHANNEL_ATTRIBUTES) do
+		baseAttributes[mapping.attribute] = frame:GetAttribute(mapping.attribute)
+	end
 end
 
 --- Set the visibility on the stock buff/debuff frames
@@ -67,7 +85,8 @@ end
 --- Apply Retail 12.0.5+ stock aura visibility via Blizzard_PrivateAurasUI attributes.
 ---@param frame table @The frame to update
 ---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
-function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
+---@param refreshBaseAttributes boolean|nil @Whether Blizzard just rewrote the base PrivateAurasUI attributes
+function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI, refreshBaseAttributes)
 	if not IsRetailPrivateAuraContainer(frame) then
 		return false
 	end
@@ -77,8 +96,22 @@ function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
 		return true
 	end
 
+	if refreshBaseAttributes or not frame.Triage_stockAuraVisibilityApplied then
+		CaptureRetailStockAuraBaseAttributes(frame)
+	end
+	frame.Triage_stockAuraVisibilityApplied = true
+
 	for _, mapping in ipairs(STOCK_AURA_ATTRIBUTES) do
 		frame:SetAttribute(mapping.attribute, not self.db.profile[mapping.option])
+	end
+
+	local baseAttributes = frame.Triage_stockAuraBaseAttributes
+	for _, mapping in ipairs(STOCK_AURA_SUBCHANNEL_ATTRIBUTES) do
+		if self.db.profile[mapping.option] then
+			frame:SetAttribute(mapping.attribute, baseAttributes[mapping.attribute])
+		else
+			frame:SetAttribute(mapping.attribute, mapping.hiddenValue)
+		end
 	end
 
 	if notifyPrivateAuraUI then
@@ -99,7 +132,7 @@ function Triage:EnsureRetailStockAuraVisibilityHook(frame)
 	if not frame.Triage_stockAuraVisibilityHooked then
 		frame.Triage_stockAuraVisibilityHooked = true
 		hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", function(hookedFrame)
-			self:ApplyRetailStockAuraVisibility(hookedFrame)
+			self:ApplyRetailStockAuraVisibility(hookedFrame, nil, true)
 		end)
 	end
 
