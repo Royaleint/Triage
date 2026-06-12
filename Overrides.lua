@@ -24,10 +24,6 @@ local STOCK_AURA_SUBCHANNEL_ATTRIBUTES = {
 	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false },
 }
 
-local function IsRetailClient(addon)
-	return addon.supportsRetailStockAuraAttributes == true
-end
-
 local function GetFriendRangeChecker(range)
 	return LibRangeCheck:GetFriendMinChecker(range, InCombatLockdown() == true)
 end
@@ -82,7 +78,7 @@ function Triage:UpdateAllStockAuraVisibility()
 	end
 end
 
---- Apply Retail 12.0.5+ stock aura visibility via Blizzard_PrivateAurasUI attributes.
+--- Apply stock aura visibility via Blizzard_PrivateAurasUI attributes (Retail 12.0.5+, Classic Era 1.15.9+, Mists Classic 5.5.4+).
 ---@param frame table @The frame to update
 ---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
 ---@param refreshBaseAttributes boolean|nil @Whether Blizzard just rewrote the base PrivateAurasUI attributes
@@ -147,7 +143,11 @@ function Triage:UpdateStockAuraVisibility(frame)
 		return
 	end
 
-	if IsRetailClient(self) and self:EnsureRetailStockAuraVisibilityHook(frame) then
+	-- Route by frame capability, not client flavor: Classic Era 1.15.9 and Mists
+	-- Classic 5.5.4 ship the same attribute-based private-aura container as Retail
+	-- (and removed the legacy buffFrames/debuffFrames tables). Frames without the
+	-- container fall through to the legacy OnShow-hook path below.
+	if self:EnsureRetailStockAuraVisibilityHook(frame) then
 		if not self.ShouldContinue(frame, true) then
 			return
 		end
@@ -178,15 +178,23 @@ function Triage:UpdateStockAuraVisibility(frame)
 				if not self:IsHooked(auraFrame, "OnShow") then
 					-- Be careful not to hook the same frame multiple times
 						self:SecureHookScript(auraFrame, "OnShow", function(shownFrame)
+							shownFrame.Triage_stockAuraWasShown = true
 							shownFrame:Hide()
 						end)
 				end
 				-- Hide frame immediately as well, otherwise some already shown frames will remain visible
+				if auraFrame.IsShown and auraFrame:IsShown() then
+					auraFrame.Triage_stockAuraWasShown = true
+				end
 				auraFrame:Hide()
 			else
 				if self:IsHooked(auraFrame, "OnShow") then
 					-- Unhook the frame if it's hooked and we want to return it to the default behavior
 					self:Unhook(auraFrame, "OnShow")
+				end
+				if auraFrame.Triage_stockAuraWasShown then
+					auraFrame.Triage_stockAuraWasShown = nil
+					auraFrame:Show()
 				end
 			end
 		end
