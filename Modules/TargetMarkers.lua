@@ -87,9 +87,9 @@ function Triage:SetTargetMarkerAppearance(frame)
 
 	-- We probably don't want to overlap the power bar (rage, mana, energy, etc) so we need a compensation factor
 	local powerBarVertOffset
-	if self.db.profile.powerBarOffset and frame.powerBar and frame.powerBar:IsShown() then
+	if self.db.profile.powerBarOffset and frame.powerBar then
 		local pbHeight = frame.powerBar:GetHeight()
-		if issecretvalue and issecretvalue(pbHeight) then
+		if not pbHeight or pbHeight == 0 or (issecretvalue and issecretvalue(pbHeight)) then
 			pbHeight = 8
 		end
 		powerBarVertOffset = pbHeight + 2 -- Add 2 to not overlap the powerBar border

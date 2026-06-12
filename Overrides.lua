@@ -178,15 +178,23 @@ function Triage:UpdateStockAuraVisibility(frame)
 				if not self:IsHooked(auraFrame, "OnShow") then
 					-- Be careful not to hook the same frame multiple times
 						self:SecureHookScript(auraFrame, "OnShow", function(shownFrame)
+							shownFrame.Triage_stockAuraWasShown = true
 							shownFrame:Hide()
 						end)
 				end
 				-- Hide frame immediately as well, otherwise some already shown frames will remain visible
+				if auraFrame.IsShown and auraFrame:IsShown() then
+					auraFrame.Triage_stockAuraWasShown = true
+				end
 				auraFrame:Hide()
 			else
 				if self:IsHooked(auraFrame, "OnShow") then
 					-- Unhook the frame if it's hooked and we want to return it to the default behavior
 					self:Unhook(auraFrame, "OnShow")
+				end
+				if auraFrame.Triage_stockAuraWasShown then
+					auraFrame.Triage_stockAuraWasShown = nil
+					auraFrame:Show()
 				end
 			end
 		end
