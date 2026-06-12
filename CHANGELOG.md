@@ -4,6 +4,12 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
+## Unreleased
+
+### Improved
+
+- Aura watch-list autocomplete suggestions can now be accepted with Enter as well as click. Enter still adds a new line when no suggestion is open.
+
 ## v1.3.2 (2026-06-08)
 
 Hotfix for Classic-family raid frame fading in combat.
