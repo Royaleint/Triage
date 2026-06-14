@@ -1,4 +1,4 @@
-﻿## Interface: 11508, 20505, 50503, 120005
+﻿## Interface: 11508, 20505, 50504, 120005
 ## Title: Triage - Enhanced Raid Frames Reforged
 ## Notes: Enhanced Raid Frames, reforged for Midnight and still supporting Classic Era, TBC Classic, and Pandaria Classic
 ## IconTexture: Interface\Icons\spell_holy_borrowedtime
