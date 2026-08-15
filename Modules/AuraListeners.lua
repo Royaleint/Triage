@@ -168,23 +168,48 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		-- keyed by auraInstanceID (not array-indexed) on retail, so next() is the correct
 		-- emptiness check here, not #.
 		local hadAurasBefore = next(parentFrame.Triage_unitAuras) ~= nil
-		-- Clear out the table
+		-- Scan into a scratch table so a mid-scan failure below (see scanOK) can't leave
+		-- Triage_unitAuras partially wiped. Only committed to parentFrame.Triage_unitAuras
+		-- on success.
+		local previousAuras = parentFrame.Triage_unitAuras
 		parentFrame.Triage_unitAuras = {}
-		-- Iterate through all buffs and debuffs on the unit
+		local scanOK = true
+		-- Accumulated locally, not written straight to shouldRunUpdate: if the scan fails
+		-- partway (scanOK false below) we roll back to previousAuras and must NOT report an
+		-- update for auras that only ever lived in the discarded scratch table.
+		local scanUpdateFlag = false
+		-- Iterate through all buffs and debuffs on the unit. pcall-wrapped: AuraUtil.ForEachAura
+		-- calls C_UnitAuras.GetAuraSlots, which can hard-throw ("Auras cannot be accessed when
+		-- secret while tainted by...") when a tainted caller is denied unit aura access outright
+		-- under restriction — a distinct failure class from the secret-*value* taint addToAuraTable
+		-- already guards against, and one issecretvalue() cannot detect in advance.
 		for _, filter in pairs(AURA_FILTERS) do
-			AuraUtil.ForEachAura(unit, filter, nil, function(auraData)
+			local ok = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
 				-- Add our auraData to the Triage_unitAuras table
-				local updateFlag = self:addToAuraTable(parentFrame, auraData)
-				if updateFlag then
-					shouldRunUpdate = true
+				if self:addToAuraTable(parentFrame, auraData) then
+					scanUpdateFlag = true
 				end
-			end, true);
+			end, true)
+			if not ok then
+				scanOK = false
+				break
+			end
 		end
-		-- If every previously-tracked aura is gone after the rescan (whether genuinely expired,
-		-- or dropped by the secrecy guard in addToAuraTable), we still need to run the indicator
-		-- update to clear them — otherwise they go stale/pinned on cached data instead of clearing.
-		if hadAurasBefore and not next(parentFrame.Triage_unitAuras) then
-			shouldRunUpdate = true
+		if scanOK then
+			if scanUpdateFlag then
+				shouldRunUpdate = true
+			end
+			-- If every previously-tracked aura is gone after the rescan (whether genuinely
+			-- expired, or dropped by the secrecy guard in addToAuraTable), we still need to run
+			-- the indicator update to clear them — otherwise they go stale/pinned on cached data
+			-- instead of clearing.
+			if hadAurasBefore and not next(parentFrame.Triage_unitAuras) then
+				shouldRunUpdate = true
+			end
+		else
+			-- Access was denied partway through the scan. Discard the partial scratch table and
+			-- keep the last-known-good display instead of leaving indicators wiped or half-updated.
+			parentFrame.Triage_unitAuras = previousAuras
 		end
 	end
 
@@ -205,15 +230,20 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			-- Skip instance IDs that are themselves secret under restriction: C_UnitAuras only
 			-- accepts secret arguments from untainted callers, and addon code is tainted.
 			if not (issecretvalue and issecretvalue(auraInstanceID)) then
-				local auraData = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
+				-- pcall-wrapped: GetAuraDataByAuraInstanceID shares the RequiresUnitAuraAccess
+				-- precondition with GetAuraSlots above, so it can hard-throw on a denied access
+				-- even when auraInstanceID itself isn't secret. Not yet observed crashing live,
+				-- but same failure class, same guard.
+				local ok, auraData = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
 				-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
-				if auraData then
+				if ok and auraData then
 					-- Add our auraData to the Triage_unitAuras table
 					local updateFlag = self:addToAuraTable(parentFrame, auraData)
 					if updateFlag then
 						shouldRunUpdate = true
 					end
 				end
+				-- if not ok: access was denied for this instance ID this tick; skip it, no crash
 			end
 		end
 	end
