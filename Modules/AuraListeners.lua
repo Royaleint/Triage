@@ -9,6 +9,13 @@ local Triage = _G.Triage
 -- Import libraries
 local LibDispel = LibStub("LibDispel-1.0")
 
+-- Localize globals used in hot paths (UNIT_AURA fires often; avoid repeated global lookups)
+local issecretvalue = issecretvalue -- nil on Classic, where the global doesn't exist; that's fine, guards below already check for it
+
+-- Aura filters we scan on a full update. Hoisted to a file-local constant so we don't allocate
+-- a fresh table on every UNIT_AURA full-update/rescan call.
+local AURA_FILTERS = { "HELPFUL", "HARMFUL" }
+
 if Triage.needsLibClassicDurations then
 	-- Set up LibClassicDurations
 	local LibClassicDurations = LibStub("LibClassicDurations")
@@ -133,8 +140,8 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	payload = payload or { isFullUpdate = true }
 
 	-- Read payload fields into locals through the secrecy guard before any boolean test on them.
-	-- Default isFullUpdate to true (not false) when secret/unknown: the full-rescan path below
-	-- already degrades safely via addToAuraTable's guard, so treating "unknown" as "rescan"
+	-- Default isFullUpdate to true (not false) when secret: the full-rescan path below
+	-- already degrades safely via addToAuraTable's guard, so treating "secret" as "rescan"
 	-- avoids stale, never-clearing indicators instead of the previous crash.
 	local isFullUpdate = SafeField(payload.isFullUpdate, true)
 	local addedAuras = SafeField(payload.addedAuras, nil)
@@ -157,10 +164,14 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	local shouldRunUpdate = false
 	-- If we get a full update signal, reset the table and rescan all auras for the unit
 	if isFullUpdate then
+		-- Remember whether we had anything tracked before the wipe below. Triage_unitAuras is
+		-- keyed by auraInstanceID (not array-indexed) on retail, so next() is the correct
+		-- emptiness check here, not #.
+		local hadAurasBefore = next(parentFrame.Triage_unitAuras) ~= nil
 		-- Clear out the table
 		parentFrame.Triage_unitAuras = {}
 		-- Iterate through all buffs and debuffs on the unit
-		for _, filter in pairs({ "HELPFUL", "HARMFUL" }) do
+		for _, filter in pairs(AURA_FILTERS) do
 			AuraUtil.ForEachAura(unit, filter, nil, function(auraData)
 				-- Add our auraData to the Triage_unitAuras table
 				local updateFlag = self:addToAuraTable(parentFrame, auraData)
@@ -168,6 +179,12 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 					shouldRunUpdate = true
 				end
 			end, true);
+		end
+		-- If every previously-tracked aura is gone after the rescan (whether genuinely expired,
+		-- or dropped by the secrecy guard in addToAuraTable), we still need to run the indicator
+		-- update to clear them — otherwise they go stale/pinned on cached data instead of clearing.
+		if hadAurasBefore and not next(parentFrame.Triage_unitAuras) then
+			shouldRunUpdate = true
 		end
 	end
 
@@ -319,7 +336,7 @@ function Triage:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 	parentFrame.Triage_unitAuras = {}
 
 	-- Iterate through all buffs and debuffs on the unit
-	for _, filter in pairs({ "HELPFUL", "HARMFUL" }) do
+	for _, filter in pairs(AURA_FILTERS) do
 		-- Counter to keep track of our aura index
 		local auraIndex = 1
 
