@@ -9,6 +9,13 @@ local Triage = _G.Triage
 -- Import libraries
 local LibDispel = LibStub("LibDispel-1.0")
 
+-- Localize globals used in hot paths (UNIT_AURA fires often; avoid repeated global lookups)
+local issecretvalue = issecretvalue -- nil on Classic, where the global doesn't exist; that's fine, guards below already check for it
+
+-- Aura filters we scan on a full update. Hoisted to a file-local constant so we don't allocate
+-- a fresh table on every UNIT_AURA full-update/rescan call.
+local AURA_FILTERS = { "HELPFUL", "HARMFUL" }
+
 if Triage.needsLibClassicDurations then
 	-- Set up LibClassicDurations
 	local LibClassicDurations = LibStub("LibClassicDurations")
@@ -99,6 +106,19 @@ function Triage:UpdateAllAuras()
 	end)
 end
 
+--- Returns fallback when value is a secret value (aura data restricted under combat/encounter/
+--- challenge-mode/PvP as of 12.1), otherwise returns value unchanged. issecretvalue() is safe to
+--- call on any value including nil, so it runs before any boolean test on the returned value to
+--- avoid taint from truthiness checks on secret UNIT_AURA payload fields.
+---@param value any @The payload field to read
+---@param fallback any @The value to substitute if value is secret
+local function SafeField(value, fallback)
+	if issecretvalue and issecretvalue(value) then
+		return fallback
+	end
+	return value
+end
+
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.
 --- Unit aura information for tracked auras is stored in the Triage_unitAuras table.
 --- It uses the C_UnitAuras API that was added in 10.0.
@@ -118,26 +138,40 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		return
 	end
 	payload = payload or { isFullUpdate = true }
+
+	-- Read payload fields into locals through the secrecy guard before any boolean test on them.
+	-- Default isFullUpdate to true (not false) when secret: the full-rescan path below
+	-- already degrades safely via addToAuraTable's guard, so treating "secret" as "rescan"
+	-- avoids stale, never-clearing indicators instead of the previous crash.
+	local isFullUpdate = SafeField(payload.isFullUpdate, true)
+	local addedAuras = SafeField(payload.addedAuras, nil)
+	local updatedAuraInstanceIDs = SafeField(payload.updatedAuraInstanceIDs, nil)
+	local removedAuraInstanceIDs = SafeField(payload.removedAuraInstanceIDs, nil)
+
 	-- Create a listener frame for the unit if we don't happen to have one yet, or we're forcing a re-creation
 	if not parentFrame.Triage_auraListenerFrame or forceRefresh then
 		self:CreateAuraListener(parentFrame)
-		payload.isFullUpdate = true -- Force a full update if we're forcing a refresh
+		isFullUpdate = true -- Force a full update if we're forcing a refresh
 	end
 	-- Create the main table for the unit
 	if not parentFrame.Triage_unitAuras then
 		parentFrame.Triage_unitAuras = {}
-		payload.isFullUpdate = true -- Force a full update if we don't have a table for the unit yet
+		isFullUpdate = true -- Force a full update if we don't have a table for the unit yet
 	end
 
 	-- Flag to determine if we need to run an update on the indicators since we only care about select auras
 	-- This should filter out a lot of unnecessary updates from triggering an indicator update
 	local shouldRunUpdate = false
 	-- If we get a full update signal, reset the table and rescan all auras for the unit
-	if payload.isFullUpdate then
+	if isFullUpdate then
+		-- Remember whether we had anything tracked before the wipe below. Triage_unitAuras is
+		-- keyed by auraInstanceID (not array-indexed) on retail, so next() is the correct
+		-- emptiness check here, not #.
+		local hadAurasBefore = next(parentFrame.Triage_unitAuras) ~= nil
 		-- Clear out the table
 		parentFrame.Triage_unitAuras = {}
 		-- Iterate through all buffs and debuffs on the unit
-		for _, filter in pairs({ "HELPFUL", "HARMFUL" }) do
+		for _, filter in pairs(AURA_FILTERS) do
 			AuraUtil.ForEachAura(unit, filter, nil, function(auraData)
 				-- Add our auraData to the Triage_unitAuras table
 				local updateFlag = self:addToAuraTable(parentFrame, auraData)
@@ -146,11 +180,17 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 				end
 			end, true);
 		end
+		-- If every previously-tracked aura is gone after the rescan (whether genuinely expired,
+		-- or dropped by the secrecy guard in addToAuraTable), we still need to run the indicator
+		-- update to clear them — otherwise they go stale/pinned on cached data instead of clearing.
+		if hadAurasBefore and not next(parentFrame.Triage_unitAuras) then
+			shouldRunUpdate = true
+		end
 	end
 
 	-- If one or more new auras were added, update the table with their payload information
-	if payload.addedAuras then
-		for _, auraData in pairs(payload.addedAuras) do
+	if addedAuras then
+		for _, auraData in pairs(addedAuras) do
 			-- Add our auraData to the Triage_unitAuras table
 			local updateFlag = self:addToAuraTable(parentFrame, auraData)
 			if updateFlag then
@@ -160,27 +200,35 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	end
 
 	-- If one or more auras were updated, query their updated information and add it to the table
-	if payload.updatedAuraInstanceIDs then
-		for _, auraInstanceID in pairs(payload.updatedAuraInstanceIDs) do
-			local auraData = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
-			-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
-			if auraData then
-				-- Add our auraData to the Triage_unitAuras table
-				local updateFlag = self:addToAuraTable(parentFrame, auraData)
-				if updateFlag then
-					shouldRunUpdate = true
+	if updatedAuraInstanceIDs then
+		for _, auraInstanceID in pairs(updatedAuraInstanceIDs) do
+			-- Skip instance IDs that are themselves secret under restriction: C_UnitAuras only
+			-- accepts secret arguments from untainted callers, and addon code is tainted.
+			if not (issecretvalue and issecretvalue(auraInstanceID)) then
+				local auraData = C_UnitAuras.GetAuraDataByAuraInstanceID(unit, auraInstanceID)
+				-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
+				if auraData then
+					-- Add our auraData to the Triage_unitAuras table
+					local updateFlag = self:addToAuraTable(parentFrame, auraData)
+					if updateFlag then
+						shouldRunUpdate = true
+					end
 				end
 			end
 		end
 	end
 
 	-- If one or more auras was removed, remove them from the table
-	if payload.removedAuraInstanceIDs then
-		for _, auraInstanceID in pairs(payload.removedAuraInstanceIDs) do
-			if parentFrame.Triage_unitAuras[auraInstanceID] then
-				-- Set the table entry to nil to remove it
-				parentFrame.Triage_unitAuras[auraInstanceID] = nil
-				shouldRunUpdate = true
+	if removedAuraInstanceIDs then
+		for _, auraInstanceID in pairs(removedAuraInstanceIDs) do
+			-- Skip instance IDs that are secret: secret-as-table-key semantics are undocumented,
+			-- so don't risk using one to index Triage_unitAuras.
+			if not (issecretvalue and issecretvalue(auraInstanceID)) then
+				if parentFrame.Triage_unitAuras[auraInstanceID] then
+					-- Set the table entry to nil to remove it
+					parentFrame.Triage_unitAuras[auraInstanceID] = nil
+					shouldRunUpdate = true
+				end
 			end
 		end
 	end
@@ -196,13 +244,24 @@ end
 ---@param auraData table @Payload from UNIT_AURA event
 ---@return boolean @True if we added or updated an aura
 function Triage:addToAuraTable(parentFrame, auraData)
-	-- Skip auras with secret values from C_Secrets (M+, rated PvP)
-	-- issecretvalue() is safe to call on any value including nil, so it runs
-	-- before any boolean tests on aura fields to avoid taint from truthiness checks
+	-- Skip auras with secret values from C_Secrets (M+, rated PvP, and — as of 12.1 — routine
+	-- combat/encounter/challenge-mode restrictions). issecretvalue() is safe to call on any
+	-- value including nil, so it runs before any boolean tests on aura fields to avoid taint
+	-- from truthiness checks. Covers every auraData field this function or AuraIndicators.lua
+	-- reads without its own guard, so any aura that reaches Triage_unitAuras is secret-field-free.
 	if issecretvalue and (
 		issecretvalue(auraData.name)
 		or issecretvalue(auraData.spellId)
 		or issecretvalue(auraData.dispelName)
+		or issecretvalue(auraData.isHelpful)
+		or issecretvalue(auraData.isHarmful)
+		or issecretvalue(auraData.auraInstanceID)
+		or issecretvalue(auraData.expirationTime)
+		or issecretvalue(auraData.duration)
+		or issecretvalue(auraData.applications)
+		or issecretvalue(auraData.icon)
+		or issecretvalue(auraData.sourceUnit)
+		or issecretvalue(auraData.timeMod)
 	) then
 		return false
 	end
@@ -277,7 +336,7 @@ function Triage:UpdateUnitAuras_Classic(parentFrame, forceRefresh)
 	parentFrame.Triage_unitAuras = {}
 
 	-- Iterate through all buffs and debuffs on the unit
-	for _, filter in pairs({ "HELPFUL", "HARMFUL" }) do
+	for _, filter in pairs(AURA_FILTERS) do
 		-- Counter to keep track of our aura index
 		local auraIndex = 1
 
