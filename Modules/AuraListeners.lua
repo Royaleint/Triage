@@ -12,6 +12,11 @@ local LibDispel = LibStub("LibDispel-1.0")
 -- Localize globals used in hot paths (UNIT_AURA fires often; avoid repeated global lookups)
 local issecretvalue = issecretvalue -- nil on Classic, where the global doesn't exist; that's fine, guards below already check for it
 
+-- TRI-051 diagnostic only (see ReportAuraAccessError below): one-shot flag so a caught pcall
+-- error prints once per session instead of once per UNIT_AURA tick. Remove alongside the
+-- diagnostic print once the RequiresUnitAuraAccess hypothesis is confirmed either way.
+local hasReportedAuraAccessError = false
+
 -- Aura filters we scan on a full update. Hoisted to a file-local constant so we don't allocate
 -- a fresh table on every UNIT_AURA full-update/rescan call.
 local AURA_FILTERS = { "HELPFUL", "HARMFUL" }
@@ -119,6 +124,21 @@ local function SafeField(value, fallback)
 	return value
 end
 
+--- TRI-051 diagnostic only: prints the message pcall caught at one of the two RequiresUnitAuraAccess
+--- guard sites below, once per session (UNIT_AURA is storm-class; an unthrottled print would spam
+--- chat). Lets Rawb confirm in-game that the caught error is actually the expected
+--- RequiresUnitAuraAccess/GetAuraSlots throw and not something unrelated. Remove this call and
+--- the hasReportedAuraAccessError flag once that hypothesis is confirmed either way.
+---@param addon table @The Triage addon table (used for :Print)
+---@param err any @The error value pcall's second return gave us
+local function ReportAuraAccessError(addon, err)
+	if hasReportedAuraAccessError then
+		return
+	end
+	hasReportedAuraAccessError = true
+	addon:Print("TRI-051 diagnostic: pcall caught: " .. tostring(err))
+end
+
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.
 --- Unit aura information for tracked auras is stored in the Triage_unitAuras table.
 --- It uses the C_UnitAuras API that was added in 10.0.
@@ -168,15 +188,17 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		-- keyed by auraInstanceID (not array-indexed) on retail, so next() is the correct
 		-- emptiness check here, not #.
 		local hadAurasBefore = next(parentFrame.Triage_unitAuras) ~= nil
-		-- Scan into a scratch table so a mid-scan failure below (see scanOK) can't leave
-		-- Triage_unitAuras partially wiped. Only committed to parentFrame.Triage_unitAuras
-		-- on success.
+		-- Install a fresh empty table onto the frame up front and hold the old one aside in
+		-- previousAuras, rather than committing a scratch table at the end: if the scan below
+		-- fails partway (see scanOK), we roll parentFrame.Triage_unitAuras back to previousAuras.
+		-- Lua is single-threaded/non-preemptive, so nothing can observe the frame mid-scan
+		-- either way — this is install-then-rollback, not a hidden staging table.
 		local previousAuras = parentFrame.Triage_unitAuras
 		parentFrame.Triage_unitAuras = {}
 		local scanOK = true
 		-- Accumulated locally, not written straight to shouldRunUpdate: if the scan fails
 		-- partway (scanOK false below) we roll back to previousAuras and must NOT report an
-		-- update for auras that only ever lived in the discarded scratch table.
+		-- update for auras that only ever lived in the table we're about to discard.
 		local scanUpdateFlag = false
 		-- Iterate through all buffs and debuffs on the unit. pcall-wrapped: AuraUtil.ForEachAura
 		-- calls C_UnitAuras.GetAuraSlots, which can hard-throw ("Auras cannot be accessed when
@@ -184,7 +206,7 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		-- under restriction — a distinct failure class from the secret-*value* taint addToAuraTable
 		-- already guards against, and one issecretvalue() cannot detect in advance.
 		for _, filter in pairs(AURA_FILTERS) do
-			local ok = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
+			local ok, err = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
 				-- Add our auraData to the Triage_unitAuras table
 				if self:addToAuraTable(parentFrame, auraData) then
 					scanUpdateFlag = true
@@ -192,6 +214,7 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			end, true)
 			if not ok then
 				scanOK = false
+				ReportAuraAccessError(self, err)
 				break
 			end
 		end
@@ -207,8 +230,8 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 				shouldRunUpdate = true
 			end
 		else
-			-- Access was denied partway through the scan. Discard the partial scratch table and
-			-- keep the last-known-good display instead of leaving indicators wiped or half-updated.
+			-- The scan failed partway through. Roll back to the last-known-good table we held
+			-- aside in previousAuras instead of leaving indicators wiped or half-updated.
 			parentFrame.Triage_unitAuras = previousAuras
 		end
 	end
@@ -242,8 +265,12 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 					if updateFlag then
 						shouldRunUpdate = true
 					end
+				elseif not ok then
+					-- The call failed (pcall caught an error, cause unknown here — could be
+					-- RequiresUnitAuraAccess denial or something else); skip this instance ID
+					-- rather than propagate the error.
+					ReportAuraAccessError(self, auraData)
 				end
-				-- if not ok: access was denied for this instance ID this tick; skip it, no crash
 			end
 		end
 	end
