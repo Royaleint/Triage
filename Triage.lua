@@ -134,9 +134,7 @@ function Triage:OnEnable()
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
 		self:RefreshRangeTicker()
 		self:UpdateTriageFocus()
-		if self.supportsRetailStockAuraAttributes then
-			self:UpdateAllStockAuraVisibility()
-		end
+		self:UpdateAllStockAuraVisibility()
 	end)
 
 	-- Apply indicator mouse propagation settings that were skipped during combat lockdown.

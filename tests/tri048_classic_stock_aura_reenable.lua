@@ -1,4 +1,4 @@
--- luacheck: globals arg LibStub InCombatLockdown hooksecurefunc dofile
+-- luacheck: globals arg LibStub InCombatLockdown hooksecurefunc dofile CompactUnitFrame_UpdateAuras
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
 
@@ -108,12 +108,19 @@ assertEqual(attributeFrame.attributes["ignore-buffs"], false, "re-enabled stock 
 assertEqual(attributeFrame.attributes["max-buffs"], 3, "re-enabled stock buffs should restore base max-buffs")
 
 -- Legacy fallback: a frame without the attribute container (e.g. an older
--- Classic client) still gets the OnShow-hook path, and re-enabling restores
--- frames Triage itself hid.
+-- Classic client) still gets the OnShow-hook path. Re-enabling no longer restores
+-- visibility itself -- it lets Blizzard's own CompactUnitFrame_UpdateAuras rebuild
+-- the frame from current aura state, so a buff that expired while suppressed can't
+-- leave behind a stale icon (TRI-048 phantom-icon fix).
 _G.Triage.db.profile.showBuffs = false
+
+-- Simulates whether the unit currently has an active buff, from Blizzard's perspective.
+local blizzardAuraActive = true
+local updateAurasCalls = 0
 
 local auraFrame = {
 	shown = true,
+	texture = "buff-icon",
 	IsShown = function(self)
 		return self.shown
 	end,
@@ -125,6 +132,18 @@ local auraFrame = {
 	end,
 }
 
+function CompactUnitFrame_UpdateAuras(updatedFrame)
+	updateAurasCalls = updateAurasCalls + 1
+	assertEqual(updatedFrame.buffFrames[1], auraFrame, "Blizzard rebuild should target the raid frame Triage updated")
+	if blizzardAuraActive then
+		auraFrame.texture = "buff-icon"
+		auraFrame:Show()
+	else
+		auraFrame.texture = nil
+		auraFrame:Hide()
+	end
+end
+
 local legacyFrame = {
 	buffFrames = { auraFrame },
 	debuffFrames = {},
@@ -134,10 +153,27 @@ local legacyFrame = {
 _G.Triage:UpdateStockAuraVisibility(legacyFrame)
 assertEqual(auraFrame.shown, false, "disabled stock buff frame should be hidden")
 assertEqual(_G.Triage:IsHooked(auraFrame, "OnShow"), true, "disabled stock buff frame should keep OnShow hook")
+assertEqual(updateAurasCalls, 0, "suppressing should not trigger a Blizzard aura rebuild")
 
+-- Re-enable while the buff is still active: Blizzard rebuilds and shows the current icon
 _G.Triage.db.profile.showBuffs = true
 _G.Triage:UpdateStockAuraVisibility(legacyFrame)
 assertEqual(_G.Triage:IsHooked(auraFrame, "OnShow"), false, "re-enabled stock buff frame should remove OnShow hook")
-assertEqual(auraFrame.shown, true, "re-enabled stock buff frame should be shown immediately")
+assertEqual(updateAurasCalls, 1, "re-enabling should ask Blizzard to rebuild the frame")
+assertEqual(auraFrame.shown, true, "re-enabled stock buff frame should be shown when the buff is still active")
+assertEqual(auraFrame.texture, "buff-icon", "re-enabled stock buff frame should show the current aura icon")
+
+-- Phantom-icon regression: the buff expires while suppressed, then the user re-enables.
+_G.Triage.db.profile.showBuffs = false
+_G.Triage:UpdateStockAuraVisibility(legacyFrame)
+assertEqual(auraFrame.shown, false, "re-suppressed stock buff frame should be hidden")
+
+blizzardAuraActive = false -- the buff expires while suppressed; Blizzard has no aura to show anymore
+
+_G.Triage.db.profile.showBuffs = true
+_G.Triage:UpdateStockAuraVisibility(legacyFrame)
+assertEqual(updateAurasCalls, 2, "re-enabling after expiry should still ask Blizzard to rebuild the frame")
+assertEqual(auraFrame.shown, false, "re-enabling after the buff expired must not flash the stale icon")
+assertEqual(auraFrame.texture, nil, "re-enabling after the buff expired must not retain the stale icon texture")
 
 print("tri048_classic_stock_aura_reenable: PASS")

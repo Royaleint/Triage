@@ -163,6 +163,7 @@ function Triage:UpdateStockAuraVisibility(frame)
 	-- Tables to track the stock buff/debuff frames and their visibility flags in our database
 	local allAuraFrames = { frame.buffFrames, frame.debuffFrames, frame.dispelDebuffFrames }
 	local auraVisibilityFlags = { self.db.profile.showBuffs, self.db.profile.showDebuffs, self.db.profile.showDispellableDebuffs }
+	local unhookedAny = false
 
 	-- Iterate through the stock buff/debuff/dispelDebuff frame types
 	for i, auraFrames in ipairs(allAuraFrames) do
@@ -177,27 +178,26 @@ function Triage:UpdateStockAuraVisibility(frame)
 				-- Query the specific visibility flag for this frame type
 				if not self:IsHooked(auraFrame, "OnShow") then
 					-- Be careful not to hook the same frame multiple times
-						self:SecureHookScript(auraFrame, "OnShow", function(shownFrame)
-							shownFrame.Triage_stockAuraWasShown = true
-							shownFrame:Hide()
-						end)
+					self:SecureHookScript(auraFrame, "OnShow", function(shownFrame)
+						shownFrame:Hide()
+					end)
 				end
 				-- Hide frame immediately as well, otherwise some already shown frames will remain visible
-				if auraFrame.IsShown and auraFrame:IsShown() then
-					auraFrame.Triage_stockAuraWasShown = true
-				end
 				auraFrame:Hide()
-			else
-				if self:IsHooked(auraFrame, "OnShow") then
-					-- Unhook the frame if it's hooked and we want to return it to the default behavior
-					self:Unhook(auraFrame, "OnShow")
-				end
-				if auraFrame.Triage_stockAuraWasShown then
-					auraFrame.Triage_stockAuraWasShown = nil
-					auraFrame:Show()
-				end
+			elseif self:IsHooked(auraFrame, "OnShow") then
+				-- Unhook the frame if it's hooked and we want to return it to the default behavior
+				self:Unhook(auraFrame, "OnShow")
+				unhookedAny = true
 			end
 		end
+	end
+
+	-- Re-enabling a category: let Blizzard rebuild the icons from the unit's current aura
+	-- state instead of restoring visibility ourselves. We only ever hid these frames, never
+	-- refreshed their texture/cooldown data, so a frame whose aura expired while suppressed
+	-- would still be holding a stale icon if we just called Show() on it directly.
+	if unhookedAny and CompactUnitFrame_UpdateAuras then
+		CompactUnitFrame_UpdateAuras(frame)
 	end
 end
 

@@ -200,6 +200,10 @@ _G.Triage:SetIndicatorAppearance(frame)
 assertEqual(frame.Triage_indicatorFrames[8].y, 11, "indicator fallback should derive offset from a shown power bar")
 
 frame = NewFrame(secretSentinel, false, 8)
+_G.Triage:SetIndicatorAppearance(frame)
+assertEqual(frame.Triage_indicatorFrames[8].y, 1, "indicator fallback should skip offset for a hidden power bar")
+
+frame = NewFrame(secretSentinel, false, 8)
 _G.Triage:SetTargetMarkerAppearance(frame)
 assertEqual(frame.Triage_targetMarkerFrame.y, 3, "target marker fallback should skip offset for a hidden power bar")
 
