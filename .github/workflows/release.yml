@@ -70,6 +70,20 @@ jobs:
             echo "::warning::$TAG is not the newest tag ($NEWEST); skipping packaging and CurseForge/Wago upload to avoid publishing an older build over a newer one. Re-run from the Actions tab with force=true if this is a deliberate re-publish."
           fi
 
+      # A manual workflow_dispatch run builds whatever branch/ref it was
+      # launched from — the checkout above never looks at the `tag` input.
+      # The guard and changelog-extraction steps validate against that input,
+      # so without this step a dispatch "for v1.0.x" from a branch with newer
+      # commits would silently ship the wrong tree under v1.0.x's release
+      # notes. Only runs for a manual dispatch that named a tag; a tag push
+      # already has that tag checked out, and a tagless dispatch releases
+      # whatever ref was checked out above. (TRI-049)
+      - name: Checkout the named tag (workflow_dispatch only)
+        if: steps.guard.outputs.publish == 'true' && inputs.tag != ''
+        run: |
+          echo "Checking out refs/tags/${{ inputs.tag }}"
+          git checkout "refs/tags/${{ inputs.tag }}"
+
       - name: Extract current version changelog
         if: steps.guard.outputs.publish == 'true'
         run: |
