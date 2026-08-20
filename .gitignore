@@ -13,6 +13,13 @@ dbm-research/
 # Git worktrees (studio standard — live inside the repo, never committed)
 .worktrees/
 
+# Generated locally by the TRI-050 build-matrix dev-build tooling
+# (Triage_Dev/scripts/generate-devbuild-toc.mjs). If either is ever committed,
+# every user install ships two TOCs and loads the addon twice — these must
+# stay ignored here AND in .pkgmeta.
+Triage_DevBuild.toc
+DevBuildGuard.lua
+
 # Claude Code config (local)
 .claude/
 
