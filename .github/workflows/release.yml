@@ -48,7 +48,8 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           if ! git rev-parse -q --verify "refs/tags/$TAG" >/dev/null; then
-            echo "::error::Tag $TAG does not exist in this repository — nothing to release."
+            echo "::error::Dispatched tag does not exist in this repository — nothing to release."
+            echo "Tag: $TAG"
             exit 1
           fi
           echo "Dispatched tag $TAG resolves."
@@ -64,8 +65,10 @@ jobs:
       # release is never blocked by its own prerelease tag.
       - name: Guard — only the newest tag may publish
         id: guard
+        env:
+          TAG: ${{ inputs.tag }}
+          FORCE: ${{ inputs.force }}
         run: |
-          TAG="${{ inputs.tag }}"
           [ -z "$TAG" ] && TAG="${{ github.ref_name }}"
           # Highest version = first line of the version-sorted tag list. Read
           # into a var and slice the first line rather than piping to `head`,
@@ -78,7 +81,7 @@ jobs:
           echo "Triggering tag:     $TAG"
           echo "Newest tag in repo: $NEWEST"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          if [ "$TAG" = "$NEWEST" ] || [ "${{ inputs.force }}" = "true" ]; then
+          if [ "$TAG" = "$NEWEST" ] || [ "$FORCE" = "true" ]; then
             if [ "$TAG" != "$NEWEST" ]; then
               echo "::warning::Publishing $TAG via force override even though $NEWEST is newer."
             fi
@@ -99,29 +102,12 @@ jobs:
       # swapped to the tag's content. `.github` (this workflow plus the
       # verification scripts it runs later) and `.pkgmeta` (the packager's
       # own config) stay on the dispatch ref, so every later step keeps
-      # running today's logic against a config that matches it. A full
-      # checkout to an old tag was tried first and rejected: every tag in
-      # this repo predates .github/scripts/, so it deleted those scripts out
-      # from under the "every TOC-listed file ships" check below, and it
-      # reverted .pkgmeta to a changelog format the current changelog step
-      # no longer produces (see TRI-049 cycle 1).
-      #
-      # `git checkout --detach <tag>` swaps the whole working tree, adding,
-      # updating, AND removing files to match the tag exactly — a pathspec
-      # `git checkout <tag> -- . ':(exclude)...'` was tried in a scratch
-      # clone first and rejected: it never removes payload files that exist
-      # on the dispatch ref but not in the tag (confirmed empirically: files
-      # added after v1.2.0, like GUI/AuraInputControl.lua, stayed behind).
-      # Restoring `.github` and `.pkgmeta` from the dispatch ref afterward is
-      # exact for the same reason: `git checkout <ref> -- <path>` recreates
-      # whatever that ref has at <path>, even if the tag checkout just
-      # deleted it. The packager itself never touches git history for this —
-      # it copies whatever is on disk (BigWigsMods/packager's
-      # copy_directory_tree, topdir=.) — so this working-tree swap is what
-      # actually lands in the shipped zip. Only runs for a manual dispatch
-      # that named a tag; a tag push already has that tag checked out, and a
-      # tagless dispatch releases whatever ref was checked out above.
-      # (TRI-049)
+      # running today's logic against a config that matches it — see the
+      # TRI-049 cycle 2 commit message for the rejected alternatives and why
+      # this checkout-then-restore approach is the one that ships correctly.
+      # Only runs for a manual dispatch that named a tag; a tag push already
+      # has that tag checked out, and a tagless dispatch releases whatever
+      # ref was checked out above. (TRI-049)
       - name: Checkout release payload from the named tag
         if: steps.guard.outputs.publish == 'true' && inputs.tag != ''
         env:
@@ -134,11 +120,12 @@ jobs:
 
       - name: Extract current version changelog
         if: steps.guard.outputs.publish == 'true'
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
           # Determine the tag to extract notes for. For tag-push triggers,
           # github.ref_name is the tag (e.g. v1.0.0). For workflow_dispatch,
           # prefer the manual input, fall back to github.ref_name.
-          TAG="${{ inputs.tag }}"
           [ -z "$TAG" ] && TAG="${{ github.ref_name }}"
           echo "Extracting release notes for tag: $TAG"
 
