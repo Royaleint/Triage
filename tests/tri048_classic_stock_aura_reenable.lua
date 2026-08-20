@@ -31,10 +31,9 @@ end
 
 local hooks = setmetatable({}, { __mode = "k" })
 
--- Classic-family client: the addon-level Retail flag is false, but 1.15.9+ /
--- 5.5.4+ frames still carry the attribute-based private-aura container.
+-- Classic-family client: 1.15.9+ / 5.5.4+ frames carry the attribute-based
+-- private-aura container; older Classic-family frames fall to the legacy path.
 _G.Triage = {
-	supportsRetailStockAuraAttributes = false,
 	db = {
 		profile = {
 			showBuffs = false,
@@ -118,19 +117,26 @@ _G.Triage.db.profile.showBuffs = false
 local blizzardAuraActive = true
 local updateAurasCalls = 0
 
-local auraFrame = {
-	shown = true,
-	texture = "buff-icon",
-	IsShown = function(self)
+-- Show() mirrors real SecureHookScript semantics: the original show runs first,
+-- then a still-active OnShow hook runs after and can immediately hide it again.
+local function NewLegacyAuraFrame(shown, texture)
+	local auraFrame = { shown = shown, texture = texture }
+	auraFrame.IsShown = function(self)
 		return self.shown
-	end,
-	Hide = function(self)
+	end
+	auraFrame.Hide = function(self)
 		self.shown = false
-	end,
-	Show = function(self)
+	end
+	auraFrame.Show = function(self)
 		self.shown = true
-	end,
-}
+		if self.onShowHook then
+			self.onShowHook(self)
+		end
+	end
+	return auraFrame
+end
+
+local auraFrame = NewLegacyAuraFrame(true, "buff-icon")
 
 function CompactUnitFrame_UpdateAuras(updatedFrame)
 	updateAurasCalls = updateAurasCalls + 1
@@ -175,5 +181,39 @@ _G.Triage:UpdateStockAuraVisibility(legacyFrame)
 assertEqual(updateAurasCalls, 2, "re-enabling after expiry should still ask Blizzard to rebuild the frame")
 assertEqual(auraFrame.shown, false, "re-enabling after the buff expired must not flash the stale icon")
 assertEqual(auraFrame.texture, nil, "re-enabling after the buff expired must not retain the stale icon texture")
+
+-- Steady-state regression: once nothing is transitioning from suppressed to enabled,
+-- repeated updates (e.g. every GROUP_ROSTER_UPDATE) must not keep asking Blizzard to
+-- rebuild the frame.
+_G.Triage:UpdateStockAuraVisibility(legacyFrame)
+assertEqual(updateAurasCalls, 2, "an unchanged enabled state should not trigger another rebuild")
+
+-- Mixed-category regression: re-enabling buffs must not resurrect a debuff that stays
+-- suppressed. Blizzard's rebuild refreshes every category in one pass, so it's the
+-- still-active OnShow hook on the debuff frame -- not any category-specific skip in
+-- Triage -- that has to keep it hidden.
+_G.Triage.db.profile.showDebuffs = false
+local debuffAuraFrame = NewLegacyAuraFrame(false)
+legacyFrame.debuffFrames = { debuffAuraFrame }
+
+_G.Triage.db.profile.showBuffs = false
+_G.Triage:UpdateStockAuraVisibility(legacyFrame)
+assertEqual(_G.Triage:IsHooked(debuffAuraFrame, "OnShow"), true, "suppressed debuff frame should be hooked")
+
+function CompactUnitFrame_UpdateAuras(updatedFrame)
+	updateAurasCalls = updateAurasCalls + 1
+	assertEqual(updatedFrame, legacyFrame, "Blizzard rebuild should target the raid frame Triage updated")
+	-- Blizzard's rebuild tries to show every category it has aura data for.
+	auraFrame.texture = "buff-icon"
+	auraFrame:Show()
+	debuffAuraFrame:Show()
+end
+
+_G.Triage.db.profile.showBuffs = true
+_G.Triage:UpdateStockAuraVisibility(legacyFrame)
+assertEqual(updateAurasCalls, 3, "re-enabling buffs should still trigger a rebuild")
+assertEqual(auraFrame.shown, true, "re-enabled buff frame should be shown by the rebuild")
+assertEqual(debuffAuraFrame.shown, false, "suppressed debuff frame must stay hidden even though the rebuild tried to show it")
+assertEqual(_G.Triage:IsHooked(debuffAuraFrame, "OnShow"), true, "suppressed debuff frame should keep its OnShow hook")
 
 print("tri048_classic_stock_aura_reenable: PASS")

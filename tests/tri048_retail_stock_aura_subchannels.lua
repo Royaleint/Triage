@@ -23,7 +23,6 @@ function InCombatLockdown()
 end
 
 _G.Triage = {
-	supportsRetailStockAuraAttributes = true,
 	db = {
 		profile = {
 			showBuffs = false,

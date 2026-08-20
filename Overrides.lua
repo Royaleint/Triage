@@ -196,6 +196,8 @@ function Triage:UpdateStockAuraVisibility(frame)
 	-- state instead of restoring visibility ourselves. We only ever hid these frames, never
 	-- refreshed their texture/cooldown data, so a frame whose aura expired while suppressed
 	-- would still be holding a stale icon if we just called Show() on it directly.
+	-- No combat-lockdown deferral needed: like the Hide()/Show() calls above, this only
+	-- touches plain texture/cooldown regions on these sub-frames, not secure attributes.
 	if unhookedAny and CompactUnitFrame_UpdateAuras then
 		CompactUnitFrame_UpdateAuras(frame)
 	end
