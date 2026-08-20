@@ -24,10 +24,6 @@ local STOCK_AURA_SUBCHANNEL_ATTRIBUTES = {
 	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false },
 }
 
-local function IsRetailClient(addon)
-	return addon.supportsRetailStockAuraAttributes == true
-end
-
 local function GetFriendRangeChecker(range)
 	return LibRangeCheck:GetFriendMinChecker(range, InCombatLockdown() == true)
 end
@@ -82,7 +78,7 @@ function Triage:UpdateAllStockAuraVisibility()
 	end
 end
 
---- Apply Retail 12.0.5+ stock aura visibility via Blizzard_PrivateAurasUI attributes.
+--- Apply stock aura visibility via Blizzard_PrivateAurasUI attributes (Retail 12.0.5+, Classic Era 1.15.9+, Mists Classic 5.5.4+).
 ---@param frame table @The frame to update
 ---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
 ---@param refreshBaseAttributes boolean|nil @Whether Blizzard just rewrote the base PrivateAurasUI attributes
@@ -147,7 +143,11 @@ function Triage:UpdateStockAuraVisibility(frame)
 		return
 	end
 
-	if IsRetailClient(self) and self:EnsureRetailStockAuraVisibilityHook(frame) then
+	-- Route by frame capability, not client flavor: Classic Era 1.15.9 and Mists
+	-- Classic 5.5.4 ship the same attribute-based private-aura container as Retail
+	-- (and removed the legacy buffFrames/debuffFrames tables). Frames without the
+	-- container fall through to the legacy OnShow-hook path below.
+	if self:EnsureRetailStockAuraVisibilityHook(frame) then
 		if not self.ShouldContinue(frame, true) then
 			return
 		end
@@ -163,6 +163,7 @@ function Triage:UpdateStockAuraVisibility(frame)
 	-- Tables to track the stock buff/debuff frames and their visibility flags in our database
 	local allAuraFrames = { frame.buffFrames, frame.debuffFrames, frame.dispelDebuffFrames }
 	local auraVisibilityFlags = { self.db.profile.showBuffs, self.db.profile.showDebuffs, self.db.profile.showDispellableDebuffs }
+	local unhookedAny = false
 
 	-- Iterate through the stock buff/debuff/dispelDebuff frame types
 	for i, auraFrames in ipairs(allAuraFrames) do
@@ -177,19 +178,28 @@ function Triage:UpdateStockAuraVisibility(frame)
 				-- Query the specific visibility flag for this frame type
 				if not self:IsHooked(auraFrame, "OnShow") then
 					-- Be careful not to hook the same frame multiple times
-						self:SecureHookScript(auraFrame, "OnShow", function(shownFrame)
-							shownFrame:Hide()
-						end)
+					self:SecureHookScript(auraFrame, "OnShow", function(shownFrame)
+						shownFrame:Hide()
+					end)
 				end
 				-- Hide frame immediately as well, otherwise some already shown frames will remain visible
 				auraFrame:Hide()
-			else
-				if self:IsHooked(auraFrame, "OnShow") then
-					-- Unhook the frame if it's hooked and we want to return it to the default behavior
-					self:Unhook(auraFrame, "OnShow")
-				end
+			elseif self:IsHooked(auraFrame, "OnShow") then
+				-- Unhook the frame if it's hooked and we want to return it to the default behavior
+				self:Unhook(auraFrame, "OnShow")
+				unhookedAny = true
 			end
 		end
+	end
+
+	-- Re-enabling a category: let Blizzard rebuild the icons from the unit's current aura
+	-- state instead of restoring visibility ourselves. We only ever hid these frames, never
+	-- refreshed their texture/cooldown data, so a frame whose aura expired while suppressed
+	-- would still be holding a stale icon if we just called Show() on it directly.
+	-- No combat-lockdown deferral needed: like the Hide()/Show() calls above, this only
+	-- touches plain texture/cooldown regions on these sub-frames, not secure attributes.
+	if unhookedAny and CompactUnitFrame_UpdateAuras then
+		CompactUnitFrame_UpdateAuras(frame)
 	end
 end
 

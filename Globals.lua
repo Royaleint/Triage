@@ -32,7 +32,6 @@ Triage.needsLibClassicDurations = Triage.isWoWClassicEra == true
 Triage.supportsLibDualSpec = Triage.isRetail == true or Triage.isWoWClassic == true
 Triage.supportsSpecDefaults = Triage.isRetail == true
 Triage.supportsRetailMousePropagation = Triage.isRetail == true
-Triage.supportsRetailStockAuraAttributes = Triage.isRetail == true
 Triage.supportsPrivateAuraSuppression = Triage.isRetail == true
 Triage.supportsExtendedRangeOptions = Triage.isRetail == true
 Triage.supportsRetailIncomingHeals = Triage.isRetail == true

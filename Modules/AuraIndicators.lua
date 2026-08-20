@@ -134,15 +134,33 @@ function Triage:SetIndicatorAppearance(frame)
 		local indicatorHorizontalOffset = floor((self.db.profile["indicator-" .. i].indicatorHorizontalOffset * frameWidth) + 0.5)
 
 		-- We probably don't want to overlap the power bar (rage, mana, energy, etc) so we need a compensation factor
-		local powerBarVertOffset
-		if self.db.profile.powerBarOffset and frame.powerBar and frame.powerBar:IsShown() then
-			local pbHeight = frame.powerBar:GetHeight()
-			if issecretvalue and issecretvalue(pbHeight) then
-				pbHeight = 8
+		local powerBarVertOffset = 0
+		if self.db.profile.powerBarOffset and frame.powerBar then
+			-- Blizzard computes frame.powerBarUsedHeight (0, or the bar's height) from
+			-- powerBar:IsShown() at layout time, so it's already correct during the
+			-- initial layout pass where live IsShown()/GetHeight() reads are stale.
+			local usedHeight = frame.powerBarUsedHeight
+			if (issecretvalue and issecretvalue(usedHeight)) or type(usedHeight) ~= "number" then
+				usedHeight = nil
 			end
-			powerBarVertOffset = pbHeight + 2 -- Add 2 to not overlap the powerBar border
-		else
-			powerBarVertOffset = 0
+			if usedHeight then
+				if usedHeight > 0 then
+					powerBarVertOffset = usedHeight + 2 -- Add 2 to not overlap the powerBar border
+				end
+			else
+				-- Fallback for clients that don't set powerBarUsedHeight: re-derive from the bar
+				local pbShown = frame.powerBar:IsShown()
+				if issecretvalue and issecretvalue(pbShown) then
+					pbShown = true -- Assume shown in instanced groups, matching the height fallback below
+				end
+				if pbShown then
+					local pbHeight = frame.powerBar:GetHeight()
+					if issecretvalue and issecretvalue(pbHeight) then
+						pbHeight = 8
+					end
+					powerBarVertOffset = pbHeight + 2 -- Add 2 to not overlap the powerBar border
+				end
+			end
 		end
 
 		indicatorFrame:ClearAllPoints()
