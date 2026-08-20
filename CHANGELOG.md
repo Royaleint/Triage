@@ -6,9 +6,18 @@ Triage has moved to maintenance mode. It still works and stays compatible with c
 
 ## Unreleased
 
+Fixes for Retail 12.1 aura errors and stock aura icon visibility, plus an autocomplete improvement.
+
+---
+
 ### Improved
 
 - Aura watch-list autocomplete suggestions can now be accepted with Enter as well as click. Enter still adds a new line when no suggestion is open.
+
+### Bug Fixes
+
+- Fixed aura indicators breaking during combat on Retail 12.1.
+- Fixed stock Blizzard buff and debuff icons still showing on a single Retail raid frame while Triage's own indicators were active, even though their Triage visibility options were turned off.
 
 ## v1.3.3 (2026-08-19)
 
