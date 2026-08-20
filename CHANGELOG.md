@@ -4,6 +4,16 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
+## v1.3.3 (2026-08-19)
+
+Hotfix for Retail 12.1 aura secrecy errors.
+
+---
+
+### Bug Fixes
+
+- Fixed aura indicators breaking during combat on Retail 12.1.
+
 ## v1.3.2 (2026-06-08)
 
 Hotfix for Classic-family raid frame fading in combat.
