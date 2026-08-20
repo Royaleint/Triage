@@ -68,8 +68,9 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
           FORCE: ${{ inputs.force }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          [ -z "$TAG" ] && TAG="${{ github.ref_name }}"
+          [ -z "$TAG" ] && TAG="$REF_NAME"
           # Highest version = first line of the version-sorted tag list. Read
           # into a var and slice the first line rather than piping to `head`,
           # so an early-closed pipe can't trip `set -o pipefail` (no SIGPIPE).
@@ -102,9 +103,9 @@ jobs:
       # swapped to the tag's content. `.github` (this workflow plus the
       # verification scripts it runs later) and `.pkgmeta` (the packager's
       # own config) stay on the dispatch ref, so every later step keeps
-      # running today's logic against a config that matches it — see the
-      # TRI-049 cycle 2 commit message for the rejected alternatives and why
-      # this checkout-then-restore approach is the one that ships correctly.
+      # running today's logic against a config that matches it — see commit
+      # eb2a86e for the rejected alternatives and why this checkout-then-
+      # restore approach is the one that ships correctly.
       # Only runs for a manual dispatch that named a tag; a tag push already
       # has that tag checked out, and a tagless dispatch releases whatever
       # ref was checked out above. (TRI-049)
@@ -122,11 +123,12 @@ jobs:
         if: steps.guard.outputs.publish == 'true'
         env:
           TAG: ${{ inputs.tag }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
           # Determine the tag to extract notes for. For tag-push triggers,
           # github.ref_name is the tag (e.g. v1.0.0). For workflow_dispatch,
           # prefer the manual input, fall back to github.ref_name.
-          [ -z "$TAG" ] && TAG="${{ github.ref_name }}"
+          [ -z "$TAG" ] && TAG="$REF_NAME"
           echo "Extracting release notes for tag: $TAG"
 
           # Extract the section matching the tag's heading.
