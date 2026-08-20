@@ -10,6 +10,16 @@ Triage has moved to maintenance mode. It still works and stays compatible with c
 
 - Aura watch-list autocomplete suggestions can now be accepted with Enter as well as click. Enter still adds a new line when no suggestion is open.
 
+## v1.3.3 (2026-08-19)
+
+Hotfix for Retail 12.1 aura secrecy errors.
+
+---
+
+### Bug Fixes
+
+- Fixed aura indicators breaking during combat on Retail 12.1.
+
 ## v1.3.2 (2026-06-08)
 
 Hotfix for Classic-family raid frame fading in combat.
