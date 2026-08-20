@@ -2,6 +2,10 @@
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
 
+-- The folder name the TOC was loaded from; WoW passes it as this file's first
+-- vararg. Used to tell the DevBuild variant apart from live for SavedVariables naming.
+local ADDON_NAME = ...
+
 --- Triage is the main addon object.
 ---@class Triage : AceAddon-3.0 @The main addon object for Triage
 -- AceAddon registration name is frozen. External addons, including Triage_Dev,
@@ -322,7 +326,13 @@ function Triage:InitializeDatabase()
 	-- Set up database defaults
 	local defaults = self:CreateDefaults()
 	-- Create database object
-	self.db = AceDB:New("EnhancedRaidFramesDB", defaults) -- SavedVariables key frozen; matches Triage.toc.
+	-- SavedVariables key: derived from ADDON_NAME, not a literal, so the DevBuild
+	-- variant (Triage_DevBuild.toc declares EnhancedRaidFramesDB_DevBuild) reads
+	-- and writes its own SavedVariables instead of the live player's.
+	local DEVBUILD_SV_NAME = "EnhancedRaidFramesDB_DevBuild"
+	local svName = (ADDON_NAME == "Triage_DevBuild") and DEVBUILD_SV_NAME
+		or (DEVBUILD_SV_NAME:gsub("_DevBuild$", ""))
+	self.db = AceDB:New(svName, defaults)
 	-- Enhance database and profile options using LibDualSpec
 	if self.supportsLibDualSpec then
 		-- Not available on Classic Era or TBC Classic Anniversary
