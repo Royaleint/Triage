@@ -198,11 +198,11 @@ jobs:
       # signal — this check fails the release instead. Covers every flavor
       # TOC inside the zip. (STU-064)
       - name: Check — every TOC-listed file ships in the zip
-        if: steps.guard.outputs.publish == 'true' && inputs.bypass_toc_zip_check != 'true'
+        if: steps.guard.outputs.publish == 'true' && inputs.bypass_toc_zip_check != true
         run: node .github/scripts/check-toc-vs-zip.mjs .release
 
       - name: Warning — TOC-vs-zip check bypassed
-        if: steps.guard.outputs.publish == 'true' && inputs.bypass_toc_zip_check == 'true'
+        if: steps.guard.outputs.publish == 'true' && inputs.bypass_toc_zip_check == true
         run: echo '::warning::TOC-vs-zip release safety check was bypassed by explicit workflow input; determine and ship the verifier fix separately.'
 
       - name: Package and Release
