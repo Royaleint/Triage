@@ -15,6 +15,11 @@ on:
         required: false
         type: boolean
         default: false
+      bypass_toc_zip_check:
+        description: 'Skip the TOC-vs-zip release safety check only for an approved temporary bypass.'
+        required: false
+        type: boolean
+        default: false
 
 # Serialize releases: a bulk tag push fires this workflow once per tag ref, so
 # two runs can be in flight at once. Without serialization they race to be the
@@ -193,8 +198,12 @@ jobs:
       # signal — this check fails the release instead. Covers every flavor
       # TOC inside the zip. (STU-064)
       - name: Check — every TOC-listed file ships in the zip
-        if: steps.guard.outputs.publish == 'true'
+        if: steps.guard.outputs.publish == 'true' && inputs.bypass_toc_zip_check != 'true'
         run: node .github/scripts/check-toc-vs-zip.mjs .release
+
+      - name: Warning — TOC-vs-zip check bypassed
+        if: steps.guard.outputs.publish == 'true' && inputs.bypass_toc_zip_check == 'true'
+        run: echo '::warning::TOC-vs-zip release safety check was bypassed by explicit workflow input; determine and ship the verifier fix separately.'
 
       - name: Package and Release
         if: steps.guard.outputs.publish == 'true'

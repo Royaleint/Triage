@@ -4,7 +4,7 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
-## Unreleased
+## v1.3.4 (2026-08-23)
 
 Fixes for Retail 12.1 aura errors, stock aura icon visibility, and indicator placement, plus an autocomplete improvement.
 
