@@ -7,17 +7,37 @@ manual-changelog:
   filename: RELEASE_NOTES.html
   markup-type: html
 
+# BigWigsMods/packager does not support "!" negation in this list (confirmed
+# by reading release.sh's yaml_listitem()/parse_ignore(): a leading "!" is
+# never stripped or interpreted, so "!README.md" only matches a file
+# literally named that). Do not reach for a "*.md" + "!exceptions" idiom here
+# — it silently strips every .md file, README and CHANGELOG included, with
+# no CI signal (STU-134 finding; every release zip has shipped without them).
+# This list is deny-by-default for everything else, but for markdown
+# specifically it is effectively allow-by-default: only the files below are
+# named, so a new root .md file (a CONTRIBUTING.md, a NOTES.md) ships to
+# players unless it is added here explicitly. The same applies to markdown
+# inside `externals:` checkouts: the packager filters fetched libraries with
+# this same list, so a README or CHANGELOG an upstream library adds ships
+# until it is named here (the Libs/ entries below).
 ignore:
   - .git
   - .gitignore
   - .pkgmeta
   - .claude
+  - .codex
   - .mcp.json
   - .luacheckrc
   - .env
-  - "*.md"
-  - "!README.md"
-  - "!CHANGELOG.md"
+  - SHELVED.md
+  - Libs/LibClassicDurations/CHANGELOG.md
+  - Libs/LibDeflate/README.md
+  - Libs/LibDeflate/changelog.md
+  - Libs/LibDeflate/docs/README.md
+  - Libs/LibDeflate/docs/benchmark.md
+  - Libs/LibDeflate/CONTRIBUTING.md
+  - Libs/LibRangeCheck-3.0/README.md
+  - Libs/LibCustomGlow/README.md
   - RELEASE_NOTES.html
   - tests
   - Triage_Dev
