@@ -332,15 +332,44 @@ function Triage:FlushSecureAuraIndicatorRebuilds()
 		return
 	end
 
-	self.Triage_pendingSecureAuraRebuilds = nil
-	for parentFrame, positions in pairs(pending) do
+	-- Settle which frames this cycle owns before any of them rebuilds. A rebuild reaches the
+	-- other positions on the same frame and can queue them, and those belong to the next
+	-- debounce window; rebuilding them here would allocate the container the window exists
+	-- to collapse.
+	local frames = {}
+	for parentFrame in pairs(pending) do
+		frames[#frames + 1] = parentFrame
+	end
+
+	local firstError
+	for index = 1, #frames do
+		local parentFrame = frames[index]
+		local positions = pending[parentFrame]
+		-- Off the queue before its own rebuild runs, so a throw below costs this frame's
+		-- targets alone rather than every frame still waiting behind it.
+		pending[parentFrame] = nil
 		if self.ShouldContinue(parentFrame, true) then
 			-- EnsureSecureAuraIndicator rebuilds only the positions armed here; every other
 			-- caller queues instead, which is what keeps a drag from allocating per sample.
 			parentFrame.Triage_secureAuraRebuildArmed = positions
-			self:UpdateIndicators(parentFrame, true)
+			local ok, err = pcall(self.UpdateIndicators, self, parentFrame, true)
 			parentFrame.Triage_secureAuraRebuildArmed = nil
+			if not ok and firstError == nil then
+				firstError = err
+			end
 		end
+	end
+
+	-- Anything left is a frame queued while this loop ran; it keeps the table and the timer
+	-- QueueSecureAuraIndicatorRebuild already scheduled for it.
+	if next(pending) == nil then
+		self.Triage_pendingSecureAuraRebuilds = nil
+	end
+
+	if firstError ~= nil then
+		-- Level 0 keeps the position the rebuild actually failed at, which is what BugGrabber
+		-- and the player need to see rather than this line.
+		error(firstError, 0)
 	end
 end
 

@@ -563,6 +563,87 @@ profile.indicatorAlpha = alphaBeforeArmTest
 assertEqual(ensureArmParent(), true, "the arm test frame can return to its prior settings")
 fireTimers()
 
+-- TRI-059: a rebuild that throws must cost only its own frame. The flush takes the frames
+-- this cycle owns, drops each one before rebuilding it, contains the throw, and re-raises it
+-- once the rest of the queue has run.
+local flushParentA = {
+	Triage_auraDataRestricted = true,
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "flush-a-indicator-4-frame" } },
+}
+local flushParentB = {
+	Triage_auraDataRestricted = true,
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "flush-b-indicator-4-frame" } },
+}
+local function ensureFlushParent(frame)
+	return _G.Triage:EnsureSecureAuraIndicator(frame, 4, "party1", { "Regrowth" })
+end
+assertEqual(ensureFlushParent(flushParentA), true, "the first flush test frame creates its initial secure slot")
+assertEqual(ensureFlushParent(flushParentB), true, "the second flush test frame creates its initial secure slot")
+profile.indicatorAlpha = 0.61
+assertEqual(ensureFlushParent(flushParentA), true, "a changed setting queues the first flush test frame")
+assertEqual(ensureFlushParent(flushParentB), true, "a changed setting queues the second flush test frame")
+assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds[flushParentA][4],
+	"the first flush test frame is pending before the throwing flush")
+assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds[flushParentB][4],
+	"the second flush test frame is pending before the throwing flush")
+
+-- Whichever frame pairs() reaches first is the one that throws, so nothing below depends on
+-- the iteration order of the pending table.
+local armedAtRebuild = {}
+local flushThrowsLeft = 1
+local beforeFlushThrow = #created
+local updateIndicatorsBeforeFlush = _G.Triage.UpdateIndicators
+_G.Triage.UpdateIndicators = function(_, frame)
+	local armed = frame.Triage_secureAuraRebuildArmed
+	armedAtRebuild[frame] = armed ~= nil and armed[4] ~= nil
+	if flushThrowsLeft > 0 then
+		flushThrowsLeft = flushThrowsLeft - 1
+		error("forced UpdateIndicators failure during the secure rebuild flush")
+	end
+	ensureFlushParent(frame)
+end
+local flushCompleted, flushError = pcall(fireTimers)
+_G.Triage.UpdateIndicators = updateIndicatorsBeforeFlush
+assertEqual(flushThrowsLeft, 0, "exactly one frame in the flush was made to throw")
+assertEqual(flushCompleted, false, "a throwing rebuild still reaches the flush caller")
+assertTrue(tostring(flushError):find("forced UpdateIndicators failure during the secure rebuild flush", 1, true),
+	"the flush re-raises the frame's own error rather than a wrapper")
+assertEqual(armedAtRebuild[flushParentA], true, "the first flush test frame rebuilt with its armed position")
+assertEqual(armedAtRebuild[flushParentB], true, "the second flush test frame rebuilt with its armed position")
+assertEqual(#created, beforeFlushThrow + 1, "the frame that did not throw rebuilt its armed position")
+assertEqual(flushParentA.Triage_secureAuraRebuildArmed, nil, "the first flush test frame is left unarmed")
+assertEqual(flushParentB.Triage_secureAuraRebuildArmed, nil, "the second flush test frame is left unarmed")
+assertEqual(_G.Triage.Triage_pendingSecureAuraRebuilds, nil, "a drained flush clears the pending table")
+
+-- A rebuild can queue a frame while the flush is still running. That entry belongs to the
+-- next debounce window, so the flush must neither run it now nor discard it on the way out.
+profile.indicatorAlpha = 0.62
+assertEqual(ensureFlushParent(flushParentA), true, "a further change re-queues the first flush test frame alone")
+local timersBeforeRequeue = timerSchedules
+local rebuildsDuringRequeue = 0
+local updateIndicatorsBeforeRequeue = _G.Triage.UpdateIndicators
+_G.Triage.UpdateIndicators = function(_, frame)
+	rebuildsDuringRequeue = rebuildsDuringRequeue + 1
+	ensureFlushParent(frame)
+	-- Stands in for an aura update landing mid-flush on a frame this cycle does not own.
+	profile.indicatorAlpha = 0.63
+	ensureFlushParent(flushParentB)
+end
+fireTimers()
+_G.Triage.UpdateIndicators = updateIndicatorsBeforeRequeue
+assertEqual(rebuildsDuringRequeue, 1, "a mid-flush re-queue does not get rebuilt by the flush already running")
+assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds, "a mid-flush re-queue survives the flush it landed in")
+assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds[flushParentB][4],
+	"the mid-flush re-queue keeps its own pending target")
+assertTrue(timerSchedules > timersBeforeRequeue, "the mid-flush re-queue schedules its own debounce window")
+assertEqual(fireTimers(), 1, "the mid-flush re-queue rebuilds on its own timer")
+assertEqual(_G.Triage.Triage_pendingSecureAuraRebuilds, nil, "the following flush drains the re-queued frame")
+profile.indicatorAlpha = alphaBeforeArmTest
+
 _G.Triage:InvalidateSecureAuraIndicators(parent)
 assertEqual(container.enabled, false, "recycling invalidates the old unit before reassignment")
 assertTrue(container.hidden, "recycling hides the previous unit's secure visual")
