@@ -184,6 +184,8 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	local shouldRunUpdate = false
 	-- If we get a full update signal, reset the table and rescan all auras for the unit
 	if isFullUpdate then
+		local wasRestricted = parentFrame.Triage_auraDataRestricted == true
+		parentFrame.Triage_auraDataRestricted = false
 		-- Remember whether we had anything tracked before the wipe below. Triage_unitAuras is
 		-- keyed by auraInstanceID (not array-indexed) on retail, so next() is the correct
 		-- emptiness check here, not #.
@@ -219,6 +221,9 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			end
 		end
 		if scanOK then
+			if wasRestricted ~= parentFrame.Triage_auraDataRestricted then
+				shouldRunUpdate = true
+			end
 			if scanUpdateFlag then
 				shouldRunUpdate = true
 			end
@@ -233,6 +238,14 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			-- The scan failed partway through. Roll back to the last-known-good table we held
 			-- aside in previousAuras instead of leaving indicators wiped or half-updated.
 			parentFrame.Triage_unitAuras = previousAuras
+			-- A denied scan is a restricted scan, and the clearest one there is: ForEachAura
+			-- throws precisely because a tainted caller was refused unit aura access. Do not
+			-- roll the flag back — addToAuraTable never ran to set it, so rolling back would
+			-- switch off the secure path in exactly the case it exists for.
+			parentFrame.Triage_auraDataRestricted = true
+			if not wasRestricted then
+				shouldRunUpdate = true
+			end
 		end
 	end
 
@@ -240,8 +253,9 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	if addedAuras then
 		for _, auraData in pairs(addedAuras) do
 			-- Add our auraData to the Triage_unitAuras table
+			local wasRestricted = parentFrame.Triage_auraDataRestricted == true
 			local updateFlag = self:addToAuraTable(parentFrame, auraData)
-			if updateFlag then
+			if updateFlag or wasRestricted ~= parentFrame.Triage_auraDataRestricted then
 				shouldRunUpdate = true
 			end
 		end
@@ -261,8 +275,9 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 				-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
 				if ok and auraData then
 					-- Add our auraData to the Triage_unitAuras table
+					local wasRestricted = parentFrame.Triage_auraDataRestricted == true
 					local updateFlag = self:addToAuraTable(parentFrame, auraData)
-					if updateFlag then
+					if updateFlag or wasRestricted ~= parentFrame.Triage_auraDataRestricted then
 						shouldRunUpdate = true
 					end
 				elseif not ok then
@@ -320,6 +335,7 @@ function Triage:addToAuraTable(parentFrame, auraData)
 		or issecretvalue(auraData.sourceUnit)
 		or issecretvalue(auraData.timeMod)
 	) then
+		parentFrame.Triage_auraDataRestricted = true
 		return false
 	end
 

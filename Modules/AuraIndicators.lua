@@ -284,8 +284,12 @@ function Triage:UpdateIndicators(frame, setAppearance)
 
 	-- Loop over all 9 indicators and process them individually
 	for i, indicator in ipairs(frame.Triage_indicatorFrames) do
+		-- Retail custom aura slots are only needed after the listener identified
+		-- restricted aura data. Readable updates keep the established matcher.
+		if self:EnsureSecureAuraIndicator(frame, i, unit, self.auraStrings[i]) then
+			self:ClearIndicator(indicator)
 		--if we don't have any auraStrings for this indicator, stop here
-		if self.auraStrings[i][1] then
+		elseif self.auraStrings[i][1] then
 			-- Check if we have at least 1 auraString for this location
 			-- This is the meat of our processing loop
 			self:ProcessIndicator(indicator, unit)

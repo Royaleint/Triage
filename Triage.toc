@@ -38,6 +38,7 @@ Utils/TestModeFrames.lua
 
 # Aura Indicators
 Modules/AuraListeners.lua
+Modules/SecureAuraIndicators.lua
 Modules/AuraIndicators.lua
 
 # Target Markers
