@@ -633,8 +633,9 @@ _G.Triage.UpdateIndicators = function(_, frame)
 	profile.indicatorAlpha = 0.63
 	ensureFlushParent(flushParentB)
 end
-fireTimers()
+local requeueCompleted = pcall(fireTimers)
 _G.Triage.UpdateIndicators = updateIndicatorsBeforeRequeue
+assertTrue(requeueCompleted, "the mid-flush re-queue flush runs without a throw")
 assertEqual(rebuildsDuringRequeue, 1, "a mid-flush re-queue does not get rebuilt by the flush already running")
 assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds, "a mid-flush re-queue survives the flush it landed in")
 assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds[flushParentB][4],
@@ -643,6 +644,72 @@ assertTrue(timerSchedules > timersBeforeRequeue, "the mid-flush re-queue schedul
 assertEqual(fireTimers(), 1, "the mid-flush re-queue rebuilds on its own timer")
 assertEqual(_G.Triage.Triage_pendingSecureAuraRebuilds, nil, "the following flush drains the re-queued frame")
 profile.indicatorAlpha = alphaBeforeArmTest
+
+-- UpdateIndicators walks every position, so one pass rebuilds the armed position and can find
+-- an unarmed one whose container has drifted. That second position queues its own rebuild
+-- while the flush still holds the frame, which is only safe because the frame leaves the
+-- pending table before its rebuild runs: the new target then lands in a fresh entry instead of
+-- the positions table the flush is about to drop. Two positions on one frame are what it takes
+-- to reach that shape; the single-position stubs above cannot.
+-- One table per position: the case drifts the two positions' settings independently.
+local function twoPositionProfile()
+	return {
+		indicatorSize = 18, indicatorVerticalOffset = 0, indicatorHorizontalOffset = 0,
+		indicatorAlpha = 0.7, showIcon = true, showCountdownSwipe = true,
+		showCountdownText = true, showStackSize = true, textSize = 8,
+		casterFilter = "all", countdownLocation = "CENTER", stackSizeLocation = "BOTTOMRIGHT",
+		indicatorColor = { 0, 1, 0.59, 1 },
+	}
+end
+_G.Triage.db.profile["indicator-6"] = twoPositionProfile()
+_G.Triage.db.profile["indicator-7"] = twoPositionProfile()
+local twoPositionParent = {
+	Triage_auraDataRestricted = true,
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = {
+		[6] = { name = "two-position-indicator-6-frame" },
+		[7] = { name = "two-position-indicator-7-frame" },
+	},
+}
+local function ensureTwoPositionParent(position)
+	return _G.Triage:EnsureSecureAuraIndicator(twoPositionParent, position, "party1", { "Regrowth" })
+end
+assertEqual(ensureTwoPositionParent(6), true, "the two-position frame creates its armed position's slot")
+assertEqual(ensureTwoPositionParent(7), true, "the two-position frame creates its unarmed position's slot")
+
+-- Position 6 is queued, so the flush arms it. Position 7 is drifted without being queued, so
+-- the pass that rebuilds 6 is the first thing to notice 7 and has to queue it mid-rebuild.
+_G.Triage.db.profile["indicator-6"].indicatorAlpha = 0.51
+assertEqual(ensureTwoPositionParent(6), true, "a changed setting queues the armed position")
+_G.Triage.db.profile["indicator-7"].indicatorAlpha = 0.52
+local timersBeforeTwoPosition = timerSchedules
+local createdBeforeTwoPosition = #created
+local updateIndicatorsBeforeTwoPosition = _G.Triage.UpdateIndicators
+_G.Triage.UpdateIndicators = function()
+	ensureTwoPositionParent(6)
+	ensureTwoPositionParent(7)
+end
+local armedFlushCompleted = pcall(fireTimers)
+local pendingAfterArmedFlush = _G.Triage.Triage_pendingSecureAuraRebuilds
+local queuedTarget = pendingAfterArmedFlush and pendingAfterArmedFlush[twoPositionParent]
+	and pendingAfterArmedFlush[twoPositionParent][7]
+local timersAfterArmedFlush = timerSchedules
+local createdAfterArmedFlush = #created
+local queuedFlushCompleted, queuedFlushCount = pcall(fireTimers)
+local createdAfterQueuedFlush = #created
+_G.Triage.UpdateIndicators = updateIndicatorsBeforeTwoPosition
+assertTrue(armedFlushCompleted, "the two-position flush runs without a throw")
+assertTrue(queuedTarget, "a position queued during the rebuild survives the flush that was holding the frame")
+assertTrue(timersAfterArmedFlush > timersBeforeTwoPosition,
+	"the position queued during the rebuild schedules its own debounce window")
+assertEqual(createdAfterArmedFlush, createdBeforeTwoPosition + 1,
+	"the armed position still rebuilds in the pass that queues the unarmed one")
+assertTrue(queuedFlushCompleted, "the flush that drains the queued position runs without a throw")
+assertEqual(queuedFlushCount, 1, "the position queued during the rebuild rebuilds on its own timer")
+assertEqual(createdAfterQueuedFlush, createdAfterArmedFlush + 1,
+	"the position queued during the rebuild rebuilds exactly once")
+assertEqual(_G.Triage.Triage_pendingSecureAuraRebuilds, nil, "the following flush drains the queued position")
 
 _G.Triage:InvalidateSecureAuraIndicators(parent)
 assertEqual(container.enabled, false, "recycling invalidates the old unit before reassignment")
