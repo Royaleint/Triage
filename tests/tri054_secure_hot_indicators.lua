@@ -435,6 +435,18 @@ assertEqual(container.countdownColor[4], 1, "the rebuilt countdown carries the i
 profile.textColor = { 1, 1, 1, 1 }
 ensure()
 fireTimers()
+
+-- indicatorColor travels the same route, and it is now one line in the rebuild list rather than
+-- a loop of its own, so a later edit could drop it with the rest of the suite staying green.
+local beforeIndicatorColor = #created
+profile.indicatorColor[1] = 0.3
+assertEqual(ensure(), true, "an indicator color change keeps the current secure visual on screen")
+assertEqual(#created, beforeIndicatorColor, "an indicator color change allocates nothing before its window elapses")
+assertEqual(fireTimers(), 1, "an indicator color change schedules exactly one rebuild")
+assertEqual(#created, beforeIndicatorColor + 1, "an indicator color change rebuilds the secure slot once")
+profile.indicatorColor[1] = 0
+ensure()
+fireTimers()
 container = live()
 
 -- With the alpha folded into the picker, the profile must not carry a second alpha key that

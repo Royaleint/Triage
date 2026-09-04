@@ -653,27 +653,26 @@ end
 function Triage:UpdateCountdownTextColor(indicatorFrame, remainingTime)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
-	-- The overrides below replace the color only; the alpha comes from the picker on every
-	-- branch, so the countdown fades the same way whichever coloring rule is active.
-	local textColor = self.db.profile["indicator-" .. i].textColor
+	local indicatorProfile = self.db.profile["indicator-" .. i]
+	local textColor = indicatorProfile.textColor
 
 	if thisAura then
 		-- Set color based on time remaining
-		if self.db.profile["indicator-" .. i].colorTextByTime and remainingTime then
+		if indicatorProfile.colorTextByTime and remainingTime then
 			-- Color by remaining time
-			if self.db.profile["indicator-" .. i].colorTextByTime_low ~= 0
-					and remainingTime <= self.db.profile["indicator-" .. i].colorTextByTime_low then
+			if indicatorProfile.colorTextByTime_low ~= 0
+					and remainingTime <= indicatorProfile.colorTextByTime_low then
 				SetCountdownColor(indicatorFrame.Countdown, self.RED_COLOR, textColor[4])
 				return
-			elseif self.db.profile["indicator-" .. i].colorTextByTime_high ~= 0
-					and remainingTime <= self.db.profile["indicator-" .. i].colorTextByTime_high then
+			elseif indicatorProfile.colorTextByTime_high ~= 0
+					and remainingTime <= indicatorProfile.colorTextByTime_high then
 				SetCountdownColor(indicatorFrame.Countdown, self.YELLOW_COLOR, textColor[4])
 				return
 			end
 		end
 
 		-- Set the color by debuff type
-		if self.db.profile["indicator-" .. i].colorTextByDebuff and thisAura.isHarmful and thisAura.dispelName then
+		if indicatorProfile.colorTextByDebuff and thisAura.isHarmful and thisAura.dispelName then
 			if thisAura.dispelName == "Poison" then
 				SetCountdownColor(indicatorFrame.Countdown, self.GREEN_COLOR, textColor[4])
 				return
