@@ -12,11 +12,6 @@ local LibDispel = LibStub("LibDispel-1.0")
 -- Localize globals used in hot paths (UNIT_AURA fires often; avoid repeated global lookups)
 local issecretvalue = issecretvalue -- nil on Classic, where the global doesn't exist; that's fine, guards below already check for it
 
--- TRI-051 diagnostic only (see ReportAuraAccessError below): one-shot flag so a caught pcall
--- error prints once per session instead of once per UNIT_AURA tick. Remove alongside the
--- diagnostic print once the RequiresUnitAuraAccess hypothesis is confirmed either way.
-local hasReportedAuraAccessError = false
-
 -- Aura filters we scan on a full update. Hoisted to a file-local constant so we don't allocate
 -- a fresh table on every UNIT_AURA full-update/rescan call.
 local AURA_FILTERS = { "HELPFUL", "HARMFUL" }
@@ -124,21 +119,6 @@ local function SafeField(value, fallback)
 	return value
 end
 
---- TRI-051 diagnostic only: prints the message pcall caught at one of the two RequiresUnitAuraAccess
---- guard sites below, once per session (UNIT_AURA is storm-class; an unthrottled print would spam
---- chat). Lets Rawb confirm in-game that the caught error is actually the expected
---- RequiresUnitAuraAccess/GetAuraSlots throw and not something unrelated. Remove this call and
---- the hasReportedAuraAccessError flag once that hypothesis is confirmed either way.
----@param addon table @The Triage addon table (used for :Print)
----@param err any @The error value pcall's second return gave us
-local function ReportAuraAccessError(addon, err)
-	if hasReportedAuraAccessError then
-		return
-	end
-	hasReportedAuraAccessError = true
-	addon:Print("TRI-051 diagnostic: pcall caught: " .. tostring(err))
-end
-
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.
 --- Unit aura information for tracked auras is stored in the Triage_unitAuras table.
 --- It uses the C_UnitAuras API that was added in 10.0.
@@ -208,7 +188,7 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		-- under restriction — a distinct failure class from the secret-*value* taint addToAuraTable
 		-- already guards against, and one issecretvalue() cannot detect in advance.
 		for _, filter in pairs(AURA_FILTERS) do
-			local ok, err = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
+			local ok = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
 				-- Add our auraData to the Triage_unitAuras table
 				if self:addToAuraTable(parentFrame, auraData) then
 					scanUpdateFlag = true
@@ -216,7 +196,6 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			end, true)
 			if not ok then
 				scanOK = false
-				ReportAuraAccessError(self, err)
 				break
 			end
 		end
@@ -272,7 +251,9 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 				-- even when auraInstanceID itself isn't secret. Not yet observed crashing live,
 				-- but same failure class, same guard.
 				local ok, auraData = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
-				-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
+				-- auraData is nil if the aura was removed just before we queried it; ok is false if
+				-- pcall caught an error (RequiresUnitAuraAccess denial or something else). Either
+				-- way, skip this instance ID rather than propagate.
 				if ok and auraData then
 					-- Add our auraData to the Triage_unitAuras table
 					local wasRestricted = parentFrame.Triage_auraDataRestricted == true
@@ -280,11 +261,6 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 					if updateFlag or wasRestricted ~= parentFrame.Triage_auraDataRestricted then
 						shouldRunUpdate = true
 					end
-				elseif not ok then
-					-- The call failed (pcall caught an error, cause unknown here — could be
-					-- RequiresUnitAuraAccess denial or something else); skip this instance ID
-					-- rather than propagate the error.
-					ReportAuraAccessError(self, auraData)
 				end
 			end
 		end
