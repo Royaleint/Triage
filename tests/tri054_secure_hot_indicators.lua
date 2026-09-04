@@ -389,6 +389,81 @@ profile.meOnly = nil
 assertEqual(ensure(), true, "clearing meOnly returns the indicator to the secure path")
 container = live()
 
+-- If UpdateIndicators throws after consuming one rebuild arm, the frame-level flag is never
+-- normally cleared. That consumed position must still queue future mismatches; otherwise every
+-- later settings sample allocates an unreclaimable container inline.
+local armParent = {
+	Triage_auraDataRestricted = true,
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "armed-indicator-4-frame" } },
+}
+local function ensureArmParent()
+	return _G.Triage:EnsureSecureAuraIndicator(armParent, 4, "party1", { "Regrowth" })
+end
+local alphaBeforeArmTest = profile.indicatorAlpha
+assertEqual(ensureArmParent(), true, "the arm test frame creates its initial secure slot")
+profile.indicatorAlpha = 0.66
+assertEqual(ensureArmParent(), true, "a changed setting queues before the throwing flush")
+local beforeThrow = #created
+local normalUpdateIndicators = _G.Triage.UpdateIndicators
+_G.Triage.UpdateIndicators = function(self, frame)
+	normalUpdateIndicators(self, frame)
+	error("forced UpdateIndicators failure after the armed position rebuilds")
+end
+local flushed = pcall(fireTimers)
+assertEqual(flushed, false, "the simulated UpdateIndicators failure reaches the flush caller")
+_G.Triage.UpdateIndicators = normalUpdateIndicators
+local afterThrow = #created
+assertEqual(afterThrow, beforeThrow + 1, "the armed flush rebuilds its position before the forced failure")
+profile.indicatorAlpha = 0.67
+assertEqual(ensureArmParent(), true, "a post-failure mismatch retains the current secure visual")
+assertEqual(#created, afterThrow, "a consumed arm queues after a throwing flush instead of rebuilding inline")
+assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds[armParent][4],
+	"a post-failure mismatch remains in the pending rebuild queue")
+assertEqual(fireTimers(), 1, "the post-failure queued rebuild runs on its normal timer")
+
+profile.indicatorAlpha = 0.68
+armParent.Triage_secureAuraRebuildArmed = { [4] = true }
+local beforeOneShotArm = #created
+assertEqual(ensureArmParent(), true, "an armed position rebuilds inline")
+assertEqual(#created, beforeOneShotArm + 1, "an armed position rebuilds inline exactly once")
+profile.indicatorAlpha = 0.69
+assertEqual(ensureArmParent(), true, "a second mismatch after an armed rebuild retains the current visual")
+assertEqual(#created, beforeOneShotArm + 1, "a second mismatch after an armed rebuild queues instead of rebuilding inline")
+assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds[armParent][4],
+	"a second mismatch after an armed rebuild enters the pending queue")
+fireTimers()
+profile.indicatorAlpha = alphaBeforeArmTest
+assertEqual(ensureArmParent(), true, "the arm test frame can return to its prior settings")
+fireTimers()
+
+-- Pins the clear ahead of the rebuild call: moving the clear after the rebuild would leave
+-- a throw inside RebuildSecureAuraIndicator with the arm still set.
+armParent.Triage_secureAuraRebuildArmed = { [4] = true }
+local armContainer = armParent.Triage_secureAuraIndicators and armParent.Triage_secureAuraIndicators[4]
+local originalArmSetEnabled = armContainer.SetEnabled
+armContainer.SetEnabled = function(self, enabled)
+	armContainer.SetEnabled = originalArmSetEnabled
+	error("forced rebuild failure inside RebuildSecureAuraIndicator")
+end
+local beforeRebuildThrow = #created
+profile.indicatorAlpha = 0.71
+local rebuildFlushed = pcall(ensureArmParent)
+assertEqual(rebuildFlushed, false, "a throw inside the armed rebuild reaches the caller")
+assertEqual(#created, beforeRebuildThrow, "a rebuild that throws in DisableContainer allocates nothing")
+assertEqual(armParent.Triage_secureAuraRebuildArmed[4], nil, "the arm is consumed before the rebuild runs")
+profile.indicatorAlpha = 0.72
+assertEqual(ensureArmParent(), true, "a mismatch after a throwing rebuild retains the current secure visual")
+assertEqual(#created, beforeRebuildThrow, "a mismatch after a throwing rebuild queues instead of rebuilding inline")
+assertTrue(_G.Triage.Triage_pendingSecureAuraRebuilds[armParent][4],
+	"a mismatch after a throwing rebuild enters the pending queue")
+armParent.Triage_secureAuraRebuildArmed = nil
+fireTimers()
+profile.indicatorAlpha = alphaBeforeArmTest
+assertEqual(ensureArmParent(), true, "the arm test frame can return to its prior settings")
+fireTimers()
+
 _G.Triage:InvalidateSecureAuraIndicators(parent)
 assertEqual(container.enabled, false, "recycling invalidates the old unit before reassignment")
 assertTrue(container.hidden, "recycling hides the previous unit's secure visual")

@@ -507,6 +507,9 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 	if container and not SameRebuildSettings(container, profile, fontKey) then
 		local armed = parentFrame.Triage_secureAuraRebuildArmed
 		if armed and armed[position] then
+			-- Consume the arm before rebuilding: if the rebuild or the rest of this UpdateIndicators
+			-- pass throws, the flush never reaches its own clear and the frame would stay armed.
+			armed[position] = nil
 			container = RebuildSecureAuraIndicator(parentFrame, position, container, profile, fontKey)
 		else
 			-- Keep showing the current visual and let the settings settle first. Rebuilding
