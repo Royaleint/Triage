@@ -118,8 +118,13 @@ end
 local spellIDByLoweredName = {}
 local knownSpellsGeneration
 
-local function ResolvePlayerSpellID(addon, auraIdentifier)
-	local spells = addon.SpellLookup.PlayerSpells()
+local function GetPlayerSpellsGeneration(addon)
+	if addon.SpellLookup and addon.SpellLookup.PlayerSpells then
+		return addon.SpellLookup.PlayerSpells()
+	end
+end
+
+local function ResolvePlayerSpellID(spells, auraIdentifier)
 	if knownSpellsGeneration ~= spells then
 		knownSpellsGeneration = spells
 		spellIDByLoweredName = {}
@@ -131,17 +136,20 @@ local function ResolvePlayerSpellID(addon, auraIdentifier)
 	return spellIDByLoweredName[auraIdentifier:lower()]
 end
 
+local function ResolveSpellID(spells, auraIdentifier)
+	local numericID = tonumber(auraIdentifier)
+	if numericID then
+		return numericID
+	end
+	return spells and ResolvePlayerSpellID(spells, auraIdentifier)
+end
+
 function Triage:GetSecureAuraSpellID(auraIdentifier)
 	local numericID = tonumber(auraIdentifier)
 	if numericID then
 		return numericID
 	end
-
-	if not self.SpellLookup or not self.SpellLookup.PlayerSpells then
-		return nil
-	end
-
-	return ResolvePlayerSpellID(self, auraIdentifier)
+	return ResolveSpellID(GetPlayerSpellsGeneration(self), auraIdentifier)
 end
 
 local function ApplySecureAuraIndicatorAppearance(addon, parentFrame, position, container)
@@ -156,15 +164,30 @@ local function ApplySecureAuraIndicatorAppearance(addon, parentFrame, position, 
 	container.Triage_keepVisible = keepVisible
 end
 
-local function GetSpellIDs(addon, auraIdentifiers)
+-- The returned set is shared by reference: it becomes the container's memo, its
+-- Triage_spellIDs, and the includeSpellIDs map Blizzard keeps from SetAuraSlotCandidateFilters.
+-- Treat it as immutable once returned; a change always builds a new table.
+local function GetSpellIDs(addon, auraIdentifiers, container)
+	local spells = GetPlayerSpellsGeneration(addon)
+	if container and container.Triage_spellIDsIdentifiers == auraIdentifiers and
+		container.Triage_spellIDsGeneration == spells then
+		return container.Triage_resolvedSpellIDs, spells
+	end
+
 	local spellIDs = {}
 	for _, auraIdentifier in ipairs(auraIdentifiers) do
-		local spellID = addon:GetSecureAuraSpellID(auraIdentifier)
+		local spellID = ResolveSpellID(spells, auraIdentifier)
 		if spellID then
 			spellIDs[spellID] = true
 		end
 	end
-	return spellIDs
+	return spellIDs, spells
+end
+
+local function RecordSpellIDs(container, auraIdentifiers, spells, spellIDs)
+	container.Triage_spellIDsIdentifiers = auraIdentifiers
+	container.Triage_spellIDsGeneration = spells
+	container.Triage_resolvedSpellIDs = spellIDs
 end
 
 local function HasSpellIDs(spellIDs)
@@ -172,6 +195,9 @@ local function HasSpellIDs(spellIDs)
 end
 
 local function SameSpellIDs(left, right)
+	if left == right then
+		return true
+	end
 	for spellID in pairs(left) do
 		if not right[spellID] then
 			return false
@@ -416,7 +442,7 @@ local function ReportMissingOnlyUnsupported(addon)
 	addon:Print(L["secureAuraMissingOnlyUnsupported"])
 end
 
-local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spellIDs, fontKey)
+local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells)
 	local profile = addon.db.profile["indicator-" .. position]
 	local fontPath = GetIndicatorFontPath(addon)
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, parentFrame, "CustomAuraContainerTemplate")
@@ -438,6 +464,7 @@ local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spe
 	end
 
 	container.Triage_spellIDs = spellIDs
+	RecordSpellIDs(container, auraIdentifiers, spells, spellIDs)
 	container.Triage_casterFilter = profile.casterFilter
 	RecordRebuildSettings(container, profile, fontKey)
 	container:SetUnit(unit)
@@ -469,7 +496,15 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 		return false
 	end
 
-	local spellIDs = GetSpellIDs(self, auraIdentifiers)
+	-- Nothing configured for this position: nothing to resolve, and nothing to allocate for.
+	if not auraIdentifiers[1] then
+		self:DisableSecureAuraIndicator(parentFrame, position)
+		return false
+	end
+
+	local containers = parentFrame.Triage_secureAuraIndicators
+	local container = containers and containers[position]
+	local spellIDs, spells = GetSpellIDs(self, auraIdentifiers, container)
 	if not HasSpellIDs(spellIDs) then
 		self:DisableSecureAuraIndicator(parentFrame, position)
 		return false
@@ -488,8 +523,6 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 	end
 
 	local fontKey = self.db.profile.indicatorFont
-	local containers = parentFrame.Triage_secureAuraIndicators
-	local container = containers and containers[position]
 	if InCombatLockdown() then
 		if not container or container.Triage_unit ~= unit or container.Triage_casterFilter ~= profile.casterFilter or
 			container.Triage_keepVisible ~= self.db.profile.keepIndicatorsVisible or
@@ -501,6 +534,7 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 			self:QueueSecureAuraIndicatorRefresh(parentFrame)
 			return false
 		end
+		RecordSpellIDs(container, auraIdentifiers, spells, container.Triage_spellIDs)
 		return true
 	end
 
@@ -533,6 +567,7 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 			end
 		end
 		if container then
+			RecordSpellIDs(container, auraIdentifiers, spells, container.Triage_spellIDs)
 			container:SetUnit(unit)
 			container.Triage_unit = unit
 			ApplySecureAuraIndicatorAppearance(self, parentFrame, position, container)
@@ -541,5 +576,5 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 		end
 	end
 
-	return CreateSecureAuraIndicator(self, parentFrame, position, unit, spellIDs, fontKey)
+	return CreateSecureAuraIndicator(self, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells)
 end

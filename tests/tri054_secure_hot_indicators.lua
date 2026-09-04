@@ -1,4 +1,4 @@
--- luacheck: globals arg dofile CreateFrame InCombatLockdown UnitIsUnit LibStub AuraUtil
+-- luacheck: globals arg debug dofile CreateFrame InCombatLockdown UnitIsUnit LibStub AuraUtil
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
 
@@ -130,6 +130,11 @@ _G.Triage = {
 				casterFilter = "all", countdownLocation = "CENTER", stackSizeLocation = "BOTTOMRIGHT",
 				indicatorColor = { 0, 1, 0.59, 1 },
 			},
+			-- Never configured, standing in for the majority of positions that keep the
+			-- database default of an empty aura list (DatabaseDefaults.lua).
+			["indicator-5"] = {
+				casterFilter = "all",
+			},
 		},
 	},
 	Print = function(_, message) diagnostics[#diagnostics + 1] = message end,
@@ -189,6 +194,35 @@ dofile(repoRoot .. "Modules/SecureAuraIndicators.lua")
 assertEqual(_G.Triage:GetSecureAuraSpellID("Regrowth"), 8936, "known local spell names should resolve")
 assertEqual(_G.Triage:GetSecureAuraSpellID("Cross-Class Aura"), nil, "unresolved names keep the legacy matcher")
 
+-- GetSpellIDs constructs one result table per call. Wrap its closed-over function so this
+-- test can make the allocation contract observable without changing the module's API.
+local getSpellIDsIndex
+local originalGetSpellIDs
+local upvalueIndex = 1
+while true do
+	local name, value = debug.getupvalue(_G.Triage.EnsureSecureAuraIndicator, upvalueIndex)
+	if not name then
+		break
+	end
+	if name == "GetSpellIDs" then
+		getSpellIDsIndex = upvalueIndex
+		originalGetSpellIDs = value
+		break
+	end
+	upvalueIndex = upvalueIndex + 1
+end
+assertTrue(originalGetSpellIDs, "EnsureSecureAuraIndicator retains its spell-ID resolver")
+local spellIDTableAllocations = 0
+local previousSpellIDs
+debug.setupvalue(_G.Triage.EnsureSecureAuraIndicator, getSpellIDsIndex, function(...)
+	local spellIDs, spells = originalGetSpellIDs(...)
+	if spellIDs ~= previousSpellIDs then
+		spellIDTableAllocations = spellIDTableAllocations + 1
+		previousSpellIDs = spellIDs
+	end
+	return spellIDs, spells
+end)
+
 parent.Triage_auraDataRestricted = false
 assertEqual(ensure(), false, "readable Retail updates must retain the legacy renderer")
 assertEqual(#created, 0, "readable updates must not allocate secure frames")
@@ -200,6 +234,43 @@ local container = live()
 assertTrue(container.options.candidateFilters.includeSpellIDs[8936], "first configured HoT must be included")
 assertTrue(container.options.candidateFilters.includeSpellIDs[774], "later configured HoT must be included")
 assertEqual(container.unit, "party1", "secure container tracks the managed unit")
+
+-- The secure path is entered repeatedly while aura data is restricted. Identical inputs must
+-- reuse the resolved set instead of allocating a throwaway result table every time; both an
+-- identifier-list replacement and a new PlayerSpells generation must rebuild it.
+assertEqual(spellIDTableAllocations, 1, "the initial secure update resolves one spell-ID set")
+assertEqual(ensure(), true, "unchanged restricted updates retain the secure slot")
+assertEqual(spellIDTableAllocations, 1, "an unchanged restricted update allocates no spell-ID result table")
+currentAuras = { "Regrowth" }
+assertEqual(ensure(), true, "changed identifiers retain the secure slot")
+assertEqual(spellIDTableAllocations, 2, "changed identifiers rebuild the spell-ID set")
+assertTrue(live().Triage_spellIDs[8936], "changed identifiers retain their resolved spell")
+assertEqual(live().Triage_spellIDs[774], nil, "changed identifiers remove dropped spells")
+playerSpells = { { name = "Regrowth", spellID = 55555 } }
+assertEqual(ensure(), true, "a new spellbook generation retains the secure slot")
+assertEqual(spellIDTableAllocations, 3, "a new spellbook generation rebuilds the spell-ID set")
+assertTrue(live().Triage_spellIDs[55555], "a new spellbook generation refreshes the resolved spell")
+playerSpells = {
+	{ name = "Regrowth", spellID = 8936 },
+	{ name = "Rejuvenation", spellID = 774 },
+}
+currentAuras = { "Regrowth", "Rejuvenation" }
+assertEqual(ensure(), true, "restoring the configured spells retains the secure slot")
+
+-- Regression for Major 2: an indicator with nothing configured must never resolve or
+-- allocate a spell-ID set, and unconfigured positions are the majority since every
+-- indicator defaults to an empty aura list.
+local allocationsBeforeUnconfigured = spellIDTableAllocations
+local createdBeforeUnconfigured = #created
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(parent, 5, "party1", {}), false,
+	"an unconfigured position never resolves a secure slot")
+assertEqual(spellIDTableAllocations, allocationsBeforeUnconfigured,
+	"an unconfigured position allocates no spell-ID table")
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(parent, 5, "party1", {}), false,
+	"a repeated update on an unconfigured position never resolves a secure slot")
+assertEqual(spellIDTableAllocations, allocationsBeforeUnconfigured,
+	"an unconfigured position allocates no spell-ID table on a repeated update")
+assertEqual(#created, createdBeforeUnconfigured, "an unconfigured position never creates a container")
 
 -- Geometry comes from anchors, never from a post-restriction call on the aura button:
 -- Blizzard's empty layout pass would overwrite a SetSize on the container, and the
@@ -319,13 +390,41 @@ ensure()
 fireTimers()
 container = live()
 
+-- Regression for Major 1: the memo must be written on the in-combat success path too, or
+-- one SPELLS_CHANGED invalidation reverts every later restricted update in the fight to a
+-- fresh allocation for as long as combat lasts.
+local savedCombatPlayerSpells = playerSpells
+playerSpells = {
+	{ name = "Regrowth", spellID = 8936 },
+	{ name = "Rejuvenation", spellID = 774 },
+}
+inCombat = true
+local allocationsBeforeCombatGeneration = spellIDTableAllocations
+assertEqual(ensure(), true, "a new spellbook generation in combat keeps the current secure visual")
+assertEqual(spellIDTableAllocations, allocationsBeforeCombatGeneration + 1,
+	"a new spellbook generation in combat rebuilds the spell-ID set once")
+-- The next hit returns the memo's bound-object identity rather than the throwaway table
+-- GetSpellIDs just built, so the harness's identity-tracking hook sees one further change
+-- here even on a cache hit. That is not a second allocation; it is this call's own return
+-- value settling back onto container.Triage_spellIDs. The discriminating comparison for
+-- "is the memo being written on the in-combat success path" is the call after this one,
+-- which must return that same settled identity again.
+assertEqual(ensure(), true, "a repeated in-combat update after the generation change keeps the current secure visual")
+local allocationsAfterFirstRepeat = spellIDTableAllocations
+assertEqual(ensure(), true,
+	"a second repeated in-combat update after the generation change keeps the current secure visual")
+assertEqual(spellIDTableAllocations, allocationsAfterFirstRepeat,
+	"in combat, the memo records the new generation on the success path")
+inCombat = false
+playerSpells = savedCombatPlayerSpells
+
 -- Names resolve once per spellbook generation rather than being walked out of the spell list
 -- on every restricted update.
 local memoAuras = { "Regrowth" }
 assertEqual(ensure("party1", memoAuras), true, "a name-based indicator resolves on the secure path")
 local savedSpells = { playerSpells[1], playerSpells[2] }
 playerSpells[1], playerSpells[2] = nil, nil
-assertEqual(ensure("party1", memoAuras), true,
+assertEqual(ensure("party1", { "Regrowth" }), true,
 	"a resolved name is not walked out of the spell list again on the next update")
 playerSpells[1], playerSpells[2] = savedSpells[1], savedSpells[2]
 
