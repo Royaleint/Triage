@@ -54,7 +54,6 @@ local INDICATOR_COPY_KEYS = {
 		"colorTextByTime_high",
 		"colorTextByDebuff",
 		"textSize",
-		"textAlpha",
 	},
 	animation = {
 		"showCountdownSwipe",

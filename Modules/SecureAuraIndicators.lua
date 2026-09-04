@@ -22,6 +22,14 @@ local REBUILD_FIELDS = {
 	"textSize",
 }
 
+-- The same contract as REBUILD_FIELDS, for the profile's four-component color tables. They are
+-- compared and stored component by component: the picker mutates its table in place across a
+-- drag, so a stored reference would compare equal to itself and never rebuild.
+local REBUILD_COLOR_FIELDS = {
+	"indicatorColor",
+	"textColor",
+}
+
 -- How long the settings have to hold still before a rebuild runs. The color wheel and the
 -- opacity slider call RefreshConfig on every sample of a drag, and every rebuild strands a
 -- Blizzard frame permanently, so a drag has to collapse into one rebuild.
@@ -96,6 +104,7 @@ local function InitializeSecureAuraButton(auraFrame, profile, fontPath)
 		local point, offsetX, offsetY = GetCountdownAnchor(profile.countdownLocation)
 		countdown:SetPoint(point, auraFrame, point, offsetX, offsetY)
 		countdown:SetFont(fontPath, profile.textSize, "OUTLINE")
+		countdown:SetTextColor(unpack(profile.textColor))
 		auraFrame:SetDurationText(countdown)
 	end
 
@@ -238,22 +247,32 @@ local function SameRebuildSettings(container, profile, fontKey)
 			return false
 		end
 	end
-	for index = 1, 4 do
-		if applied.indicatorColor[index] ~= profile.indicatorColor[index] then
-			return false
+	for fieldIndex = 1, #REBUILD_COLOR_FIELDS do
+		local field = REBUILD_COLOR_FIELDS[fieldIndex]
+		local appliedColor, profileColor = applied[field], profile[field]
+		for index = 1, 4 do
+			if appliedColor[index] ~= profileColor[index] then
+				return false
+			end
 		end
 	end
 	return true
 end
 
 local function RecordRebuildSettings(container, profile, fontKey)
-	local applied = { indicatorColor = {}, fontKey = fontKey }
+	local applied = { fontKey = fontKey }
 	for index = 1, #REBUILD_FIELDS do
 		local field = REBUILD_FIELDS[index]
 		applied[field] = profile[field]
 	end
-	for index = 1, 4 do
-		applied.indicatorColor[index] = profile.indicatorColor[index]
+	for fieldIndex = 1, #REBUILD_COLOR_FIELDS do
+		local field = REBUILD_COLOR_FIELDS[fieldIndex]
+		local profileColor = profile[field]
+		local appliedColor = {}
+		for index = 1, 4 do
+			appliedColor[index] = profileColor[index]
+		end
+		applied[field] = appliedColor
 	end
 	container.Triage_rebuildSettings = applied
 end

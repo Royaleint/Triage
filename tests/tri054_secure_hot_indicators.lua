@@ -82,6 +82,12 @@ function CreateFrame(frameType, _name, parent, template)
 					SetFont = function(_, path, size) self.fontPath, self.fontSize = path, size end,
 					SetFontObject = function(_, name) self.stackFontObject = name end,
 					SetJustifyH = function(_, justify) self.stackJustifyH = justify end,
+					-- Both font strings share this factory and only the countdown is ever
+					-- recolored, so the call count doubles as the stack text's parity check.
+					SetTextColor = function(_, r, g, b, a)
+						self.textColorCalls = self.textColorCalls + 1
+						self.countdownColor = { r, g, b, a }
+					end,
 				}
 			end,
 			SetIcon = function() self.iconBoundToAura = true end,
@@ -93,6 +99,7 @@ function CreateFrame(frameType, _name, parent, template)
 			SetApplicationCount = function() self.hasStackSize = true end,
 		}
 		self.textPoints = {}
+		self.textColorCalls = 0
 		options.initializeFrame(auraFrame)
 		return auraFrame
 	end
@@ -128,7 +135,7 @@ _G.Triage = {
 				indicatorAlpha = 0.7, showIcon = true, showCountdownSwipe = true,
 				showCountdownText = true, showStackSize = true, textSize = 8,
 				casterFilter = "all", countdownLocation = "CENTER", stackSizeLocation = "BOTTOMRIGHT",
-				indicatorColor = { 0, 1, 0.59, 1 },
+				indicatorColor = { 0, 1, 0.59, 1 }, textColor = { 1, 1, 1, 1 },
 			},
 			-- Never configured, standing in for the majority of positions that keep the
 			-- database default of an empty aura list (DatabaseDefaults.lua).
@@ -389,6 +396,53 @@ profile.showCountdownSwipe = true
 ensure()
 fireTimers()
 container = live()
+
+-- TRI-058: the countdown's color and its alpha both live in the text color picker, and the
+-- secure countdown can only be styled where its font string is created. A picker change has to
+-- travel the debounced out-of-combat rebuild, the same route indicatorColor already takes.
+assertEqual(container.countdownColor[1], 1, "the secure countdown is painted from the text color picker")
+assertEqual(container.countdownColor[4], 1, "the secure countdown carries the picker's alpha")
+assertEqual(container.textColorCalls, 1, "the secure stack text keeps its font object's color")
+
+local beforeTextColor = #created
+profile.textColor = { 0.2, 0.4, 0.6, 0.35 }
+assertEqual(ensure(), true, "a text color change keeps the current secure visual on screen")
+assertEqual(#created, beforeTextColor, "a text color change allocates nothing before its window elapses")
+assertEqual(fireTimers(), 1, "a text color change schedules exactly one rebuild")
+assertEqual(#created, beforeTextColor + 1, "a text color change rebuilds the secure slot once")
+container = live()
+assertEqual(container.countdownColor[1], 0.2, "the rebuilt countdown carries the new red component")
+assertEqual(container.countdownColor[2], 0.4, "the rebuilt countdown carries the new green component")
+assertEqual(container.countdownColor[3], 0.6, "the rebuilt countdown carries the new blue component")
+assertEqual(container.countdownColor[4], 0.35, "the rebuilt countdown carries the picker's alpha")
+
+-- Aura updates keep arriving between picker changes. An unchanged color must not arm a rebuild,
+-- or every restricted update would strand a container Blizzard can never reclaim.
+local schedulesBeforeSameColor = timerSchedules
+for _ = 1, 5 do
+	assertEqual(ensure(), true, "an unchanged text color keeps the current secure visual")
+end
+assertEqual(timerSchedules, schedulesBeforeSameColor, "an unchanged text color arms no rebuild")
+assertEqual(#created, beforeTextColor + 1, "an unchanged text color allocates nothing")
+
+-- The picker mutates its table in place across a drag, so the recorded color has to be a copy:
+-- a stored reference would compare equal to itself and no change would ever reach the screen.
+profile.textColor[4] = 1
+assertEqual(ensure(), true, "an alpha-only change keeps the current secure visual")
+assertEqual(fireTimers(), 1, "an in-place alpha change schedules one rebuild")
+container = live()
+assertEqual(container.countdownColor[4], 1, "the rebuilt countdown carries the in-place alpha change")
+profile.textColor = { 1, 1, 1, 1 }
+ensure()
+fireTimers()
+container = live()
+
+-- With the alpha folded into the picker, the profile must not carry a second alpha key that
+-- nothing reads.
+dofile(repoRoot .. "DatabaseDefaults.lua")
+local indicatorDefaults = _G.Triage:CreateDefaults().profile["indicator-4"]
+assertEqual(indicatorDefaults.textAlpha, nil, "no profile default carries the removed textAlpha key")
+assertEqual(indicatorDefaults.textColor[4], 1, "the text color default carries a full alpha")
 
 -- Regression for Major 1: the memo must be written on the in-combat success path too, or
 -- one SPELLS_CHANGED invalidation reverts every later restricted update in the fight to a
@@ -658,7 +712,7 @@ local function twoPositionProfile()
 		indicatorAlpha = 0.7, showIcon = true, showCountdownSwipe = true,
 		showCountdownText = true, showStackSize = true, textSize = 8,
 		casterFilter = "all", countdownLocation = "CENTER", stackSizeLocation = "BOTTOMRIGHT",
-		indicatorColor = { 0, 1, 0.59, 1 },
+		indicatorColor = { 0, 1, 0.59, 1 }, textColor = { 1, 1, 1, 1 },
 	}
 end
 _G.Triage.db.profile["indicator-6"] = twoPositionProfile()
