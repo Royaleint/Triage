@@ -96,7 +96,10 @@ end
 
 local function FormatValue(row, value)
 	if row.isPercent then
-		return tostring(math.floor((value * 100) + 0.5)) .. "%"
+		local percent = value * 100
+		local formatted = string.format("%.1f", percent)
+		formatted = formatted:gsub("%.0$", "")
+		return formatted .. "%"
 	end
 	if math.floor(value) == value then
 		return tostring(value)
@@ -315,6 +318,7 @@ function Controls.CreateSlider(parent, row, refresh)
 
 	local valueText = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 	valueText:SetPoint("TOP", slider, "BOTTOM", 0, -4)
+	local isRefreshing = false
 
 	local function UpdateValueText(value)
 		valueText:SetText(FormatValue(row, value))
@@ -322,7 +326,9 @@ function Controls.CreateSlider(parent, row, refresh)
 
 	frame.triageRefresh = function()
 		local value = Clamp(RoundToStep(tonumber(SafeGet(row, row.min or 0)) or 0, row.min, row.step), row.min, row.max)
+		isRefreshing = true
 		slider:SetValue(value)
+		isRefreshing = false
 		UpdateValueText(value)
 		SetControlEnabled(slider, not IsDisabled(row))
 	end
@@ -334,14 +340,13 @@ function Controls.CreateSlider(parent, row, refresh)
 		end
 
 		local newValue = Clamp(RoundToStep(value, row.min, row.step), row.min, row.max)
-		if newValue ~= value then
-			self:SetValue(newValue)
+		UpdateValueText(newValue)
+		if isRefreshing then
 			return
 		end
 
-		UpdateValueText(newValue)
-
-		local oldValue = tonumber(SafeGet(row, newValue))
+		local storedValue = tonumber(SafeGet(row, nil))
+		local oldValue = storedValue and Clamp(RoundToStep(storedValue, row.min, row.step), row.min, row.max)
 		if oldValue ~= newValue and row.set then
 			row.set(newValue)
 			AttachRefresh(refresh)

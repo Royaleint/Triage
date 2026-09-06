@@ -619,7 +619,12 @@ end
 
 function OptionsFrame:Refresh()
 	if frame then
-		self:ShowSection(activeSection)
+		frame.scrollBox:ForEachFrame(function(rowFrame)
+			local child = rowFrame.triageOptionsChild
+			if child and child.triageRefresh then
+				child:triageRefresh()
+			end
+		end)
 		ApplyOpacity()
 	end
 end
