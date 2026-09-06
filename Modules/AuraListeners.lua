@@ -12,11 +12,6 @@ local LibDispel = LibStub("LibDispel-1.0")
 -- Localize globals used in hot paths (UNIT_AURA fires often; avoid repeated global lookups)
 local issecretvalue = issecretvalue -- nil on Classic, where the global doesn't exist; that's fine, guards below already check for it
 
--- TRI-051 diagnostic only (see ReportAuraAccessError below): one-shot flag so a caught pcall
--- error prints once per session instead of once per UNIT_AURA tick. Remove alongside the
--- diagnostic print once the RequiresUnitAuraAccess hypothesis is confirmed either way.
-local hasReportedAuraAccessError = false
-
 -- Aura filters we scan on a full update. Hoisted to a file-local constant so we don't allocate
 -- a fresh table on every UNIT_AURA full-update/rescan call.
 local AURA_FILTERS = { "HELPFUL", "HARMFUL" }
@@ -124,21 +119,6 @@ local function SafeField(value, fallback)
 	return value
 end
 
---- TRI-051 diagnostic only: prints the message pcall caught at one of the two RequiresUnitAuraAccess
---- guard sites below, once per session (UNIT_AURA is storm-class; an unthrottled print would spam
---- chat). Lets Rawb confirm in-game that the caught error is actually the expected
---- RequiresUnitAuraAccess/GetAuraSlots throw and not something unrelated. Remove this call and
---- the hasReportedAuraAccessError flag once that hypothesis is confirmed either way.
----@param addon table @The Triage addon table (used for :Print)
----@param err any @The error value pcall's second return gave us
-local function ReportAuraAccessError(addon, err)
-	if hasReportedAuraAccessError then
-		return
-	end
-	hasReportedAuraAccessError = true
-	addon:Print("TRI-051 diagnostic: pcall caught: " .. tostring(err))
-end
-
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.
 --- Unit aura information for tracked auras is stored in the Triage_unitAuras table.
 --- It uses the C_UnitAuras API that was added in 10.0.
@@ -184,6 +164,8 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	local shouldRunUpdate = false
 	-- If we get a full update signal, reset the table and rescan all auras for the unit
 	if isFullUpdate then
+		local wasRestricted = parentFrame.Triage_auraDataRestricted == true
+		parentFrame.Triage_auraDataRestricted = false
 		-- Remember whether we had anything tracked before the wipe below. Triage_unitAuras is
 		-- keyed by auraInstanceID (not array-indexed) on retail, so next() is the correct
 		-- emptiness check here, not #.
@@ -206,7 +188,7 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		-- under restriction — a distinct failure class from the secret-*value* taint addToAuraTable
 		-- already guards against, and one issecretvalue() cannot detect in advance.
 		for _, filter in pairs(AURA_FILTERS) do
-			local ok, err = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
+			local ok = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
 				-- Add our auraData to the Triage_unitAuras table
 				if self:addToAuraTable(parentFrame, auraData) then
 					scanUpdateFlag = true
@@ -214,11 +196,13 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			end, true)
 			if not ok then
 				scanOK = false
-				ReportAuraAccessError(self, err)
 				break
 			end
 		end
 		if scanOK then
+			if wasRestricted ~= parentFrame.Triage_auraDataRestricted then
+				shouldRunUpdate = true
+			end
 			if scanUpdateFlag then
 				shouldRunUpdate = true
 			end
@@ -233,6 +217,14 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			-- The scan failed partway through. Roll back to the last-known-good table we held
 			-- aside in previousAuras instead of leaving indicators wiped or half-updated.
 			parentFrame.Triage_unitAuras = previousAuras
+			-- A denied scan is a restricted scan, and the clearest one there is: ForEachAura
+			-- throws precisely because a tainted caller was refused unit aura access. Do not
+			-- roll the flag back — addToAuraTable never ran to set it, so rolling back would
+			-- switch off the secure path in exactly the case it exists for.
+			parentFrame.Triage_auraDataRestricted = true
+			if not wasRestricted then
+				shouldRunUpdate = true
+			end
 		end
 	end
 
@@ -240,8 +232,9 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 	if addedAuras then
 		for _, auraData in pairs(addedAuras) do
 			-- Add our auraData to the Triage_unitAuras table
+			local wasRestricted = parentFrame.Triage_auraDataRestricted == true
 			local updateFlag = self:addToAuraTable(parentFrame, auraData)
-			if updateFlag then
+			if updateFlag or wasRestricted ~= parentFrame.Triage_auraDataRestricted then
 				shouldRunUpdate = true
 			end
 		end
@@ -258,18 +251,16 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 				-- even when auraInstanceID itself isn't secret. Not yet observed crashing live,
 				-- but same failure class, same guard.
 				local ok, auraData = pcall(C_UnitAuras.GetAuraDataByAuraInstanceID, unit, auraInstanceID)
-				-- Though rare, it is possible for auraData to be nil if the aura was removed just prior to us querying it.
+				-- auraData is nil if the aura was removed just before we queried it; ok is false if
+				-- pcall caught an error (RequiresUnitAuraAccess denial or something else). Either
+				-- way, skip this instance ID rather than propagate.
 				if ok and auraData then
 					-- Add our auraData to the Triage_unitAuras table
+					local wasRestricted = parentFrame.Triage_auraDataRestricted == true
 					local updateFlag = self:addToAuraTable(parentFrame, auraData)
-					if updateFlag then
+					if updateFlag or wasRestricted ~= parentFrame.Triage_auraDataRestricted then
 						shouldRunUpdate = true
 					end
-				elseif not ok then
-					-- The call failed (pcall caught an error, cause unknown here — could be
-					-- RequiresUnitAuraAccess denial or something else); skip this instance ID
-					-- rather than propagate the error.
-					ReportAuraAccessError(self, auraData)
 				end
 			end
 		end
@@ -320,6 +311,7 @@ function Triage:addToAuraTable(parentFrame, auraData)
 		or issecretvalue(auraData.sourceUnit)
 		or issecretvalue(auraData.timeMod)
 	) then
+		parentFrame.Triage_auraDataRestricted = true
 		return false
 	end
 

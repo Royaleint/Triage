@@ -144,6 +144,8 @@ function Triage:OnEnable()
 	-- Apply indicator mouse propagation settings that were skipped during combat lockdown.
 	self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
 		self:FlushDeferredMouseBehavior()
+		self:FlushSecureAuraIndicatorRefresh()
+		self:FlushSecureAuraIndicatorRebuilds()
 		if self.Triage_pendingStockAuraVisibilityUpdate then
 			self.Triage_pendingStockAuraVisibilityUpdate = nil
 			self:UpdateAllStockAuraVisibility()
@@ -179,6 +181,7 @@ function Triage:OnEnable()
 	if rawget(_G, "CompactUnitFrame_SetUnit") then
 		self:SecureHook("CompactUnitFrame_SetUnit", function(frame, unit)
 			self:UpdateManagedFrameUnit(frame, unit, "blizzard")
+			self:InvalidateSecureAuraIndicators(frame)
 			self:UpdateStockAuraVisibility(frame)
 			if not self.ShouldContinue(frame, true) then
 				return

@@ -132,7 +132,6 @@ function Triage:CreateDefaults()
 			colorTextByTime_high = 5,
 			colorTextByDebuff = false,
 			textSize = 14,
-			textAlpha = 1,
 
 			-- Animations and Effects
 			showCountdownSwipe = true,

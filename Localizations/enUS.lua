@@ -259,6 +259,9 @@ L["meOnly_desc"] = "Only only show this indicator on myself"
 L["Show Only if Missing"] = true
 L["missingOnly_desc"] = "Show only when the buff or debuff is missing"
 
+L["secureAuraUnavailable"] = "Aura indicators may not update during encounters that hide aura information."
+L["secureAuraMissingOnlyUnsupported"] = "Indicators set to Show Only if Missing stay hidden during encounters that hide aura information. Triage cannot confirm an aura is missing when the game will not report it."
+
 L["Tooltips"] = true
 
 L["Show Tooltip"] = true

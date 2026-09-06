@@ -284,8 +284,12 @@ function Triage:UpdateIndicators(frame, setAppearance)
 
 	-- Loop over all 9 indicators and process them individually
 	for i, indicator in ipairs(frame.Triage_indicatorFrames) do
+		-- Retail custom aura slots are only needed after the listener identified
+		-- restricted aura data. Readable updates keep the established matcher.
+		if self:EnsureSecureAuraIndicator(frame, i, unit, self.auraStrings[i]) then
+			self:ClearIndicator(indicator)
 		--if we don't have any auraStrings for this indicator, stop here
-		if self.auraStrings[i][1] then
+		elseif self.auraStrings[i][1] then
 			-- Check if we have at least 1 auraString for this location
 			-- This is the meat of our processing loop
 			self:ProcessIndicator(indicator, unit)
@@ -635,51 +639,61 @@ function Triage:UpdateIndicatorColor(indicatorFrame, remainingTime)
 	indicatorFrame.Icon:SetColorTexture(unpack(self.db.profile["indicator-" .. i].indicatorColor))
 end
 
+-- Paint the countdown in one of the override colors, keeping the alpha the player picked.
+-- The accessor returns three values, so the color cannot be expanded inline ahead of the
+-- alpha argument: Lua would truncate it to its red component.
+local function SetCountdownColor(countdown, color, alpha)
+	local r, g, b = color:GetRGB()
+	countdown:SetTextColor(r, g, b, alpha)
+end
+
 --- Update the indicator countdown text color
 --- @param indicatorFrame table @The indicator frame to process
 --- @param remainingTime number @The time remaining on the aura
 function Triage:UpdateCountdownTextColor(indicatorFrame, remainingTime)
 	local i = indicatorFrame.position
 	local thisAura = indicatorFrame.thisAura
+	local indicatorProfile = self.db.profile["indicator-" .. i]
+	local textColor = indicatorProfile.textColor
 
 	if thisAura then
 		-- Set color based on time remaining
-		if self.db.profile["indicator-" .. i].colorTextByTime and remainingTime then
+		if indicatorProfile.colorTextByTime and remainingTime then
 			-- Color by remaining time
-			if self.db.profile["indicator-" .. i].colorTextByTime_low ~= 0
-					and remainingTime <= self.db.profile["indicator-" .. i].colorTextByTime_low then
-				indicatorFrame.Countdown:SetTextColor(self.RED_COLOR:GetRGB())
+			if indicatorProfile.colorTextByTime_low ~= 0
+					and remainingTime <= indicatorProfile.colorTextByTime_low then
+				SetCountdownColor(indicatorFrame.Countdown, self.RED_COLOR, textColor[4])
 				return
-			elseif self.db.profile["indicator-" .. i].colorTextByTime_high ~= 0
-					and remainingTime <= self.db.profile["indicator-" .. i].colorTextByTime_high then
-				indicatorFrame.Countdown:SetTextColor(self.YELLOW_COLOR:GetRGB())
+			elseif indicatorProfile.colorTextByTime_high ~= 0
+					and remainingTime <= indicatorProfile.colorTextByTime_high then
+				SetCountdownColor(indicatorFrame.Countdown, self.YELLOW_COLOR, textColor[4])
 				return
 			end
 		end
 
 		-- Set the color by debuff type
-		if self.db.profile["indicator-" .. i].colorTextByDebuff and thisAura.isHarmful and thisAura.dispelName then
+		if indicatorProfile.colorTextByDebuff and thisAura.isHarmful and thisAura.dispelName then
 			if thisAura.dispelName == "Poison" then
-				indicatorFrame.Countdown:SetTextColor(self.GREEN_COLOR:GetRGB())
+				SetCountdownColor(indicatorFrame.Countdown, self.GREEN_COLOR, textColor[4])
 				return
 			elseif thisAura.dispelName == "Curse" then
-				indicatorFrame.Countdown:SetTextColor(self.PURPLE_COLOR:GetRGB())
+				SetCountdownColor(indicatorFrame.Countdown, self.PURPLE_COLOR, textColor[4])
 				return
 			elseif thisAura.dispelName == "Disease" then
-				indicatorFrame.Countdown:SetTextColor(self.BROWN_COLOR:GetRGB())
+				SetCountdownColor(indicatorFrame.Countdown, self.BROWN_COLOR, textColor[4])
 				return
 			elseif thisAura.dispelName == "Magic" then
-				indicatorFrame.Countdown:SetTextColor(self.BLUE_COLOR:GetRGB())
+				SetCountdownColor(indicatorFrame.Countdown, self.BLUE_COLOR, textColor[4])
 				return
 			elseif thisAura.dispelName == "Bleed" then
-				indicatorFrame.Countdown:SetTextColor(self.PINK_COLOR:GetRGB())
+				SetCountdownColor(indicatorFrame.Countdown, self.PINK_COLOR, textColor[4])
 				return
 			end
 		end
 	end
 
 	-- Set the color to the user select choice
-	indicatorFrame.Countdown:SetTextColor(unpack(self.db.profile["indicator-" .. i].textColor))
+	indicatorFrame.Countdown:SetTextColor(unpack(textColor))
 end
 
 --- Update the indicator glow effect
