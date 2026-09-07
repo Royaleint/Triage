@@ -200,6 +200,10 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			end
 		end
 		if scanOK then
+			-- A scan that actually read the unit is current, whatever it found -- this success
+			-- branch is the only legitimate site to clear the marker the secure bridge's yield
+			-- rule reads.
+			parentFrame.Triage_unitAurasStale = nil
 			if wasRestricted ~= parentFrame.Triage_auraDataRestricted then
 				shouldRunUpdate = true
 			end
@@ -217,6 +221,11 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			-- The scan failed partway through. Roll back to the last-known-good table we held
 			-- aside in previousAuras instead of leaving indicators wiped or half-updated.
 			parentFrame.Triage_unitAuras = previousAuras
+			-- The rolled-back table describes the unit as it was before access was refused, not
+			-- as it is now, so EnsureSecureAuraIndicator's yield rule reads this marker to refuse
+			-- yielding against it: a stale cache cannot answer whether the unit currently carries
+			-- an aura the secure slot cannot show.
+			parentFrame.Triage_unitAurasStale = true
 			-- A denied scan is a restricted scan, and the clearest one there is: ForEachAura
 			-- throws precisely because a tainted caller was refused unit aura access. Do not
 			-- roll the flag back — addToAuraTable never ran to set it, so rolling back would

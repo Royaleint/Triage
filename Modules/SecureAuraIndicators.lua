@@ -520,7 +520,7 @@ local function ReportMissingOnlyUnsupported(addon)
 	addon:Print(L["secureAuraMissingOnlyUnsupported"])
 end
 
-local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells, restricted)
+local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells, restricted, yield)
 	local profile = addon.db.profile["indicator-" .. position]
 	local fontPath = GetIndicatorFontPath(addon)
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, parentFrame, "CustomAuraContainerTemplate")
@@ -560,7 +560,7 @@ local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spe
 	parentFrame.Triage_secureAuraIndicators[position] = container
 	addon.Triage_secureAuraCapability = true
 
-	if restricted then
+	if restricted and not yield then
 		ShowContainer(container)
 		return true
 	end
@@ -624,6 +624,19 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 		return false
 	end
 
+	-- A position can watch auras this slot can never draw: a name this character cannot cast, a
+	-- debuff wildcard, or a harmful aura whose numeric ID resolved perfectly well. The slot is
+	-- helpful-only and filters on resolved spell IDs, so an aura is only the slot's to show when
+	-- it is helpful AND in that set. Everything else stays readable while the rest of the unit's
+	-- auras are hidden, and while one of those is up the position hands itself to the readable
+	-- indicator, which can draw it with the full set of visuals. Exactly one of the two ever
+	-- draws, and the choice is made from readable aura data alone: whether the secure slot is
+	-- drawing is not something this code is permitted to ask. A cache that was rolled back rather
+	-- than read cannot answer the question at all, so a denied scan never yields.
+	local yield = restricted
+		and not parentFrame.Triage_unitAurasStale
+		and self:FindReadableAura(parentFrame, position, auraIdentifiers, spellIDs) ~= nil
+
 	local fontKey = self.db.profile.indicatorFont
 	if InCombatLockdown() then
 		if not container or container.Triage_unit ~= unit or container.Triage_casterFilter ~= profile.casterFilter or
@@ -636,13 +649,13 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 			self:QueueSecureAuraIndicatorRefresh(parentFrame)
 			return false
 		end
-		-- Written on every in-combat match -- the restricted ending that shows the container and
-		-- the readable ending that retains it alike. Keeping the container's own memo current is
-		-- what lets the next pass's SameSpellIDs short-circuit on table identity instead of
-		-- walking the set, so one SPELLS_CHANGED invalidation does not cost every later update in
-		-- the fight for as long as combat lasts.
+		-- Written on every in-combat match -- the restricted ending that shows the container, the
+		-- readable ending that retains it and the yielding ending that retains it too. Keeping the
+		-- container's own memo current is what lets the next pass's SameSpellIDs short-circuit on
+		-- table identity instead of walking the set, so one SPELLS_CHANGED invalidation does not
+		-- cost every later update in the fight for as long as combat lasts.
 		RecordSpellIDs(container, auraIdentifiers, spells, container.Triage_spellIDs)
-		if restricted then
+		if restricted and not yield then
 			ShowContainer(container)
 			return true
 		end
@@ -683,7 +696,7 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 			container:SetUnit(unit)
 			container.Triage_unit = unit
 			ApplySecureAuraIndicatorAppearance(self, parentFrame, position, container)
-			if restricted then
+			if restricted and not yield then
 				ShowContainer(container)
 				return true
 			end
@@ -696,5 +709,5 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 		end
 	end
 
-	return CreateSecureAuraIndicator(self, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells, restricted)
+	return CreateSecureAuraIndicator(self, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells, restricted, yield)
 end

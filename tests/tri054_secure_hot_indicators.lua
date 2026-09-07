@@ -178,6 +178,12 @@ _G.Triage = {
 	ShouldContinue = function() return true end,
 }
 
+-- Modules/AuraIndicators.lua defines Triage:FindReadableAura, which EnsureSecureAuraIndicator
+-- calls on every restricted pass, and its own Triage:UpdateIndicators, which the harness
+-- immediately replaces below with a one-position stub -- loading the module here, before that
+-- replacement, is what lets the stub actually take effect instead of being overwritten by it.
+dofile(repoRoot .. "Modules/AuraIndicators.lua")
+
 local profile = _G.Triage.db.profile["indicator-4"]
 local indicatorFrame = { name = "indicator-4-frame" }
 local parent = {
@@ -890,6 +896,125 @@ assertEqual(#created, beforeCapabilityFailure, "capability failure cannot alloca
 failCreate = false
 
 ------------------------------------------------------------------
+-- Partial-resolution yield
+------------------------------------------------------------------
+
+_G.Triage.Triage_secureAuraCapability = nil
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
+playerSpells = { { name = "Regrowth", spellID = 8936 } }
+currentUnit = "party1"
+currentAuras = { "regrowth", "cross-class aura" }
+parent.Triage_auraDataRestricted = true
+parent.Triage_unitAurasStale = nil
+parent.Triage_unitAuras = { [1] = { name = "cross-class aura", spellId = 999, isHelpful = true } }
+
+-- [FAIL@d6b092c] yielded: today the base claims every restricted position unconditionally and
+-- shows the container regardless of what the readable cache holds.
+assertEqual(ensure(), false, "a position yields when a readable aura it cannot represent is up")
+assertEqual(live().hidden, true, "a yielding position stays retained rather than shown")
+
+-- [coverage] claimed: clearing the readable cache removes the reason to yield; the base already
+-- claims unconditionally, so this passes at base too.
+parent.Triage_unitAuras = {}
+assertEqual(ensure(), true, "clearing the readable cache lets the position claim again")
+assertEqual(live().hidden, false, "a claimed position is shown")
+
+-- [FAIL@d6b092c] harmful resolved ID: a harmful aura is never excluded however well its numeric
+-- ID resolved, because only a helpful match in the resolved set is the secure slot's to draw.
+-- Also fails against a rule gated on full resolution rather than on isHelpful and set
+-- membership, which is what this row exists to catch.
+currentAuras = { "8936", "12345" }
+parent.Triage_unitAuras = { [1] = { name = "some debuff", spellId = 12345, isHarmful = true } }
+assertEqual(ensure(), false, "a harmful aura yields even though both its identifiers resolved")
+
+-- [coverage] helpful resolved ID is still excluded: this is exactly what the secure slot draws,
+-- so it must not send the position to the readable indicator. The base already claims
+-- unconditionally, so this passes at base too.
+parent.Triage_unitAuras = { [1] = { spellId = 8936, isHelpful = true } }
+assertEqual(ensure(), true, "a helpful aura already representable by the secure slot is excluded from the yield check")
+
+-- [FAIL@d6b092c] a yielding position is still reconciled: out of combat, a yielding position
+-- must still rebind to a new unit and re-anchor, or it is left holding a container bound to the
+-- wrong unit that can never be repaired once combat starts. Also fails against a yield
+-- implemented as an early return, which skips the reconcile entirely and leaves Triage_unit at
+-- the old unit.
+currentAuras = { "regrowth", "cross-class aura" }
+parent.Triage_unitAuras = { [1] = { name = "cross-class aura", spellId = 999, isHelpful = true } }
+assertEqual(ensure("party1"), false, "the position yields while bound to its first unit")
+local createdBeforeYieldReconcile = #created
+assertEqual(ensure("party2"), false, "a yielding position still reconciles onto a new unit out of combat")
+assertEqual(live().Triage_unit, "party2", "a yielding position's container is rebound to the new unit")
+assertEqual(live().hidden, true, "a yielding position's container stays hidden after reconciling")
+assertEqual(#created, createdBeforeYieldReconcile, "reconciling a yielding position allocates no new container")
+parent.Triage_unitAuras = {}
+inCombat = true
+local timersBeforeYieldClear = timerSchedules
+assertEqual(ensure("party2"), true, "clearing the readable aura in combat lets a previously-yielding position show")
+assertEqual(live().hidden, false, "a previously-yielding position shows once nothing readable contests it")
+assertEqual(timerSchedules, timersBeforeYieldClear, "the in-combat match ending on a former yield never schedules a rebuild")
+assertTrue(not _G.Triage.Triage_pendingSecureAuraIndicators or not _G.Triage.Triage_pendingSecureAuraIndicators[parent],
+	"the in-combat match ending on a former yield never queues a refresh")
+inCombat = false
+
+-- [FAIL@d6b092c] in-combat yield: restriction arrives in combat, where the container cannot be
+-- reconciled, so the yielding ending there is the one real play exercises most. At base the
+-- position claims and shows whatever the readable cache holds.
+local yieldCombatContainer = live()
+inCombat = true
+parent.Triage_unitAuras = { [1] = { name = "cross-class aura", spellId = 999, isHelpful = true } }
+local timersBeforeCombatYield = timerSchedules
+assertEqual(ensure("party2"), false, "an in-combat match on a yielding position retains rather than shows")
+assertEqual(yieldCombatContainer.hidden, true, "an in-combat yield hides the container it retains")
+assertEqual(yieldCombatContainer.Triage_unit, "party2", "an in-combat yield keeps the unit binding rather than dropping it")
+assertEqual(timerSchedules, timersBeforeCombatYield, "an in-combat yield schedules no rebuild")
+assertTrue(not _G.Triage.Triage_pendingSecureAuraIndicators or not _G.Triage.Triage_pendingSecureAuraIndicators[parent],
+	"an in-combat yield queues no post-combat refresh")
+inCombat = false
+
+-- [FAIL@d6b092c] created under yield: a position with no container yet -- a reload or a roster
+-- change inside restricted content -- must land retained, not shown, when a readable aura it
+-- cannot represent is already up. At base creation shows unconditionally while restricted.
+local yieldCreateParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "yield-create-indicator-4-frame" } },
+	Triage_auraDataRestricted = true,
+	Triage_unitAuras = { [1] = { name = "cross-class aura", spellId = 999, isHelpful = true } },
+}
+local createdBeforeYieldCreate = #created
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(yieldCreateParent, 4, "party1", currentAuras), false,
+	"a container created while the position yields lands retained")
+assertEqual(#created, createdBeforeYieldCreate + 1, "a yielding first pass still builds the container")
+local yieldCreateContainer = yieldCreateParent.Triage_secureAuraIndicators[4]
+assertEqual(yieldCreateContainer.hidden, true, "a container created under yield is hidden")
+assertEqual(yieldCreateContainer.enabled, true, "a container created under yield is enabled for a later in-combat show")
+assertEqual(yieldCreateContainer.Triage_unit, "party1", "a container created under yield is bound to its unit")
+
+-- [coverage] created while a helpful aura the slot can draw is up: the rule must read the
+-- freshly resolved set, not the container memo, or a first pass with no container to memoize on
+-- excludes nothing and yields against an aura the slot itself would have shown. The base claims
+-- unconditionally, so this passes at base too.
+local yieldCreateClaimParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "yield-create-claim-indicator-4-frame" } },
+	Triage_auraDataRestricted = true,
+	Triage_unitAuras = { [1] = { name = "regrowth", spellId = 8936, isHelpful = true } },
+}
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(yieldCreateClaimParent, 4, "party1", currentAuras), true,
+	"a first pass claims when the only readable match is one the secure slot can represent")
+assertEqual(yieldCreateClaimParent.Triage_secureAuraIndicators[4].hidden, false,
+	"the container created on a claiming first pass is shown")
+
+-- Restore shared state to what it was before this block; the tests below were written against
+-- these exact values and do not expect this block's fixtures.
+playerSpells = { { name = "Regrowth", spellID = 8936 }, { name = "Rejuvenation", spellID = 774 } }
+currentAuras = { "Regrowth", "Rejuvenation" }
+currentUnit = "party2"
+parent.Triage_unitAuras = nil
+parent.Triage_unitAurasStale = nil
+
+------------------------------------------------------------------
 -- Container lifetime and restriction-flag recovery (TRI-065 items 1, 2)
 ------------------------------------------------------------------
 
@@ -1175,6 +1300,55 @@ assertEqual(indicatorUpdates, updatesBeforeRepeat,
 	"a repeated denied scan does not re-run the indicators")
 
 ------------------------------------------------------------------
+-- Partial-resolution yield: denied vs. secret-field restriction paths
+------------------------------------------------------------------
+
+_G.Triage.Triage_secureAuraCapability = nil
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
+_G.Triage.db.profile["indicator-4"].casterFilter = "all"
+local yieldListenerAuras = { "regrowth", "cross-class aura" }
+local yieldListenerParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "yield-listener-indicator-4-frame" } },
+	Triage_auraDataRestricted = true,
+	unit = "party1",
+	Triage_unitAuras = { [1] = { name = "cross-class aura", spellId = 999, isHelpful = true } },
+}
+local function ensureYieldListener()
+	return _G.Triage:EnsureSecureAuraIndicator(yieldListenerParent, 4, "party1", yieldListenerAuras)
+end
+
+-- [FAIL@d6b092c] denied scan does not yield: the marker does not exist at base, so the yield
+-- fires on stale data -- a readable match that is rollback data from before access was denied,
+-- not a reading of the unit's current auras.
+AuraUtil.ForEachAura = function()
+	error("Auras cannot be accessed when secret while tainted by an addon")
+end
+_G.Triage:UpdateUnitAuras(yieldListenerParent, { isFullUpdate = true })
+assertEqual(yieldListenerParent.Triage_unitAurasStale, true, "a denied scan marks the readable cache stale")
+assertEqual(ensureYieldListener(), true,
+	"a stale cache never yields, even with a readable match sitting in it")
+
+-- [FAIL@d6b092c] secret-field scan does yield: pins that the marker distinguishes the two
+-- restriction paths rather than switching the rule off under restriction generally. At base the
+-- position claims unconditionally whatever the readable cache holds.
+_G.Triage.allAuras = " " .. " " .. "regrowth" .. " " .. " " .. "cross-class aura" .. " "
+AuraUtil.ForEachAura = function(_, filter, _, callback)
+	if filter == "HELPFUL" then
+		callback({ name = { restricted = true } })
+		callback({ name = "Cross-Class Aura", spellId = 999, isHelpful = true, auraInstanceID = 7 })
+	end
+end
+_G.Triage:UpdateUnitAuras(yieldListenerParent, { isFullUpdate = true })
+assertEqual(yieldListenerParent.Triage_unitAurasStale, nil,
+	"a scan that actually reads the unit clears the stale marker")
+assertEqual(yieldListenerParent.Triage_unitAuras[7].name, "cross-class aura",
+	"the readable aura survived the scan rather than the position yielding on an empty cache")
+assertEqual(ensureYieldListener(), false,
+	"a current cache yields when a readable aura the slot cannot represent is up")
+
+------------------------------------------------------------------
 -- Combat-exit recovery (TRI-065 item 2): the restriction flag can only be cleared by a scan
 -- that reads the auras, so PLAYER_REGEN_ENABLED (Triage.lua) forces UpdateAllAuras when the
 -- module flag says something was hidden. UpdateAllAuras itself already re-derives the per-frame
@@ -1227,9 +1401,8 @@ assertEqual(recoveryContainer.enabled, true, "the recovered readable frame's con
 -- a wrong two-line delegation -- arguments transposed, the wrong position indexed, the parent
 -- taken from the wrong place -- would break all of them and nothing else in this suite would
 -- notice, because every other test reaches the matcher through EnsureSecureAuraIndicator
--- instead.
-dofile(repoRoot .. "Modules/AuraIndicators.lua")
-
+-- instead. The module is loaded once, early in this file, ahead of the harness's
+-- UpdateIndicators stub so that stub takes effect.
 local delegationParent = { Triage_unitAuras = {} }
 _G.Triage.auraStrings = { [4] = { "regrowth" } }
 _G.Triage.db.profile["indicator-4"].casterFilter = "all"
