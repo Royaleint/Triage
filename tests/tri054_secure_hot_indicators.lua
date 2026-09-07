@@ -89,6 +89,7 @@ function CreateFrame(frameType, _name, parent, template)
 	function container:AddAuraSlot(slotKey, filter, options)
 		self.slotKey, self.filter, self.options = slotKey, filter, options
 		local auraFrame = {
+			EnableMouse = function(_, enabled) self.mouseEnabled = enabled end,
 			SetAllPoints = function() self.slotFillsContainer = true end,
 			CreateTexture = function()
 				return {
@@ -312,6 +313,9 @@ assertEqual(#created, createdBeforeUnconfigured, "an unconfigured position never
 assertEqual(container.anchoredTo, indicatorFrame, "the container mirrors the configured indicator frame")
 assertTrue(container.slotFillsContainer, "the aura button fills its container instead of being resized later")
 assertEqual(container.hidden, false, "a new secure container is shown")
+
+-- [FAIL@d6b092c] the field stays nil at base, since nothing calls EnableMouse there.
+assertEqual(container.mouseEnabled, false, "the secure aura button takes no mouse input")
 
 -- Appearance values that only apply inside initializeFrame
 assertEqual(container.iconAlpha, 0.7, "configured opacity reaches the secure icon")

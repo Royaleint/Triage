@@ -69,6 +69,13 @@ local function GetStackSizeAnchor(location)
 end
 
 local function InitializeSecureAuraButton(auraFrame, profile, fontPath)
+	-- The button carries Blizzard's own OnEnter/OnLeave/OnClick, so hovering a secure indicator
+	-- raises the aura tooltip over the raid frame. Taking mouse input off the button is what
+	-- stops that. Input propagation is not the issue and is not what this changes: the button
+	-- is declared with the AlwaysPropagateInput aspect, which forces mouse and keypress input
+	-- through to the parent chain whatever this call does.
+	auraFrame:EnableMouse(false)
+
 	-- Anchoring the button to its container is what keeps size configurable: the
 	-- container is ours and unrestricted, the button is neither once this returns.
 	auraFrame:SetAllPoints()
