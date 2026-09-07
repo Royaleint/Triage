@@ -174,13 +174,28 @@ local function ApplySecureAuraIndicatorAppearance(addon, parentFrame, position, 
 end
 
 -- The returned set is shared by reference: it becomes the container's memo, its
--- Triage_spellIDs, and the includeSpellIDs map Blizzard keeps from SetAuraSlotCandidateFilters.
--- Treat it as immutable once returned; a change always builds a new table.
+-- Triage_spellIDs, and the set handed to SetAuraSlotCandidateFilters as includeSpellIDs.
+-- Blizzard only reads it there (Blizzard_AuraContainerUtil.lua's candidate filter only looks a
+-- spell ID up in it, and Blizzard_CustomAuraContainer.lua only asserts its type before taking
+-- its own securecopy, so our table is never written to and never kept by Blizzard either way).
+-- Treat it as immutable once returned; a change always builds a new table. A position with no
+-- container -- a missingOnly position, or one whose identifiers never resolve for this
+-- character -- has nowhere to memoize this, so the module-level tables below carry the same
+-- memo keyed on the identifiers table itself, shared by reference across every position and
+-- every managed frame that watches that same table.
+local spellIDMemoGeneration = setmetatable({}, { __mode = "k" })
+local spellIDMemoSets = setmetatable({}, { __mode = "k" })
+
 local function GetSpellIDs(addon, auraIdentifiers, container)
 	local spells = GetPlayerSpellsGeneration(addon)
 	if container and container.Triage_spellIDsIdentifiers == auraIdentifiers and
 		container.Triage_spellIDsGeneration == spells then
 		return container.Triage_resolvedSpellIDs, spells
+	end
+
+	local memoized = spellIDMemoSets[auraIdentifiers]
+	if memoized and spellIDMemoGeneration[auraIdentifiers] == spells then
+		return memoized, spells
 	end
 
 	local spellIDs = {}
@@ -190,6 +205,8 @@ local function GetSpellIDs(addon, auraIdentifiers, container)
 			spellIDs[spellID] = true
 		end
 	end
+	spellIDMemoGeneration[auraIdentifiers] = spells
+	spellIDMemoSets[auraIdentifiers] = spellIDs
 	return spellIDs, spells
 end
 
@@ -401,6 +418,14 @@ local function HideContainer(container)
 	container:Hide()
 end
 
+-- Hides a container that is still current -- a readable pass, or a restricted pass that
+-- defers to the readable indicator -- without dropping Triage_unit. HideContainer's nil is
+-- what forces the next pass to retarget; a retained container must not pay that cost; it
+-- stays current so a later restricted pass can show it at once.
+local function RetainContainer(container)
+	container:Hide()
+end
+
 local function DisableContainer(container)
 	container:SetEnabled(false)
 	HideContainer(container)
@@ -474,12 +499,17 @@ function Triage:InvalidateSecureAuraIndicators(parentFrame)
 	end
 end
 
-local function ReportCapabilityFailure(addon)
-	if addon.Triage_secureAuraCapability == false then
-		return
-	end
+-- The capability latch and the deferred notice are two independent facts, each with its own
+-- guard. The pre-build now runs the probe at the first eligible pass, out of combat, whether or
+-- not the player is restricted, so latching alone would show an encounter-scoped warning to a
+-- player who may never enter restricted content. The print waits for the first pass where
+-- restricted is true, on its own one-shot flag, so the message is always true when it fires.
+local function ReportCapabilityFailure(addon, restricted)
 	addon.Triage_secureAuraCapability = false
-	addon:Print(L["secureAuraUnavailable"])
+	if restricted and not addon.Triage_reportedSecureAuraUnavailable then
+		addon.Triage_reportedSecureAuraUnavailable = true
+		addon:Print(L["secureAuraUnavailable"])
+	end
 end
 
 local function ReportMissingOnlyUnsupported(addon)
@@ -490,15 +520,21 @@ local function ReportMissingOnlyUnsupported(addon)
 	addon:Print(L["secureAuraMissingOnlyUnsupported"])
 end
 
-local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells)
+local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells, restricted)
 	local profile = addon.db.profile["indicator-" .. position]
 	local fontPath = GetIndicatorFontPath(addon)
 	local ok, container = pcall(CreateFrame, "AuraContainer", nil, parentFrame, "CustomAuraContainerTemplate")
 	if not ok or not container or type(container.AddAuraSlot) ~= "function" or type(container.SetUnit) ~= "function" or
 		type(container.SetEnabled) ~= "function" then
-		ReportCapabilityFailure(addon)
+		ReportCapabilityFailure(addon, restricted)
 		return false
 	end
+
+	-- A CustomAuraContainerTemplate frame is shown the instant CreateFrame returns (the XML sets
+	-- no hidden attribute; UI.xsd defaults it false). Hiding before anything else runs is what
+	-- keeps ShouldRegisterForDynamicEvents false through SetEnabled and SetUnit below, so a
+	-- retained pre-build never registers UNIT_AURA or draws for even one frame.
+	container:Hide()
 
 	local slotOK, auraFrame = pcall(container.AddAuraSlot, container, GetSlotKey(position), "HELPFUL", {
 		initializeFrame = function(frame)
@@ -507,7 +543,7 @@ local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spe
 		candidateFilters = GetCandidateFilters(profile, spellIDs),
 	})
 	if not slotOK or not auraFrame then
-		ReportCapabilityFailure(addon)
+		ReportCapabilityFailure(addon, restricted)
 		return false
 	end
 
@@ -515,20 +551,25 @@ local function CreateSecureAuraIndicator(addon, parentFrame, position, unit, spe
 	RecordSpellIDs(container, auraIdentifiers, spells, spellIDs)
 	container.Triage_casterFilter = profile.casterFilter
 	RecordRebuildSettings(container, profile, fontKey)
+	container:SetEnabled(true)
 	container:SetUnit(unit)
 	container.Triage_unit = unit
 	ApplySecureAuraIndicatorAppearance(addon, parentFrame, position, container)
-	ShowContainer(container)
 
 	parentFrame.Triage_secureAuraIndicators = parentFrame.Triage_secureAuraIndicators or {}
 	parentFrame.Triage_secureAuraIndicators[position] = container
 	addon.Triage_secureAuraCapability = true
-	return true
+
+	if restricted then
+		ShowContainer(container)
+		return true
+	end
+	return false
 end
 
 function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdentifiers)
 	-- This gate must be first: Classic never resolves secure spell IDs or touches Retail frames.
-	if self.isRetail ~= true or parentFrame.Triage_auraDataRestricted ~= true then
+	if self.isRetail ~= true then
 		self:DisableSecureAuraIndicator(parentFrame, position)
 		return false
 	end
@@ -539,7 +580,13 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 		return false
 	end
 
+	-- A readable pass pre-builds the container -- unit bound, filters set -- so a restricted
+	-- pass later finds it already current and only has to show it. restricted selects retained
+	-- versus live below, and feeds the deferred capability notice at gate 3.
+	local restricted = parentFrame.Triage_auraDataRestricted == true
+
 	if self.Triage_secureAuraCapability == false then
+		ReportCapabilityFailure(self, restricted)
 		self:DisableSecureAuraIndicator(parentFrame, position)
 		return false
 	end
@@ -560,10 +607,16 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 
 	-- Below the gates above on purpose: an indicator with nothing configured, or with a name
 	-- this character cannot cast, has nothing to say about missingOnly and must not announce it.
+	-- While readable, the readable matcher already owns this position and the secure limitation
+	-- has nothing to say yet, so it falls through with no notice, same as any other readable
+	-- position. Only a restricted pass claims and clears it: a slot shows its button only when a
+	-- matching aura exists (CustomAuraButtonPrivateMixin:ApplyVisibility), so absence has no
+	-- secure form, and the readable cache cannot rule out the secret aura it would have to miss.
 	if profile.missingOnly then
-		-- A slot shows its button only when a matching aura exists
-		-- (CustomAuraButtonPrivateMixin:ApplyVisibility), so absence has no secure form,
-		-- and the readable cache cannot rule out the secret aura it would have to miss.
+		if not restricted then
+			self:DisableSecureAuraIndicator(parentFrame, position)
+			return false
+		end
 		-- Claim the indicator and leave it cleared rather than assert a false "missing".
 		ReportMissingOnlyUnsupported(self)
 		self:DisableSecureAuraIndicator(parentFrame, position)
@@ -582,8 +635,18 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 			self:QueueSecureAuraIndicatorRefresh(parentFrame)
 			return false
 		end
+		-- Written on every in-combat match -- the restricted ending that shows the container and
+		-- the readable ending that retains it alike. Keeping the container's own memo current is
+		-- what lets the next pass's SameSpellIDs short-circuit on table identity instead of
+		-- walking the set, so one SPELLS_CHANGED invalidation does not cost every later update in
+		-- the fight for as long as combat lasts.
 		RecordSpellIDs(container, auraIdentifiers, spells, container.Triage_spellIDs)
-		return true
+		if restricted then
+			ShowContainer(container)
+			return true
+		end
+		RetainContainer(container)
+		return false
 	end
 
 	if container and not SameRebuildSettings(container, profile, fontKey) then
@@ -619,10 +682,18 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 			container:SetUnit(unit)
 			container.Triage_unit = unit
 			ApplySecureAuraIndicatorAppearance(self, parentFrame, position, container)
-			ShowContainer(container)
-			return true
+			if restricted then
+				ShowContainer(container)
+				return true
+			end
+			-- A retained target must leave here enabled: an invalidated container was disabled
+			-- by DisableContainer, and once combat starts only Show()/Hide() are safe to call on
+			-- it, so the in-combat Show() on a later restricted pass needs it enabled now.
+			container:SetEnabled(true)
+			RetainContainer(container)
+			return false
 		end
 	end
 
-	return CreateSecureAuraIndicator(self, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells)
+	return CreateSecureAuraIndicator(self, parentFrame, position, unit, spellIDs, fontKey, auraIdentifiers, spells, restricted)
 end

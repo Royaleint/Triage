@@ -54,11 +54,32 @@ function CreateFrame(frameType, _name, parent, template)
 	end
 	assertEqual(frameType, "AuraContainer", "secure bridge should create Blizzard's aura container")
 	assertEqual(template, "CustomAuraContainerTemplate", "secure bridge should request the custom container template")
-	local container = { parent = parent }
-	function container:SetUnit(unit) self.unit = unit end
-	function container:SetEnabled(enabled) self.enabled = enabled end
-	function container:Hide() self.hidden = true end
-	function container:Show() self.hidden = false end
+	-- A real CustomAuraContainerTemplate frame is shown the instant CreateFrame returns (the XML
+	-- sets no hidden attribute; UI.xsd defaults it false), so the stub must start shown too --
+	-- otherwise an implementation that never calls Hide() would still pass the visibility
+	-- assertions. showCalls/hideCalls and the two whileShown flags below let the harness observe
+	-- the retained-creation ordering (hide, then enable, then bind) without a live client.
+	local container = { parent = parent, hidden = false, showCalls = 0, hideCalls = 0 }
+	function container:SetUnit(unit)
+		if self.hidden ~= true then
+			self.boundWhileShown = true
+		end
+		self.unit = unit
+	end
+	function container:SetEnabled(enabled)
+		if enabled and self.hidden ~= true then
+			self.enabledWhileShown = true
+		end
+		self.enabled = enabled
+	end
+	function container:Hide()
+		self.hidden = true
+		self.hideCalls = self.hideCalls + 1
+	end
+	function container:Show()
+		self.hidden = false
+		self.showCalls = self.showCalls + 1
+	end
 	function container:ClearAllPoints() self.anchoredTo = nil end
 	function container:SetAllPoints(target) self.anchoredTo = target end
 	function container:SetIgnoreParentAlpha(ignore) self.ignoreParentAlpha = ignore end
@@ -232,7 +253,7 @@ end)
 
 parent.Triage_auraDataRestricted = false
 assertEqual(ensure(), false, "readable Retail updates must retain the legacy renderer")
-assertEqual(#created, 0, "readable updates must not allocate secure frames")
+assertEqual(#created, 1, "a readable update still pre-builds one secure container, retained and hidden")
 
 parent.Triage_auraDataRestricted = true
 assertEqual(ensure(), true, "restricted Retail updates should use a secure slot")
@@ -469,6 +490,8 @@ local allocationsBeforeCombatGeneration = spellIDTableAllocations
 assertEqual(ensure(), true, "a new spellbook generation in combat keeps the current secure visual")
 assertEqual(spellIDTableAllocations, allocationsBeforeCombatGeneration + 1,
 	"a new spellbook generation in combat rebuilds the spell-ID set once")
+assertEqual(container.Triage_spellIDsGeneration, playerSpells,
+	"the in-combat memo records the new generation immediately, on the same pass that resolves it")
 -- The next hit returns the memo's bound-object identity rather than the throwaway table
 -- GetSpellIDs just built, so the harness's identity-tracking hook sees one further change
 -- here even on a cache hit. That is not a second allocation; it is this call's own return
@@ -834,6 +857,10 @@ assertTrue(container.hidden, "a latched capability failure hides the live contai
 
 local failingParent = { Triage_auraDataRestricted = true, GetWidth = parent.GetWidth, GetHeight = parent.GetHeight }
 _G.Triage.Triage_secureAuraCapability = nil
+-- The print now waits on its own one-shot flag; without clearing it here too, the
+-- capability-latch case above has already fired it and the notice-count assertion below
+-- would see a delta of 0 instead of 1.
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
 failCreate = true
 local beforeCapabilityFailure = #created
 local diagnosticsBefore = #diagnostics
@@ -846,6 +873,247 @@ assertEqual(diagnostics[#diagnostics], "secureAuraUnavailable",
 	"the capability notice is a localized string, not hardcoded English")
 assertEqual(#created, beforeCapabilityFailure, "capability failure cannot allocate on subsequent aura updates")
 failCreate = false
+
+------------------------------------------------------------------
+-- Container lifetime and restriction-flag recovery (TRI-065 items 1, 2)
+------------------------------------------------------------------
+
+-- The failingParent case above leaves the capability latched false; every row in this section
+-- needs a clean latch to exercise the state machine rather than gate 3's short-circuit.
+_G.Triage.Triage_secureAuraCapability = nil
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
+
+local lifetimeParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "lifetime-indicator-4-frame" } },
+}
+-- One stable table, reused across calls the same way the top-level currentAuras is: GetSpellIDs
+-- keys its cache on this table's identity, so a fresh literal on every call would miss every
+-- time and make every call look like a new identifier list.
+local lifetimeAuras = { "Regrowth", "Rejuvenation" }
+local function ensureLifetime(unit)
+	return _G.Triage:EnsureSecureAuraIndicator(lifetimeParent, 4, unit or "party1", lifetimeAuras)
+end
+local function lifetimeContainer()
+	return lifetimeParent.Triage_secureAuraIndicators and lifetimeParent.Triage_secureAuraIndicators[4]
+end
+
+-- [FAIL@d6b092c] readable pre-build: today #created stays 0, since the base only builds a
+-- secure container after a restricted sighting. The first restricted pull after a /reload, a
+-- roster change, or a CompactUnitFrame_SetUnit therefore has nothing to show.
+lifetimeParent.Triage_auraDataRestricted = false
+local createdBeforeLifetime = #created
+assertEqual(ensureLifetime(), false, "a readable pre-build retains the legacy renderer")
+assertEqual(#created, createdBeforeLifetime + 1, "a readable pass still pre-builds one secure container")
+assertEqual(lifetimeContainer().enabled, true, "a pre-built container is enabled while retained")
+assertEqual(lifetimeContainer().hidden, true, "a pre-built container stays hidden while retained")
+assertEqual(lifetimeContainer().Triage_unit, "party1", "a pre-built container is already bound to the unit")
+
+-- [FAIL@d6b092c] retained -> live in combat: today the in-combat branch finds no container
+-- (nothing was pre-built) and returns false, showing nothing for the whole first restricted
+-- pull.
+lifetimeParent.Triage_auraDataRestricted = true
+inCombat = true
+local createdBeforeRestrictedShow = #created
+assertEqual(ensureLifetime(), true, "a pre-built container shows immediately on the first restricted pull")
+assertEqual(#created, createdBeforeRestrictedShow, "showing a pre-built container allocates nothing")
+assertEqual(lifetimeContainer().hidden, false, "a shown container is no longer hidden")
+inCombat = false
+
+-- [FAIL@d6b092c] retained container keeps its unit: today the readable branch below routes the
+-- live container through DisableSecureAuraIndicator -> HideContainer, which nils Triage_unit,
+-- so the in-combat freshness test then always finds the container stale.
+lifetimeParent.Triage_auraDataRestricted = false
+assertEqual(ensureLifetime(), false, "a readable pass after a restricted pull retains rather than discards")
+assertEqual(lifetimeContainer().Triage_unit, "party1", "a retained container keeps its unit binding")
+assertEqual(lifetimeContainer().hidden, true, "a retained container is hidden")
+
+-- [FAIL@d6b092c] in-combat readable match queues nothing: at base no container is ever
+-- pre-built, so this row fails on the hidden and unit assertions below rather than on the
+-- queue -- DisableSecureAuraIndicator returns at its own nil check and never reaches
+-- QueueSecureAuraIndicatorRefresh. The queue assertion instead guards against a
+-- queue-on-match shape, which this task must not add.
+_G.Triage.Triage_pendingSecureAuraIndicators = nil
+inCombat = true
+assertEqual(ensureLifetime(), false, "an in-combat readable match retains without touching the unit")
+assertEqual(lifetimeContainer().hidden, true, "an in-combat readable match stays hidden")
+assertEqual(lifetimeContainer().Triage_unit, "party1", "an in-combat readable match keeps its unit binding")
+assertEqual(_G.Triage.Triage_pendingSecureAuraIndicators, nil,
+	"an in-combat readable match on a matching container queues nothing")
+inCombat = false
+
+-- [FAIL@d6b092c] readable in-combat path writes the memo: at base the readable branch returns
+-- before GetSpellIDs is reached, so every delta below is 0 and the first assertion fails. Pins
+-- that the in-combat memo write on a readable match keeps the resolved set current across a
+-- spellbook-generation change, the same way the restricted ending already does above.
+playerSpells = { { name = "Regrowth", spellID = 8936 }, { name = "Rejuvenation", spellID = 774 } }
+inCombat = true
+lifetimeParent.Triage_auraDataRestricted = false
+local allocationsBeforeLifetimeGeneration = spellIDTableAllocations
+assertEqual(ensureLifetime(), false, "a new spellbook generation in an in-combat readable match still resolves")
+assertEqual(spellIDTableAllocations, allocationsBeforeLifetimeGeneration + 1,
+	"a new spellbook generation in an in-combat readable match rebuilds the spell-ID set once")
+assertEqual(lifetimeContainer().Triage_spellIDsGeneration, playerSpells,
+	"the in-combat memo records the new generation immediately on the readable ending too")
+assertEqual(ensureLifetime(), false, "a repeated in-combat readable match after the generation change keeps retaining")
+local allocationsAfterLifetimeFirstRepeat = spellIDTableAllocations
+assertEqual(ensureLifetime(), false,
+	"a second repeated in-combat readable match after the generation change keeps retaining")
+assertEqual(spellIDTableAllocations, allocationsAfterLifetimeFirstRepeat,
+	"in an in-combat readable match, the memo records the new generation on the retained ending")
+assertEqual(lifetimeContainer().hidden, true, "writing the memo does not change the retained visibility")
+inCombat = false
+
+-- [FAIL@d6b092c] creation lands in retained without ever being shown. Also fails against the
+-- three wrong orderings the stub can now observe: reusing ShowContainer then retaining
+-- (showCalls == 1), enabling before hiding (enabledWhileShown set), or binding before hiding
+-- (boundWhileShown set). The stub observes only these two calls; an ordering defect in any
+-- other container method is not claimed.
+local freshCreateParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "fresh-create-indicator-4-frame" } },
+	Triage_auraDataRestricted = false,
+}
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(freshCreateParent, 4, "party1", { "Regrowth", "Rejuvenation" }), false,
+	"a readable pre-build on a fresh frame lands in the retained state")
+local freshCreateContainer = freshCreateParent.Triage_secureAuraIndicators[4]
+assertEqual(freshCreateContainer.showCalls, 0, "a retained pre-build never shows its container")
+assertTrue(freshCreateContainer.hideCalls >= 1, "a retained pre-build hides its container at least once")
+assertEqual(freshCreateContainer.hidden, true, "a retained pre-build ends hidden")
+assertEqual(freshCreateContainer.enabledWhileShown, nil, "a retained pre-build never enables while shown")
+assertEqual(freshCreateContainer.boundWhileShown, nil, "a retained pre-build never binds the unit while shown")
+
+-- [coverage] restricted creation is still shown: pins the live target now that the stub no
+-- longer starts hidden, so the row above alone can no longer pass a container that was never
+-- shown.
+local restrictedCreateParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "restricted-create-indicator-4-frame" } },
+	Triage_auraDataRestricted = true,
+}
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(restrictedCreateParent, 4, "party1", { "Regrowth", "Rejuvenation" }), true,
+	"a restricted pre-build on a fresh frame is shown immediately")
+local restrictedCreateContainer = restrictedCreateParent.Triage_secureAuraIndicators[4]
+assertTrue(restrictedCreateContainer.showCalls >= 1, "a restricted pre-build shows its container")
+assertEqual(restrictedCreateContainer.hidden, false, "a restricted pre-build ends shown")
+
+-- [FAIL@d6b092c] capability notice waits for restriction: the readable branch returns before the
+-- probe today, so the capability latch never happens on a readable pass.
+_G.Triage.Triage_secureAuraCapability = nil
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
+failCreate = true
+local capabilityWaitParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "capability-wait-indicator-4-frame" } },
+	Triage_auraDataRestricted = false,
+}
+local diagnosticsBeforeCapabilityWait = #diagnostics
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(capabilityWaitParent, 4, "party1", { "Regrowth" }), false,
+	"a failed probe on a readable pass still fails closed")
+assertEqual(_G.Triage.Triage_secureAuraCapability, false, "a failed probe latches the capability even while readable")
+assertEqual(#diagnostics, diagnosticsBeforeCapabilityWait, "a failed probe while readable prints no notice yet")
+failCreate = false
+
+-- [FAIL@d6b092c] the deferred notice fires once, from gate 3, with no probe in the picture: at
+-- base gate 3 (the already-false capability check) disables and returns false without printing
+-- -- ReportCapabilityFailure is reached only from the two probe-failure sites in
+-- CreateSecureAuraIndicator, which this fixture never enters. It also fails against an
+-- implementation that calls the helper from gate 3 but keeps its early return on an
+-- already-false capability: with the capability already false the helper would return before
+-- the print, swallowing the notice entirely.
+_G.Triage.Triage_secureAuraCapability = false
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
+local deferredNoticeParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [4] = { name = "deferred-notice-indicator-4-frame" } },
+	Triage_auraDataRestricted = true,
+}
+local createdBeforeDeferredNotice = #created
+local diagnosticsBeforeDeferredNotice = #diagnostics
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(deferredNoticeParent, 4, "party1", { "Regrowth" }), false,
+	"a latched capability failure disables the position on the first restricted pass")
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(deferredNoticeParent, 4, "party1", { "Regrowth" }), false,
+	"a latched capability failure disables the position on a repeated restricted pass")
+assertEqual(#created, createdBeforeDeferredNotice, "a latched capability failure never creates a container")
+assertEqual(#diagnostics, diagnosticsBeforeDeferredNotice + 1,
+	"the deferred capability notice fires exactly once across both restricted passes")
+
+-- [coverage] missingOnly readable: passes at base too, because the base's combined first gate
+-- returns before ever reaching the notice on a readable pass. Held here, ahead of its own task,
+-- because splitting the Retail gate from the restriction test in this commit is what first lets
+-- a readable pass reach the missingOnly block at all -- this pins that it still falls through
+-- with no notice rather than claiming, which the readable Show Only if Missing behaviour has
+-- always done and must keep doing. The row above leaves the capability latched false; without
+-- clearing it here too, this row would exit at gate 3 before ever reaching the missingOnly
+-- block, and every assertion below would pass trivially regardless of that block's contents.
+_G.Triage.Triage_secureAuraCapability = nil
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
+_G.Triage.db.profile["indicator-9"] = { missingOnly = true, casterFilter = "all" }
+local missingOnlyReadableParent = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [9] = { name = "missingonly-readable-indicator-9-frame" } },
+	Triage_auraDataRestricted = false,
+}
+local createdBeforeMissingOnlyReadable = #created
+local diagnosticsBeforeMissingOnlyReadable = #diagnostics
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(missingOnlyReadableParent, 9, "party1", { "Regrowth" }), false,
+	"a missingOnly position with a resolvable identifier stays readable while its data is not restricted")
+assertEqual(#diagnostics, diagnosticsBeforeMissingOnlyReadable, "a readable missingOnly position announces nothing")
+assertEqual(#created, createdBeforeMissingOnlyReadable,
+	"a readable missingOnly position never pre-builds and discards a secure container")
+local missingOnlyReadableContainer = missingOnlyReadableParent.Triage_secureAuraIndicators
+	and missingOnlyReadableParent.Triage_secureAuraIndicators[9]
+assertTrue(missingOnlyReadableContainer == nil or missingOnlyReadableContainer.enabled == false,
+	"a readable missingOnly position leaves no enabled secure container behind")
+
+-- [FAIL@d6b092c] container-less readable pass resolves once: a position that never gets a
+-- container -- missingOnly, or (this row) one whose identifiers never resolve for this
+-- character -- has nowhere on a container to memoize GetSpellIDs's result, so without the
+-- module-level memo it rebuilds an empty spell-ID set on every single pass. At base the
+-- readable branch returns before GetSpellIDs is ever reached, so every delta below is 0 and
+-- the first group's assertion fails outright. A container-less position has nowhere to
+-- memoize on, so without the module-level memo each of the five calls would rebuild its own
+-- empty table and the delta would be 5; the memo makes it 1.
+_G.Triage.db.profile["indicator-10"] = { casterFilter = "all" }
+local containerlessAuras = { "Cross-Class Aura" }
+local containerlessParentA = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [10] = { name = "containerless-a-indicator-10-frame" } },
+	Triage_auraDataRestricted = false,
+}
+local createdBeforeContainerless = #created
+local allocationsBeforeContainerless = spellIDTableAllocations
+for _ = 1, 5 do
+	assertEqual(_G.Triage:EnsureSecureAuraIndicator(containerlessParentA, 10, "party1", containerlessAuras), false,
+		"a position whose identifiers never resolve stays on the readable path")
+end
+assertEqual(#created, createdBeforeContainerless, "a position with no container never allocates one")
+assertEqual(spellIDTableAllocations, allocationsBeforeContainerless + 1,
+	"a container-less readable pass resolves its empty spell-ID set once, not once per call")
+
+-- A second frame watching the identical identifiers table shares the module-level memo instead
+-- of resolving it again, since the memo is keyed on the identifiers table itself rather than on
+-- any one frame's container.
+local containerlessParentB = {
+	GetWidth = parent.GetWidth,
+	GetHeight = parent.GetHeight,
+	Triage_indicatorFrames = { [10] = { name = "containerless-b-indicator-10-frame" } },
+	Triage_auraDataRestricted = false,
+}
+local allocationsBeforeContainerlessShare = spellIDTableAllocations
+for _ = 1, 5 do
+	assertEqual(_G.Triage:EnsureSecureAuraIndicator(containerlessParentB, 10, "party1", containerlessAuras), false,
+		"a second frame watching the same identifiers stays on the readable path too")
+end
+assertEqual(spellIDTableAllocations, allocationsBeforeContainerlessShare,
+	"a second frame watching the same identifiers table shares the module-level memo")
 
 ------------------------------------------------------------------
 -- Listener: restriction detection
@@ -890,5 +1158,47 @@ local updatesBeforeRepeat = indicatorUpdates
 _G.Triage:UpdateUnitAuras(deniedFrame, { isFullUpdate = true })
 assertEqual(indicatorUpdates, updatesBeforeRepeat,
 	"a repeated denied scan does not re-run the indicators")
+
+------------------------------------------------------------------
+-- Combat-exit recovery (TRI-065 item 2): the restriction flag can only be cleared by a scan
+-- that reads the auras, so PLAYER_REGEN_ENABLED (Triage.lua) forces UpdateAllAuras when the
+-- module flag says something was hidden. UpdateAllAuras itself already re-derives the per-frame
+-- flag correctly -- the defect being fixed is that nothing called it at combat exit.
+------------------------------------------------------------------
+
+local recoveryReadableFrame = { unit = "readable-unit", Triage_unitAuras = {} }
+local recoveryDeniedFrame = { unit = "denied-unit", Triage_unitAuras = {} }
+_G.Triage.ForEachManagedFrame = function(_, callback)
+	callback(recoveryReadableFrame)
+	callback(recoveryDeniedFrame)
+end
+AuraUtil.ForEachAura = function(unit)
+	if unit == "denied-unit" then
+		error("Auras cannot be accessed when secret while tainted by an addon")
+	end
+	-- The readable frame has nothing to report; an empty scan is still a successful one.
+end
+
+-- [coverage]: UpdateAllAuras already re-derives Triage_auraDataRestricted correctly on both
+-- frames; the defect is that nothing calls it at combat exit, not that the derivation is wrong.
+_G.Triage:UpdateAllAuras()
+assertEqual(recoveryReadableFrame.Triage_auraDataRestricted, false,
+	"a rescanned frame whose auras are all readable clears the restriction flag")
+assertEqual(recoveryDeniedFrame.Triage_auraDataRestricted, true,
+	"a rescanned frame whose scan is denied stays restricted")
+
+-- [FAIL@d6b092c] retained after recovery: composes the recovery with the state machine -- at
+-- base a readable pass leaves no container present, so ensure() on the recovered frame has
+-- nothing to retain.
+_G.Triage.Triage_secureAuraCapability = nil
+_G.Triage.Triage_reportedSecureAuraUnavailable = nil
+recoveryReadableFrame.GetWidth = parent.GetWidth
+recoveryReadableFrame.GetHeight = parent.GetHeight
+recoveryReadableFrame.Triage_indicatorFrames = { [4] = { name = "recovery-readable-indicator-4-frame" } }
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(recoveryReadableFrame, 4, "party1", { "Regrowth", "Rejuvenation" }), false,
+	"the recovered readable frame retains rather than discards")
+local recoveryContainer = recoveryReadableFrame.Triage_secureAuraIndicators[4]
+assertEqual(recoveryContainer.hidden, true, "the recovered readable frame's container is present and hidden")
+assertEqual(recoveryContainer.enabled, true, "the recovered readable frame's container is present and enabled")
 
 print("tri054_secure_hot_indicators: PASS")

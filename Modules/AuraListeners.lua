@@ -222,6 +222,9 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			-- roll the flag back — addToAuraTable never ran to set it, so rolling back would
 			-- switch off the secure path in exactly the case it exists for.
 			parentFrame.Triage_auraDataRestricted = true
+			-- Module-level so PLAYER_REGEN_ENABLED can tell, cheaply, whether combat exit needs
+			-- to force a rescan; cleared there, never here.
+			self.Triage_anyAuraDataRestricted = true
 			if not wasRestricted then
 				shouldRunUpdate = true
 			end
@@ -312,6 +315,9 @@ function Triage:addToAuraTable(parentFrame, auraData)
 		or issecretvalue(auraData.timeMod)
 	) then
 		parentFrame.Triage_auraDataRestricted = true
+		-- Module-level so PLAYER_REGEN_ENABLED can tell, cheaply, whether combat exit needs to
+		-- force a rescan; cleared there, never here.
+		self.Triage_anyAuraDataRestricted = true
 		return false
 	end
 
