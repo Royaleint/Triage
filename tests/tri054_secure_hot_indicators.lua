@@ -555,15 +555,30 @@ fireTimers()
 container = live()
 
 -- missingOnly cannot be expressed securely, so the indicator is claimed and cleared rather
--- than left to assert an absence the readable cache cannot verify.
+-- than left to assert an absence the readable cache cannot verify. This holds whether or not
+-- any of the position's identifiers resolve: resolution and representability are different
+-- questions, and a slot shows its button only when a matching aura exists, so an unresolvable
+-- name has just as little secure form as a resolvable one.
 profile.missingOnly = true
-assertEqual(_G.Triage:EnsureSecureAuraIndicator(parent, 4, "party1", { "Cross-Class Aura" }), false,
-	"a missingOnly indicator with nothing resolvable falls through to the readable path")
-assertEqual(#diagnostics, 0, "an indicator with nothing resolvable does not announce the missingOnly limit")
+-- [FAIL@d6b092c] unresolvable missingOnly hides under restriction: at base this returns false
+-- with no notice, because the base only reaches the missingOnly gate after HasSpellIDs, which
+-- an unresolvable identifier never passes.
+local allocationsBeforeMissingOnlyUnresolvable = spellIDTableAllocations
+assertEqual(_G.Triage:EnsureSecureAuraIndicator(parent, 4, "party1", { "Cross-Class Aura" }), true,
+	"an unresolvable missingOnly indicator hides under restriction rather than falling through")
+assertEqual(spellIDTableAllocations, allocationsBeforeMissingOnlyUnresolvable,
+	"a missingOnly position resolves no spell IDs under restriction")
+assertEqual(container.enabled, false, "an unresolvable missingOnly indicator disables its secure slot")
+assertTrue(container.hidden, "an unresolvable missingOnly indicator hides its secure slot")
+assertEqual(#diagnostics, 1, "an unresolvable missingOnly indicator still announces the limit")
+assertEqual(diagnostics[#diagnostics], "secureAuraMissingOnlyUnsupported",
+	"the missingOnly notice is a localized string, not hardcoded English")
+-- [coverage] resolvable missingOnly unchanged: already claimed and cleared today; guards the
+-- one-shot notice across the unresolvable and resolvable cases together.
 assertEqual(ensure(), true, "missingOnly must not fall through to a matcher that cannot see the aura")
 assertEqual(container.enabled, false, "a missingOnly indicator disables its secure slot")
 assertTrue(container.hidden, "a missingOnly indicator hides its secure slot")
-assertEqual(#diagnostics, 1, "the missingOnly limitation is reported")
+assertEqual(#diagnostics, 1, "the missingOnly limitation is reported once across both cases")
 assertEqual(diagnostics[1], "secureAuraMissingOnlyUnsupported",
 	"the missingOnly notice is a localized string, not hardcoded English")
 assertEqual(ensure(), true, "missingOnly stays claimed on later updates")

@@ -179,10 +179,10 @@ end
 -- spell ID up in it, and Blizzard_CustomAuraContainer.lua only asserts its type before taking
 -- its own securecopy, so our table is never written to and never kept by Blizzard either way).
 -- Treat it as immutable once returned; a change always builds a new table. A position with no
--- container -- a missingOnly position, or one whose identifiers never resolve for this
--- character -- has nowhere to memoize this, so the module-level tables below carry the same
--- memo keyed on the identifiers table itself, shared by reference across every position and
--- every managed frame that watches that same table.
+-- container -- one whose identifiers never resolve for this character -- has nowhere to
+-- memoize this, so the module-level tables below carry the same memo keyed on the identifiers
+-- table itself, shared by reference across every position and every managed frame that watches
+-- that same table.
 local spellIDMemoGeneration = setmetatable({}, { __mode = "k" })
 local spellIDMemoSets = setmetatable({}, { __mode = "k" })
 
@@ -597,21 +597,14 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 		return false
 	end
 
-	local containers = parentFrame.Triage_secureAuraIndicators
-	local container = containers and containers[position]
-	local spellIDs, spells = GetSpellIDs(self, auraIdentifiers, container)
-	if not HasSpellIDs(spellIDs) then
-		self:DisableSecureAuraIndicator(parentFrame, position)
-		return false
-	end
-
-	-- Below the gates above on purpose: an indicator with nothing configured, or with a name
-	-- this character cannot cast, has nothing to say about missingOnly and must not announce it.
+	-- Above the spell-ID resolution gate on purpose: this is what stops a missingOnly position
+	-- resolving spell IDs at all, whether or not any of its identifiers would have resolved.
 	-- While readable, the readable matcher already owns this position and the secure limitation
 	-- has nothing to say yet, so it falls through with no notice, same as any other readable
 	-- position. Only a restricted pass claims and clears it: a slot shows its button only when a
 	-- matching aura exists (CustomAuraButtonPrivateMixin:ApplyVisibility), so absence has no
-	-- secure form, and the readable cache cannot rule out the secret aura it would have to miss.
+	-- secure form -- resolvable or not -- and the readable cache cannot rule out the secret aura
+	-- it would have to miss.
 	if profile.missingOnly then
 		if not restricted then
 			self:DisableSecureAuraIndicator(parentFrame, position)
@@ -621,6 +614,14 @@ function Triage:EnsureSecureAuraIndicator(parentFrame, position, unit, auraIdent
 		ReportMissingOnlyUnsupported(self)
 		self:DisableSecureAuraIndicator(parentFrame, position)
 		return true
+	end
+
+	local containers = parentFrame.Triage_secureAuraIndicators
+	local container = containers and containers[position]
+	local spellIDs, spells = GetSpellIDs(self, auraIdentifiers, container)
+	if not HasSpellIDs(spellIDs) then
+		self:DisableSecureAuraIndicator(parentFrame, position)
+		return false
 	end
 
 	local fontKey = self.db.profile.indicatorFont
