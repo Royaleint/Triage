@@ -143,6 +143,10 @@ function Triage:OnEnable()
 
 	-- Apply indicator mouse propagation settings that were skipped during combat lockdown.
 	self:RegisterEvent("PLAYER_REGEN_ENABLED", function()
+		if self.Triage_pendingStockAuraVisibilityUpdate then
+			self.Triage_pendingStockAuraVisibilityUpdate = nil
+			self:UpdateAllStockAuraVisibility()
+		end
 		self:FlushDeferredMouseBehavior()
 		-- The restriction flag can only be cleared by a scan that actually reads the auras, so
 		-- leaving combat forces one rather than assuming the encounter's secrecy has lifted.
@@ -154,10 +158,6 @@ function Triage:OnEnable()
 		end
 		self:FlushSecureAuraIndicatorRefresh()
 		self:FlushSecureAuraIndicatorRebuilds()
-		if self.Triage_pendingStockAuraVisibilityUpdate then
-			self.Triage_pendingStockAuraVisibilityUpdate = nil
-			self:UpdateAllStockAuraVisibility()
-		end
 	end)
 
 	-- Force a full update of all frames when a raid target icon changes

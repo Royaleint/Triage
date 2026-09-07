@@ -7,28 +7,19 @@ local Triage = _G.Triage
 -- AceLocale namespace frozen; paired with NewLocale("EnhancedRaidFrames", ...) registrations.
 local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 
--- Values consumed inside InitializeSecureAuraButton. Blizzard applies
--- DenyTaintedAccessWhenAurasAreSecret to the aura button as soon as that callback
--- returns, so none of these can be changed on a live button; a change rebuilds the
--- container out of combat instead.
-local REBUILD_FIELDS = {
-	"showIcon",
-	"indicatorAlpha",
-	"showCountdownSwipe",
-	"showCountdownText",
-	"countdownLocation",
-	"showStackSize",
-	"stackSizeLocation",
-	"textSize",
-}
-
--- The same contract as REBUILD_FIELDS, for the profile's four-component color tables. They are
--- compared and stored component by component: the picker mutates its table in place across a
--- drag, so a stored reference would compare equal to itself and never rebuild.
-local REBUILD_COLOR_FIELDS = {
-	"indicatorColor",
-	"textColor",
-}
+-- The fields SameRebuildSettings and RecordRebuildSettings read are consumed inside
+-- InitializeSecureAuraButton. Blizzard applies DenyTaintedAccessWhenAurasAreSecret to the aura
+-- button as soon as that callback returns, so none of them can be changed on a live button; a
+-- change rebuilds the container out of combat instead. Which fields actually apply depends on
+-- the configuration itself: showIcon, showCountdownSwipe, showCountdownText and showStackSize
+-- gate everything else and are always relevant. indicatorAlpha only applies with showIcon;
+-- indicatorColor only applies without it, since a colored indicator paints a flat texture
+-- instead of binding an aura icon. countdownLocation, textSize, textColor and the font key only
+-- apply with showCountdownText -- nothing else in InitializeSecureAuraButton reads any of them.
+-- stackSizeLocation only applies with showStackSize. Both functions apply this derivation
+-- identically, so a setting the button never draws with never triggers a rebuild. Nothing
+-- enforces that the two hand-written copies stay in step; the tests that exercise each gate in
+-- both directions are what hold that invariant.
 
 -- How long the settings have to hold still before a rebuild runs. The color wheel and the
 -- opacity slider call RefreshConfig on every sample of a drag, and every rebuild strands a
@@ -249,46 +240,83 @@ local function GetCandidateFilters(profile, spellIDs)
 	return filters
 end
 
--- Compared field by field rather than as a concatenated signature, and against the
--- configured font key rather than the resolved path: this runs for every indicator on
--- every restricted aura update, where string building and media lookups are pure cost.
+-- Compared field by field rather than as a concatenated signature: this runs for every
+-- indicator on every restricted aura update, where string building is pure cost. Creates no
+-- table, closure or string per call. Which fields are compared depends on the configuration
+-- itself -- see the derivation comment above REBUILD_DEBOUNCE_SECONDS -- so a setting the
+-- button never draws with never triggers a rebuild.
 local function SameRebuildSettings(container, profile, fontKey)
 	local applied = container.Triage_rebuildSettings
-	if not applied or applied.fontKey ~= fontKey then
+	if not applied then
 		return false
 	end
-	for index = 1, #REBUILD_FIELDS do
-		local field = REBUILD_FIELDS[index]
-		if applied[field] ~= profile[field] then
+	if applied.showIcon ~= profile.showIcon or applied.showCountdownSwipe ~= profile.showCountdownSwipe or
+		applied.showCountdownText ~= profile.showCountdownText or applied.showStackSize ~= profile.showStackSize then
+		return false
+	end
+	if profile.showIcon then
+		if applied.indicatorAlpha ~= profile.indicatorAlpha then
 			return false
 		end
-	end
-	for fieldIndex = 1, #REBUILD_COLOR_FIELDS do
-		local field = REBUILD_COLOR_FIELDS[fieldIndex]
-		local appliedColor, profileColor = applied[field], profile[field]
+	else
+		local appliedColor, profileColor = applied.indicatorColor, profile.indicatorColor
 		for index = 1, 4 do
 			if appliedColor[index] ~= profileColor[index] then
 				return false
 			end
 		end
 	end
+	if profile.showCountdownText then
+		if applied.countdownLocation ~= profile.countdownLocation or applied.textSize ~= profile.textSize or
+			applied.fontKey ~= fontKey then
+			return false
+		end
+		local appliedColor, profileColor = applied.textColor, profile.textColor
+		for index = 1, 4 do
+			if appliedColor[index] ~= profileColor[index] then
+				return false
+			end
+		end
+	end
+	if profile.showStackSize and applied.stackSizeLocation ~= profile.stackSizeLocation then
+		return false
+	end
 	return true
 end
 
+-- Records only the fields SameRebuildSettings above will actually compare, applying the
+-- identical derivation; the tests that exercise each gate in both directions are what keep the
+-- two functions in step, not any mechanism here. Allocates a record table plus one table per
+-- color field the current configuration reads -- never more than that, and never for a color
+-- field the configuration does not read.
 local function RecordRebuildSettings(container, profile, fontKey)
-	local applied = { fontKey = fontKey }
-	for index = 1, #REBUILD_FIELDS do
-		local field = REBUILD_FIELDS[index]
-		applied[field] = profile[field]
-	end
-	for fieldIndex = 1, #REBUILD_COLOR_FIELDS do
-		local field = REBUILD_COLOR_FIELDS[fieldIndex]
-		local profileColor = profile[field]
-		local appliedColor = {}
+	local applied = {
+		showIcon = profile.showIcon,
+		showCountdownSwipe = profile.showCountdownSwipe,
+		showCountdownText = profile.showCountdownText,
+		showStackSize = profile.showStackSize,
+	}
+	if profile.showIcon then
+		applied.indicatorAlpha = profile.indicatorAlpha
+	else
+		local color = {}
 		for index = 1, 4 do
-			appliedColor[index] = profileColor[index]
+			color[index] = profile.indicatorColor[index]
 		end
-		applied[field] = appliedColor
+		applied.indicatorColor = color
+	end
+	if profile.showCountdownText then
+		applied.countdownLocation = profile.countdownLocation
+		applied.textSize = profile.textSize
+		applied.fontKey = fontKey
+		local color = {}
+		for index = 1, 4 do
+			color[index] = profile.textColor[index]
+		end
+		applied.textColor = color
+	end
+	if profile.showStackSize then
+		applied.stackSizeLocation = profile.stackSizeLocation
 	end
 	container.Triage_rebuildSettings = applied
 end

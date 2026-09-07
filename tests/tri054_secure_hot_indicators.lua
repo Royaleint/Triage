@@ -1,4 +1,5 @@
--- luacheck: globals arg debug dofile CreateFrame InCombatLockdown UnitIsUnit LibStub AuraUtil
+-- luacheck: globals arg debug dofile CreateFrame InCombatLockdown UnitIsUnit LibStub AuraUtil collectgarbage rawequal
+-- Run from the repository root with a relative path: lua.exe tests/tri054_secure_hot_indicators.lua
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
 
@@ -464,15 +465,31 @@ profile.textColor = { 1, 1, 1, 1 }
 ensure()
 fireTimers()
 
--- indicatorColor travels the same route, and it is now one line in the rebuild list rather than
--- a loop of its own, so a later edit could drop it with the rest of the suite staying green.
+-- indicatorColor only applies while showIcon is off -- a colored indicator paints a flat
+-- texture instead of binding an aura icon -- and this profile has showIcon on, so a change here
+-- must not even arm a rebuild: the button never reads it in this configuration.
 local beforeIndicatorColor = #created
+local schedulesBeforeIndicatorColor = timerSchedules
 profile.indicatorColor[1] = 0.3
-assertEqual(ensure(), true, "an indicator color change keeps the current secure visual on screen")
-assertEqual(#created, beforeIndicatorColor, "an indicator color change allocates nothing before its window elapses")
-assertEqual(fireTimers(), 1, "an indicator color change schedules exactly one rebuild")
-assertEqual(#created, beforeIndicatorColor + 1, "an indicator color change rebuilds the secure slot once")
+assertEqual(ensure(), true, "an indicator color change with showIcon on keeps the current secure visual")
+assertEqual(timerSchedules, schedulesBeforeIndicatorColor,
+	"an indicator color change while showIcon is on arms no rebuild")
+assertEqual(#created, beforeIndicatorColor, "an indicator color change while showIcon is on allocates nothing")
 profile.indicatorColor[1] = 0
+
+-- With showIcon off the button paints the flat color instead of binding an aura icon, so
+-- indicatorColor is live again and a change to it must rebuild.
+profile.showIcon = false
+ensure()
+fireTimers()
+local beforeColoredIndicator = #created
+profile.indicatorColor[1] = 0.4
+assertEqual(ensure(), true, "a color change with showIcon off keeps the current secure visual")
+assertEqual(fireTimers(), 1, "a color change with showIcon off schedules exactly one rebuild")
+assertEqual(#created, beforeColoredIndicator + 1, "a color change with showIcon off rebuilds the slot once")
+assertEqual(live().iconColor[1], 0.4, "the rebuilt colored indicator carries the new red component")
+profile.indicatorColor[1] = 0
+profile.showIcon = true
 ensure()
 fireTimers()
 container = live()
@@ -870,7 +887,77 @@ assertEqual(container.hasCountdown, nil, "the replacement drops the countdown bi
 profile.showCountdownText = true
 ensure()
 fireTimers()
+
+-- [FAIL@d6b092c] rebuild trigger: with showCountdownText off, countdownLocation and textSize
+-- are settings the button never reads, so changing them must not even arm a rebuild. At base
+-- the unconditional field walk schedules and rebuilds for both regardless.
+profile.showCountdownText = false
+ensure()
+fireTimers()
+local schedulesBeforeRebuildTrigger = timerSchedules
+local createdBeforeRebuildTrigger = #created
+profile.countdownLocation = "TOPLEFT"
+assertEqual(ensure(), true, "changing countdownLocation with showCountdownText off keeps the current secure visual")
+profile.textSize = 20
+assertEqual(ensure(), true, "changing textSize with showCountdownText off keeps the current secure visual")
+assertEqual(timerSchedules, schedulesBeforeRebuildTrigger,
+	"countdownLocation and textSize arm no rebuild while showCountdownText is off")
+assertEqual(#created, createdBeforeRebuildTrigger,
+	"countdownLocation and textSize allocate nothing while showCountdownText is off")
+profile.countdownLocation = "CENTER"
+profile.textSize = 8
+profile.showCountdownText = true
+ensure()
+fireTimers()
 container = live()
+
+-- GetSpellIDs's allocation-tracking hook above (spellIDTableAllocations) makes an allocation
+-- observable without changing the module's API; the same technique applied to
+-- SameRebuildSettings makes its allocation contract observable directly, in bytes rather than
+-- table identities, since a comparison allocates nothing to compare against by identity.
+local sameRebuildSettingsIndex
+local originalSameRebuildSettings
+local rebuildUpvalueIndex = 1
+while true do
+	local name, value = debug.getupvalue(_G.Triage.EnsureSecureAuraIndicator, rebuildUpvalueIndex)
+	if not name then
+		break
+	end
+	if name == "SameRebuildSettings" then
+		sameRebuildSettingsIndex = rebuildUpvalueIndex
+		originalSameRebuildSettings = value
+		break
+	end
+	rebuildUpvalueIndex = rebuildUpvalueIndex + 1
+end
+assertTrue(originalSameRebuildSettings, "EnsureSecureAuraIndicator retains its rebuild-settings comparator")
+local rebuildSettingsBytes = 0
+debug.setupvalue(_G.Triage.EnsureSecureAuraIndicator, sameRebuildSettingsIndex, function(...)
+	local before = collectgarbage("count")
+	local result = originalSameRebuildSettings(...)
+	local after = collectgarbage("count")
+	rebuildSettingsBytes = rebuildSettingsBytes + (after - before) * 1024
+	return result
+end)
+
+-- [coverage] zero allocation in comparison: the base already compares field by field without
+-- allocating, so this passes at base too; it exists to reject a derivation that builds a
+-- per-call effective-settings table instead of reading the profile's own fields directly, which
+-- would still pass the rebuild-trigger row above and still allocate per position per update.
+assertEqual(ensure(), true, "a warm-up pass settles any one-time stack growth before the counted loop")
+collectgarbage("stop")
+local recordBefore = live().Triage_rebuildSettings
+local timersBeforeZeroAllocation = timerSchedules
+local createdBeforeZeroAllocation = #created
+for _ = 1, 50 do
+	ensure()
+end
+collectgarbage("restart")
+assertEqual(rebuildSettingsBytes, 0, "SameRebuildSettings allocates nothing across 50 unchanged-setting calls")
+assertEqual(timerSchedules, timersBeforeZeroAllocation, "50 unchanged-setting calls arm no rebuild")
+assertEqual(#created, createdBeforeZeroAllocation, "50 unchanged-setting calls allocate no container")
+assertTrue(rawequal(live().Triage_rebuildSettings, recordBefore),
+	"50 unchanged-setting calls never re-record the settings")
 
 -- A latched capability failure must not leave a container drawing beside the readable path.
 _G.Triage.Triage_secureAuraCapability = false
