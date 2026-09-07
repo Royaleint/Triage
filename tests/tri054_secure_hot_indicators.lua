@@ -226,9 +226,6 @@ end
 
 dofile(repoRoot .. "Modules/SecureAuraIndicators.lua")
 
-assertEqual(_G.Triage:GetSecureAuraSpellID("Regrowth"), 8936, "known local spell names should resolve")
-assertEqual(_G.Triage:GetSecureAuraSpellID("Cross-Class Aura"), nil, "unresolved names keep the legacy matcher")
-
 -- GetSpellIDs constructs one result table per call. Wrap its closed-over function so this
 -- test can make the allocation contract observable without changing the module's API.
 local getSpellIDsIndex
@@ -292,9 +289,9 @@ playerSpells = {
 currentAuras = { "Regrowth", "Rejuvenation" }
 assertEqual(ensure(), true, "restoring the configured spells retains the secure slot")
 
--- Regression for Major 2: an indicator with nothing configured must never resolve or
--- allocate a spell-ID set, and unconfigured positions are the majority since every
--- indicator defaults to an empty aura list.
+-- An indicator with nothing configured must never resolve or allocate a spell-ID set,
+-- and unconfigured positions are the majority since every indicator defaults to an
+-- empty aura list.
 local allocationsBeforeUnconfigured = spellIDTableAllocations
 local createdBeforeUnconfigured = #created
 assertEqual(_G.Triage:EnsureSecureAuraIndicator(parent, 5, "party1", {}), false,
@@ -487,9 +484,10 @@ local indicatorDefaults = _G.Triage:CreateDefaults().profile["indicator-4"]
 assertEqual(indicatorDefaults.textAlpha, nil, "no profile default carries the removed textAlpha key")
 assertEqual(indicatorDefaults.textColor[4], 1, "the text color default carries a full alpha")
 
--- Regression for Major 1: the memo must be written on the in-combat success path too, or
--- one SPELLS_CHANGED invalidation reverts every later restricted update in the fight to a
--- fresh allocation for as long as combat lasts.
+-- The memo must be written on every in-combat match -- the restricted ending that shows the
+-- container and the readable or yielding ending that retains it -- so the next pass's
+-- SameSpellIDs short-circuits on table identity instead of walking the set after a
+-- SPELLS_CHANGED invalidation.
 local savedCombatPlayerSpells = playerSpells
 playerSpells = {
 	{ name = "Regrowth", spellID = 8936 },

@@ -160,14 +160,6 @@ local function ResolveSpellID(spells, auraIdentifier)
 	return spells and ResolvePlayerSpellID(spells, auraIdentifier)
 end
 
-function Triage:GetSecureAuraSpellID(auraIdentifier)
-	local numericID = tonumber(auraIdentifier)
-	if numericID then
-		return numericID
-	end
-	return ResolveSpellID(GetPlayerSpellsGeneration(self), auraIdentifier)
-end
-
 local function ApplySecureAuraIndicatorAppearance(addon, parentFrame, position, container)
 	-- A slot-only container has no layout groups, so Blizzard's layout pass resizes it
 	-- to 1x1 (AnchorUtil.ApplyFlowLayout -> CustomAuraContainerFlowLayoutMixin:OnLayoutComplete).
