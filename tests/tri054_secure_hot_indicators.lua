@@ -1216,4 +1216,46 @@ local recoveryContainer = recoveryReadableFrame.Triage_secureAuraIndicators[4]
 assertEqual(recoveryContainer.hidden, true, "the recovered readable frame's container is present and hidden")
 assertEqual(recoveryContainer.enabled, true, "the recovered readable frame's container is present and enabled")
 
+------------------------------------------------------------------
+-- Readable matcher: delegation regression
+------------------------------------------------------------------
+
+-- [3a delegation, PASS both sides] a pure extraction's regression test proves equivalence, not
+-- a fix, so it must pass identically before and after the change -- a test that only passed
+-- afterward would prove the opposite of what is wanted. FindActiveAndTrackedAura has a single
+-- production caller and drives every readable indicator on every client, including Classic, so
+-- a wrong two-line delegation -- arguments transposed, the wrong position indexed, the parent
+-- taken from the wrong place -- would break all of them and nothing else in this suite would
+-- notice, because every other test reaches the matcher through EnsureSecureAuraIndicator
+-- instead.
+dofile(repoRoot .. "Modules/AuraIndicators.lua")
+
+local delegationParent = { Triage_unitAuras = {} }
+_G.Triage.auraStrings = { [4] = { "regrowth" } }
+_G.Triage.db.profile["indicator-4"].casterFilter = "all"
+local delegationIndicator = { position = 4, GetParent = function() return delegationParent end }
+
+delegationParent.Triage_unitAuras[1] = { name = "regrowth", spellId = 8936, isHelpful = true, sourceUnit = "player" }
+assertEqual(_G.Triage:FindActiveAndTrackedAura(delegationIndicator), delegationParent.Triage_unitAuras[1],
+	"the delegation returns the matching aura for the frame's position")
+
+delegationParent.Triage_unitAuras[1] = { name = "some other aura", spellId = 12345, isHelpful = true, sourceUnit = "player" }
+assertEqual(_G.Triage:FindActiveAndTrackedAura(delegationIndicator), nil,
+	"a non-matching name still returns nil through the delegation")
+
+_G.Triage.db.profile["indicator-4"].casterFilter = "mine"
+delegationParent.Triage_unitAuras[1] = { name = "regrowth", spellId = 8936, isHelpful = true, sourceUnit = "party1" }
+assertEqual(_G.Triage:FindActiveAndTrackedAura(delegationIndicator), nil,
+	"the caster filter still applies through the delegation")
+_G.Triage.db.profile["indicator-4"].casterFilter = "all"
+
+-- The delegation must index both the watch list and the caster filter by the frame's own
+-- position, so a second position with a different watch list is the only row that fails
+-- when either index is hardcoded.
+_G.Triage.auraStrings[5] = { "rejuvenation" }
+local delegationParent5 = { Triage_unitAuras = { { name = "rejuvenation", spellId = 774, isHelpful = true, sourceUnit = "player" } } }
+local delegationIndicator5 = { position = 5, GetParent = function() return delegationParent5 end }
+assertEqual(_G.Triage:FindActiveAndTrackedAura(delegationIndicator5), delegationParent5.Triage_unitAuras[1],
+	"a second position matches through its own watch list")
+
 print("tri054_secure_hot_indicators: PASS")

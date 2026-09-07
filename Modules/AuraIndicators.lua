@@ -358,20 +358,25 @@ function Triage:ProcessIndicator(indicatorFrame, unit)
 	end
 end
 
---- Find the current aura for a given indicator frame
---- @param indicatorFrame table @The indicator frame to process
---- @return table @The aura table for the current aura
-function Triage:FindActiveAndTrackedAura(indicatorFrame)
-	local i = indicatorFrame.position
-	local parentFrame = indicatorFrame:GetParent()
-
+--- Find the current readable aura an indicator position watches, honoring the position's
+--- caster filter. excludeSpellIDs is the set of spell IDs a secure slot watching the same
+--- position can already represent: an aura is skipped for that reason only when it is helpful
+--- and its spellId is in the set, since the secure slot is helpful-only and a harmful aura is
+--- never excluded however well its numeric ID resolved. identifiers and excludeSpellIDs are
+--- read-only here and passed by reference; the call allocates nothing.
+--- @param parentFrame table @The raid frame owning the indicator
+--- @param position number @The indicator position, 1-9 (drives the caster filter lookup)
+--- @param identifiers table @The list of aura names/spell IDs/wildcards this position watches
+--- @param excludeSpellIDs table @Optional set of spell IDs a secure slot can already show
+--- @return table @The matched aura table, or nil
+function Triage:FindReadableAura(parentFrame, position, identifiers, excludeSpellIDs)
 	-- If our unitAura table doesn't exist, stop here
 	if not parentFrame.Triage_unitAuras then
 		return
 	end
 
 	-- Loop through list of tracked auraStrings
-	for _, auraIdentifier in pairs(self.auraStrings[i]) do
+	for _, auraIdentifier in pairs(identifiers) do
 		-- Loop through list of the current auras on the unit
 		for _, aura in pairs(parentFrame.Triage_unitAuras) do
 			-- Check if the aura name matches our auraString
@@ -383,18 +388,30 @@ function Triage:FindActiveAndTrackedAura(indicatorFrame)
 					-- Check if the aura is a debuff and if the auraString matches one of the debuff type wildcards
 					or (aura.isHarmful and aura.dispelName and aura.dispelName:lower() == auraIdentifier) then
 
-				-- Check the caster filter ("all" / "mine" / "notMine"). "notMine" also rejects
-				-- unknown sources (sourceUnit == nil) so server-side or stale auras don't match.
-				local casterFilter = self.db.profile["indicator-" .. i].casterFilter
-				if casterFilter == "all"
-						or (casterFilter == "mine" and aura.sourceUnit == "player")
-						or (casterFilter == "notMine" and aura.sourceUnit ~= nil and aura.sourceUnit ~= "player") then
-					-- Return once we find an aura that matches all of these conditions
-					return aura
+				-- An aura the secure slot can represent is the slot's to draw, not this indicator's.
+				if not (excludeSpellIDs and aura.isHelpful and excludeSpellIDs[aura.spellId]) then
+					-- Check the caster filter ("all" / "mine" / "notMine"). "notMine" also rejects
+					-- unknown sources (sourceUnit == nil) so server-side or stale auras don't match.
+					local casterFilter = self.db.profile["indicator-" .. position].casterFilter
+					if casterFilter == "all"
+							or (casterFilter == "mine" and aura.sourceUnit == "player")
+							or (casterFilter == "notMine" and aura.sourceUnit ~= nil and aura.sourceUnit ~= "player") then
+						-- Return once we find an aura that matches all of these conditions
+						return aura
+					end
 				end
 			end
 		end
 	end
+end
+
+--- Find the current aura for a given indicator frame
+--- @param indicatorFrame table @The indicator frame to process
+--- @return table @The aura table for the current aura
+function Triage:FindActiveAndTrackedAura(indicatorFrame)
+	local position = indicatorFrame.position
+	local parentFrame = indicatorFrame:GetParent()
+	return self:FindReadableAura(parentFrame, position, self.auraStrings[position])
 end
 
 --- Process a single tick of our indicator animation for things like color changing, glow, etc
