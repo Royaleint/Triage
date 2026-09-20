@@ -187,7 +187,9 @@ function Triage:OnEnable()
 	-- Without this, indicators and aura listeners become stale until the next GROUP_ROSTER_UPDATE
 	-- throttle interval (1 second) when frames are reassigned.
 	if rawget(_G, "CompactUnitFrame_SetUnit") then
-		self:SecureHook("CompactUnitFrame_SetUnit", function(frame, unit)
+		-- Body of the hook, run against the frame's state at call time.
+		local function refreshFrameForUnit(frame)
+			local unit = frame.displayedUnit or frame.unit
 			self:UpdateManagedFrameUnit(frame, unit, "blizzard")
 			self:InvalidateSecureAuraIndicators(frame)
 			self:UpdateStockAuraVisibility(frame)
@@ -212,7 +214,53 @@ function Triage:OnEnable()
 			if frame.Triage_targetMarkerFrame then
 				self:UpdateTargetMarker(frame)
 			end
-		end)
+		end
+
+		if self.usesLegacyUnitAura then
+			self:SecureHook("CompactUnitFrame_SetUnit", function(frame)
+				refreshFrameForUnit(frame)
+			end)
+		else
+			-- Retail: running this body inside Blizzard's secure SetUnit stack leaves the
+			-- forced aura scan tainting later Blizzard health code (secret-value compares on
+			-- Edit Mode entry), and UpdateStockAuraVisibility writes secure attributes. The
+			-- whole body therefore runs one timer tick later, in Triage's own execution.
+			-- Trade-off: indicators can be stale for up to one frame after a frame is
+			-- reassigned. The unit is re-read at fire time because the hook's argument is
+			-- nil on clear and hooks arrive in bursts.
+			local pendingFrames = setmetatable({}, { __mode = "k" })
+			local flushBatch = {}
+			local flushScheduled = false
+
+			-- Frames hooked while a flush runs belong to the next window: the set is
+			-- emptied before iterating so they schedule a fresh timer.
+			local function flushPendingFrames()
+				flushScheduled = false
+				wipe(flushBatch)
+				for frame in pairs(pendingFrames) do
+					flushBatch[#flushBatch + 1] = frame
+				end
+				wipe(pendingFrames)
+				for i = 1, #flushBatch do
+					local frame = flushBatch[i]
+					flushBatch[i] = nil
+					local ok, err = pcall(refreshFrameForUnit, frame)
+					if not ok then
+						pcall(function()
+							geterrorhandler()(err)
+						end)
+					end
+				end
+			end
+
+			self:SecureHook("CompactUnitFrame_SetUnit", function(frame)
+				pendingFrames[frame] = true
+				if not flushScheduled then
+					flushScheduled = true
+					C_Timer.After(0, flushPendingFrames)
+				end
+			end)
+		end
 	end
 
 	-- Hook aura updates to refresh dispel overlay (Retail DispelSource path;

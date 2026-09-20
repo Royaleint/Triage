@@ -24,7 +24,7 @@ read_globals = {
     "strsplit", "strlower", "strtrim", "strfind", "strmatch",
     "time", "date",
     "math", "string", "table",
-    "error", "pcall",
+    "error", "pcall", "geterrorhandler",
     "rawget", "rawset",
     "setmetatable", "getmetatable",
     "floor", "sort",
