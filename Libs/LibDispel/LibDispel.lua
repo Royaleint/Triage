@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibDispel-1.0", 27
+local MAJOR, MINOR = "LibDispel-1.0", 33
 assert(LibStub, MAJOR.." requires LibStub")
 
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
@@ -11,12 +11,12 @@ local type = type
 local GetCVar = C_CVar.GetCVar
 local SetCVar = C_CVar.SetCVar
 
+local Mixin = Mixin
+local ColorMixin = ColorMixin
 local CopyTable = CopyTable
 local CreateFrame = CreateFrame
 local IsSpellInSpellBook = C_SpellBook.IsSpellInSpellBook or IsSpellKnownOrOverridesKnown
 local IsSpellKnown = C_SpellBook.IsSpellKnown or IsPlayerSpell
-
-local _, _, _, wowtoc = GetBuildInfo()
 
 local TBC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
 local Cata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
@@ -25,10 +25,20 @@ local Mists = WOW_PROJECT_ID == WOW_PROJECT_MISTS_CLASSIC
 local Retail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 local Classic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 
-local function SetList(object, key, value)
+local function CopyColor(color)
+	-- some addons might replace these tables
+	-- verify if we need the object to be mixed
+	if not color.GetRGB then
+		Mixin(color, ColorMixin)
+	end
+
+	return CopyTable(color)
+end
+
+local function SetList(object, key, color)
 	if object[key] then return end
 
-	object[key] = CopyTable(value)
+	object[key] = CopyColor(color)
 end
 
 local function GetList(name, data)
@@ -43,7 +53,7 @@ local function GetList(name, data)
 	if data then -- import color data
 		for key, value in next, data do
 			if type(value) == 'table' then
-				list[key] = CopyTable(value)
+				list[key] = CopyColor(value)
 			else
 				list[key] = value
 			end
@@ -58,15 +68,15 @@ local BlockList = GetList('BlockList') -- Spells blocked from AuraHighlight
 local DispelList = GetList('DispelList') -- List of types the player can dispel
 local DebuffColors = GetList('DebuffTypeColor', _G.DebuffTypeColor)
 
-SetList(DebuffColors, 'None', _G.DEBUFF_TYPE_NONE_COLOR or { r = 0.8, g = 0, b = 0 })
-SetList(DebuffColors, 'Magic', _G.DEBUFF_TYPE_MAGIC_COLOR or { r = 0.2, g = 0.6, b = 1 })
-SetList(DebuffColors, 'Curse', _G.DEBUFF_TYPE_CURSE_COLOR or { r = 0.6, g = 0, b = 1 })
-SetList(DebuffColors, 'Disease', _G.DEBUFF_TYPE_DISEASE_COLOR or { r = 0.6, g = 0.4, b = 0 })
-SetList(DebuffColors, 'Poison', _G.DEBUFF_TYPE_POISON_COLOR or { r = 0, g = 0.6, b = 0 })
-SetList(DebuffColors, 'Bleed',  _G.DEBUFF_TYPE_BLEED_COLOR or { r = 0.6, g = 0, b = 0.1 })
-SetList(DebuffColors, 'Enrage', { r = 0.95, g = 0.37, b = 0.96 })
-SetList(DebuffColors, 'BadDispel', { r = 0.05, g = 0.85, b = 0.94 })
-SetList(DebuffColors, 'Stealable', { r = 0.93, g = 0.91, b = 0.55 })
+SetList(DebuffColors, 'None', _G.DEBUFF_TYPE_NONE_COLOR or { r = 0.8, g = 0, b = 0, a = 1 })
+SetList(DebuffColors, 'Magic', _G.DEBUFF_TYPE_MAGIC_COLOR or { r = 0.2, g = 0.6, b = 1, a = 1 })
+SetList(DebuffColors, 'Curse', _G.DEBUFF_TYPE_CURSE_COLOR or { r = 0.6, g = 0, b = 1, a = 1 })
+SetList(DebuffColors, 'Disease', _G.DEBUFF_TYPE_DISEASE_COLOR or { r = 0.6, g = 0.4, b = 0, a = 1 })
+SetList(DebuffColors, 'Poison', _G.DEBUFF_TYPE_POISON_COLOR or { r = 0, g = 0.6, b = 0, a = 1 })
+SetList(DebuffColors, 'Bleed',  _G.DEBUFF_TYPE_BLEED_COLOR or { r = 0.6, g = 0, b = 0.1, a = 1 })
+SetList(DebuffColors, 'Enrage', { r = 0.95, g = 0.37, b = 0.96, a = 1 })
+SetList(DebuffColors, 'BadDispel', { r = 0.05, g = 0.85, b = 0.94, a = 1 })
+SetList(DebuffColors, 'Stealable', { r = 0.93, g = 0.91, b = 0.55, a = 1 })
 
 if Retail then
 	-- Bad to dispel spells
@@ -155,6 +165,10 @@ do
 			DispelList.Magic = cure
 			DispelList.Poison = cure or (not vanilla and corruption) or CheckSpell(2893) or CheckSpell(8946) -- Abolish Poison / Cure Poison
 			DispelList.Curse = cure or corruption
+		elseif myClass == 'HUNTER' then
+			local salve = Retail and IsSpellKnown(459517)
+			DispelList.Poison = salve
+			DispelList.Disease = salve
 		elseif myClass == 'MAGE' then
 			local greater = CheckSpell(412113)
 			DispelList.Curse = greater or CheckSpell(475) -- Remove Curse
@@ -216,14 +230,9 @@ do
 
 	local frame = lib.frame
 	frame:SetScript('OnEvent', UpdateDispels)
+	frame:RegisterEvent('LEARNED_SPELL_IN_SKILL_LINE')
 	frame:RegisterEvent('CHARACTER_POINTS_CHANGED')
 	frame:RegisterEvent('SPELLS_CHANGED')
-
-	if Retail or TBC then
-		frame:RegisterEvent('LEARNED_SPELL_IN_SKILL_LINE')
-	else
-		frame:RegisterEvent('LEARNED_SPELL_IN_TAB')
-	end
 
 	if not Classic then
 		frame:RegisterEvent('PLAYER_TALENT_UPDATE')
