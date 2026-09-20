@@ -9,6 +9,9 @@ local Triage = _G.Triage
 local PRIORITY_ORDER = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
 
 Triage.UNKNOWN_DISPEL_TYPE = "unknown-active"
+-- Returned when the Retail probe cannot answer at all (denied query or Edit Mode's
+-- sample aura provider active), as distinct from a probe that ran and found nothing.
+Triage.DISPEL_STATE_UNAVAILABLE = "unavailable"
 
 local function IsSecretValue(value)
 	return issecretvalue and issecretvalue(value)
@@ -53,15 +56,6 @@ local function CallMethod(object, methodName)
 	return result, true
 end
 
-function Triage:GetDispelCapabilities()
-	return {
-		supportsBlizzardDispelOverlayState = self.supportsPrivateAuraSuppression == true,
-		supportsReadableAuraDispelFields = self.supportsPrivateAuraSuppression and "conditional" or false,
-		supportsLibDispelPlayerCapability = true,
-		supportsLegacyFrameDispels = not self.supportsPrivateAuraSuppression,
-	}
-end
-
 local function GetActiveDispelTypeLegacy(frame)
 	local frameDispels = ReadField(frame, "dispels")
 	if type(frameDispels) ~= "table" then
@@ -82,36 +76,53 @@ local function GetActiveDispelTypeLegacy(frame)
 	return nil
 end
 
+-- Positive query only: never reads Blizzard's overlay textures or frame state, because
+-- Blizzard's own dispel stream sets a debuff icon's aura reference once and never clears it,
+-- so a hidden texture can still carry a stale value -- that stale read is exactly the bug this
+-- probe replaces. "HARMFUL|RAID" is the engine's own player-dispellable filter (AuraUtil.lua),
+-- narrower than "HARMFUL|RAID_PLAYER_DISPELLABLE" -- the engine already gates on "this player
+-- can dispel", so LibDispel:GetMyDispelTypes() is not used as a second presence gate here.
+--
+-- readableTypes/foundUnknownActive are file-local scratch state, wiped and reused each call,
+-- and the callback below is hoisted to a file-local function instead of built fresh per call,
+-- for the same reason AURA_FILTERS is hoisted in AuraListeners.lua: UNIT_AURA-driven calls are
+-- hot enough that a fresh table and closure per call is avoidable allocation. Because that state
+-- is shared, DispelProbeCallback must never call back into Triage or anything else that could
+-- re-enter the probe while it is running.
+local readableTypes = {}
+local foundUnknownActive = false
+
+local function DispelProbeCallback(auraData)
+	local dispelName = auraData.dispelName
+	if IsSecretValue(dispelName) then
+		foundUnknownActive = true
+		return
+	end
+
+	if dispelName and dispelName ~= "" then
+		readableTypes[dispelName] = true
+	else
+		foundUnknownActive = true
+	end
+end
+
 local function GetActiveDispelTypeRetail(frame)
-	local blizzardOverlay = ReadField(frame, "DispelOverlay")
-	local dispelDebuffFrames = ReadField(blizzardOverlay, "dispelDebuffFrames")
-	if type(dispelDebuffFrames) ~= "table" then
+	if Triage.dispelProviderIsSample then
+		return Triage.DISPEL_STATE_UNAVAILABLE
+	end
+
+	local unit = Triage:GetManagedFrameUnit(frame)
+	if not unit then
 		return nil
 	end
 
-	local readableTypes = {}
-	local foundUnknownActive = false
-	local myDispels = GetLibDispel():GetMyDispelTypes()
+	wipe(readableTypes)
+	foundUnknownActive = false
 
-	for _, dispelDebuffFrame in ipairs(dispelDebuffFrames) do
-		local aura = ReadField(dispelDebuffFrame, "aura")
-		if aura then
-			local shown, shownReadable = CallMethod(dispelDebuffFrame, "IsShown")
-			if not shownReadable or shown then
-				local canDispel = ReadField(aura, "canActivePlayerDispel")
-				local dispelType = ReadField(aura, "dispelName")
+	local ok = pcall(AuraUtil.ForEachAura, unit, "HARMFUL|RAID", nil, DispelProbeCallback, true)
 
-				if canDispel ~= false then
-					if dispelType then
-						if myDispels[dispelType] then
-							readableTypes[dispelType] = true
-						end
-					else
-						foundUnknownActive = true
-					end
-				end
-			end
-		end
+	if not ok then
+		return Triage.DISPEL_STATE_UNAVAILABLE
 	end
 
 	for _, dispelType in ipairs(PRIORITY_ORDER) do
@@ -120,7 +131,10 @@ local function GetActiveDispelTypeRetail(frame)
 		end
 	end
 
-	if foundUnknownActive then
+	-- Present, and either the type could not be read at all, or it read fine but isn't one of
+	-- the five priority types: either way something is positively there, so this reports the
+	-- neutral sentinel rather than falling through to nil.
+	if foundUnknownActive or next(readableTypes) then
 		return Triage.UNKNOWN_DISPEL_TYPE
 	end
 
@@ -128,8 +142,7 @@ local function GetActiveDispelTypeRetail(frame)
 end
 
 function Triage:GetActiveDispelType(frame)
-	local caps = self:GetDispelCapabilities()
-	if caps.supportsLegacyFrameDispels then
+	if not self.supportsPrivateAuraSuppression then
 		return GetActiveDispelTypeLegacy(frame)
 	end
 

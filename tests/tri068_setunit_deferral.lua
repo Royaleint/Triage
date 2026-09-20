@@ -92,6 +92,11 @@ local function installHook(legacy)
 	addon.UpdateUnitAuras_Classic = function(_, frame, forced)
 		calls[#calls + 1] = { "UpdateUnitAuras_Classic", frame, forced }
 	end
+	-- TRI-069: the deferred Retail flush also refreshes the dispel overlay, as the unconditional
+	-- last step of refreshRetailFrame (after refreshFrameForUnit returns, whatever it did).
+	addon.UpdateDispelOverlay = function(_, frame)
+		calls[#calls + 1] = { "UpdateDispelOverlay", frame }
+	end
 	addon.UpdateTargetMarker = function(_, frame)
 		calls[#calls + 1] = { "UpdateTargetMarker", frame }
 	end
@@ -131,7 +136,7 @@ resetState()
 installHook(false)
 local frame = NewFrame("party1")
 hookCallback(frame, "party1")
-assertEqual(#calls, 0, "no body call may run before the timer fires")
+assertEqual(#calls, 0, "no body call, including the dispel overlay refresh, may run before the timer fires")
 assertEqual(timersScheduled, 1, "hook schedules one timer")
 
 -- Row 2: fire-time unit wins over the hook argument.
@@ -147,12 +152,14 @@ local expectedOrder = {
 	"ShouldContinue",
 	"ClearIndicator",
 	"UpdateUnitAuras",
+	"UpdateDispelOverlay",
 }
 assertEqual(#calls, #expectedOrder, "body call count (no marker frame, so no marker refresh)")
 for i, name in ipairs(expectedOrder) do
 	assertEqual(calls[i][1], name, "body call order at position " .. i)
 end
 assertEqual(calls[6][4], true, "aura scan is forced")
+assertEqual(calls[7][2], frame, "the dispel overlay refresh runs in the flush tail, after the body")
 assertEqual(countCalls("UpdateUnitAuras_Classic"), 0, "Retail does not use the Classic scan")
 
 -- Row 3: bursts coalesce.
@@ -210,6 +217,8 @@ assertEqual(countCalls("ShouldContinue"), 1, "gate consulted")
 assertEqual(countCalls("ClearIndicator"), 0, "no clear after failed gate")
 assertEqual(countCalls("UpdateUnitAuras"), 0, "no scan after failed gate")
 assertEqual(countCalls("UpdateTargetMarker"), 0, "no marker refresh after failed gate")
+assertEqual(countCalls("UpdateDispelOverlay"), 1,
+	"the dispel overlay refresh still runs in the flush tail when the inner gate fails; it re-checks ShouldContinue itself")
 
 -- Row 6: Classic runs synchronously with no timer.
 resetState()
@@ -283,8 +292,9 @@ frame.Triage_targetMarkerFrame = {}
 hookCallback(frame, "party1")
 fireTimers()
 assertEqual(countCalls("UpdateTargetMarker"), 1, "marker refreshed on pass path")
-assertEqual(calls[#calls][1], "UpdateTargetMarker", "marker refresh is the last body step")
-assertEqual(calls[#calls][2], frame, "marker refresh targets the frame")
+assertEqual(calls[#calls - 1][1], "UpdateTargetMarker", "marker refresh is the last body step before the dispel overlay tail call")
+assertEqual(calls[#calls - 1][2], frame, "marker refresh targets the frame")
+assertEqual(calls[#calls][1], "UpdateDispelOverlay", "the dispel overlay refresh runs after the body, in the flush tail")
 
 resetState()
 installHook(false)
@@ -295,6 +305,8 @@ gateResult = false
 fireTimers()
 assertEqual(countCalls("ShouldContinue"), 1, "gate consulted for marker frame")
 assertEqual(countCalls("UpdateTargetMarker"), 0, "marker not refreshed when gate fails")
+assertEqual(countCalls("UpdateDispelOverlay"), 1,
+	"the dispel overlay refresh still runs in the flush tail when the gate fails")
 
 -- Row 10: frames hooked during a flush are queued for a second flush with a new timer,
 -- and the rest of the first batch is still processed.

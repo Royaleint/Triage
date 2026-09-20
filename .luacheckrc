@@ -57,6 +57,7 @@ read_globals = {
     "Settings",
     "InCombatLockdown",
     "IsInRaid",
+    "EventRegistry",
     "hooksecurefunc",
     "issecretvalue",
     "GetBuildInfo",

@@ -79,6 +79,12 @@ function Triage:CreateAuraListener(frame)
 	if self.supportsUnitAuraPayloads then
 		frame.Triage_auraListenerFrame:SetScript("OnEvent", function(_, _, _, payload)
 			self:UpdateUnitAuras(frame, payload)
+			-- Re-evaluate on every aura change, not gated on shouldRunUpdate: the dispel
+			-- overlay probe (Modules/DispelSource.lua) queries auras itself and can change
+			-- state independently of whether a tracked indicator aura changed. This listener
+			-- frame belongs to Triage and its OnEvent already runs in Triage's own execution,
+			-- not inside a Blizzard hook or callback stack, so no timer deferral is needed here.
+			self:UpdateDispelOverlay(frame)
 		end)
 	else
 		frame.Triage_auraListenerFrame:SetScript("OnEvent", function()
