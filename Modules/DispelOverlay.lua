@@ -112,7 +112,11 @@ function Triage:CreateDispelOverlay(frame)
 			return
 		end
 
+		-- Present-but-unreadable (Triage.UNKNOWN_DISPEL_TYPE) always renders neutral here,
+		-- regardless of the colorByType setting -- never re-glow red one tick after
+		-- ShowDispelOverlay already rendered it neutral.
 		local useTypeColor = Triage.db.profile.dispelOverlay.colorByType
+			and hiddenOverlay.currentDispelType ~= Triage.UNKNOWN_DISPEL_TYPE
 		local glowStyle = Triage.db.profile.dispelOverlay.glowStyle
 		if useTypeColor and glowStyle ~= "pulse" and glowStyle ~= "both" then
 			StopGlow(hiddenOverlay)
@@ -271,10 +275,12 @@ function Triage:UpdateDispelOverlay(frame)
 		return
 	end
 
+	-- Present-but-unreadable (UNKNOWN_DISPEL_TYPE) passes through to ShowDispelOverlay as
+	-- itself, never as "None": ShowDispelOverlay renders it neutral, not the red "no dispel"
+	-- color. "unavailable" (denied query, or Edit Mode's sample provider active) hides, same
+	-- as nothing present.
 	local dispelType = self:GetActiveDispelType(frame)
-	if dispelType == self.UNKNOWN_DISPEL_TYPE then
-		self:ShowDispelOverlay(frame, "None")
-	elseif dispelType then
+	if dispelType and dispelType ~= self.DISPEL_STATE_UNAVAILABLE then
 		self:ShowDispelOverlay(frame, dispelType)
 	else
 		self:HideDispelOverlay(frame)
@@ -294,7 +300,8 @@ function Triage:ShowDispelOverlay(frame, dispelType)
 	local debuffColors = LibDispel:GetDebuffTypeColor()
 	local color = debuffColors[dispelType] or debuffColors["None"]
 	local alpha = self.db.profile.dispelOverlay.borderAlpha
-	local useTypeColor = self.db.profile.dispelOverlay.colorByType
+	-- Present-but-unreadable always renders neutral, regardless of the colorByType setting.
+	local useTypeColor = self.db.profile.dispelOverlay.colorByType and dispelType ~= self.UNKNOWN_DISPEL_TYPE
 
 	local glowStyle = self.db.profile.dispelOverlay.glowStyle
 

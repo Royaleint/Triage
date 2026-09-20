@@ -120,6 +120,7 @@ function Triage:OnEnable()
 		self:UpdateAllAuras()
 		self:RefreshRangeTicker()
 		self:UpdateTriageFocus()
+		self:UpdateAllDispelOverlays()
 	end)
 
 	-- Force a full update of all stock aura visibilities, target markers, and ranges when the group roster changes
@@ -232,6 +233,15 @@ function Triage:OnEnable()
 			local flushBatch = {}
 			local flushScheduled = false
 
+			-- Re-evaluate the dispel overlay on frame reassignment; already deferred by
+			-- TRI-068, so this runs outside Blizzard's SetUnit stack like the rest of the
+			-- flush body. Folded into the same pcall as refreshFrameForUnit so a throw here
+			-- costs only this frame, not the rest of the batch.
+			local function refreshRetailFrame(frame)
+				refreshFrameForUnit(frame)
+				self:UpdateDispelOverlay(frame)
+			end
+
 			-- Frames hooked while a flush runs belong to the next window: the set is
 			-- emptied before iterating so they schedule a fresh timer.
 			local function flushPendingFrames()
@@ -244,7 +254,7 @@ function Triage:OnEnable()
 				for i = 1, #flushBatch do
 					local frame = flushBatch[i]
 					flushBatch[i] = nil
-					local ok, err = pcall(refreshFrameForUnit, frame)
+					local ok, err = pcall(refreshRetailFrame, frame)
 					if not ok then
 						pcall(function()
 							geterrorhandler()(err)
@@ -263,6 +273,47 @@ function Triage:OnEnable()
 		end
 	end
 
+	-- Dispel overlay detection state (TRI-069): the Retail probe (Modules/DispelSource.lua)
+	-- consults dispelProviderIsSample instead of reading any Blizzard overlay/frame state.
+	-- Both callback bodies below do mark-and-defer only, coalesced onto one timer, so no work
+	-- runs inside Blizzard's AURA_DATA_PROVIDER_SWITCH event or EditMode.Exit callback stack.
+	if self.supportsDispelOverlay then
+		self.dispelProviderIsSample = false
+		local dispelOverlayRefreshScheduled = false
+		local function scheduleDispelOverlayRefresh()
+			if dispelOverlayRefreshScheduled then
+				return
+			end
+			dispelOverlayRefreshScheduled = true
+			C_Timer.After(0, function()
+				dispelOverlayRefreshScheduled = false
+				self:UpdateAllDispelOverlays()
+			end)
+		end
+
+		-- Edit Mode's sample aura data provider fabricates dispellable debuffs; while it is
+		-- active the overlay must go dark rather than trust it. AURA_DATA_PROVIDER_SWITCH is a
+		-- real WoW engine event (UnitAuraDocumentation.lua), so it is registered through
+		-- Triage's own AceEvent-3.0 handle rather than EventRegistry: the handler then runs in
+		-- Triage's own execution instead of alongside Blizzard's own listener on that event.
+		-- Already Retail-gated by the enclosing "if self.supportsDispelOverlay" check, so this
+		-- never registers on a client where the event might not exist. Payload per the engine's
+		-- event definition: (event, useRealDataProvider).
+		self:RegisterEvent("AURA_DATA_PROVIDER_SWITCH", function(_, useRealDataProvider)
+			self.dispelProviderIsSample = useRealDataProvider == false
+			scheduleDispelOverlayRefresh()
+		end)
+
+		-- EditMode.Exit is an EventRegistry-only callback name, not a WoW engine event, so it
+		-- has no AceEvent equivalent and stays on EventRegistry. Belt-and-suspenders: Edit Mode
+		-- always exits back onto the real provider, but this also covers the case where
+		-- AURA_DATA_PROVIDER_SWITCH never fires because nothing inside Edit Mode requested a
+		-- sample aura.
+		EventRegistry:RegisterCallback("EditMode.Exit", function()
+			self.dispelProviderIsSample = false
+			scheduleDispelOverlayRefresh()
+		end, self)
+	end
 end
 
 --- Open the Triage panel inside the Blizzard addon settings UI.
