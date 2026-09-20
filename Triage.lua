@@ -263,21 +263,6 @@ function Triage:OnEnable()
 		end
 	end
 
-	-- Hook aura updates to refresh dispel overlay (Retail DispelSource path;
-	-- legacy clients keep the frame.dispels fallback when refreshed elsewhere).
-	-- No explicit hide on SetUnit — the aura hook handles it. Blizzard's SetUnit calls UpdateAll
-	-- which calls UpdateAuras before our SetUnit hook runs, so hiding here would blank valid overlays.
-	if self.supportsUnitAuraPayloads then
-		if CompactUnitFrame_UpdateAuras then
-			self:SecureHook("CompactUnitFrame_UpdateAuras", function(frame)
-				if not self.ShouldContinue(frame, true) then
-					return
-				end
-				self:UpdateDispelOverlay(frame)
-			end)
-		end
-	end
-
 end
 
 --- Open the Triage panel inside the Blizzard addon settings UI.
