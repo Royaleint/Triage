@@ -83,6 +83,13 @@ end
 ---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
 ---@param refreshBaseAttributes boolean|nil @Whether Blizzard just rewrote the base PrivateAurasUI attributes
 function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI, refreshBaseAttributes)
+	-- The per-frame settings hook below cannot be removed once installed, so this
+	-- is the one place that has to re-test ownership itself rather than trust
+	-- whatever admitted the frame earlier: a de-owned frame's hook still fires.
+	if not self:IsOwnableFrame(frame) then
+		return false
+	end
+
 	if not IsRetailPrivateAuraContainer(frame) then
 		return false
 	end

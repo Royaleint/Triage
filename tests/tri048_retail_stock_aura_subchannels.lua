@@ -30,6 +30,11 @@ _G.Triage = {
 			showDispellableDebuffs = false,
 		},
 	},
+	-- Ownership admission is exercised in tests/tri088_frame_ownership.lua, not
+	-- here; this frame is a party/raid member frame as far as this test is concerned.
+	IsOwnableFrame = function()
+		return true
+	end,
 }
 
 dofile(repoRoot .. "Overrides.lua")

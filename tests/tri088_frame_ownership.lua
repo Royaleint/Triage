@@ -249,6 +249,35 @@ do
 	end
 	assertEqual(attributeWritesAfter, attributeWritesBefore, "no hook body writes to a de-owned frame")
 
+	-- The settings hook itself can't be removed (Triage_stockAuraVisibilityHooked
+	-- above stays true), so drive it directly the way Blizzard would -- calling
+	-- the frame's own SetPrivateAuraAnchorSettings, which the hooksecurefunc stub
+	-- already wraps in place -- and confirm it writes nothing while de-owned.
+	local deOwnedSnapshot = {}
+	for k, v in pairs(frame) do
+		deOwnedSnapshot[k] = v
+	end
+
+	frame:SetPrivateAuraAnchorSettings()
+
+	local attributeWritesAfterHookDrive = 0
+	for _ in pairs(attributes) do
+		attributeWritesAfterHookDrive = attributeWritesAfterHookDrive + 1
+	end
+	assertEqual(attributeWritesAfterHookDrive, attributeWritesAfter,
+		"driving the settings hook directly writes no attributes to a de-owned frame")
+
+	local deOwnedFieldCount = 0
+	for k, v in pairs(frame) do
+		deOwnedFieldCount = deOwnedFieldCount + 1
+		assertEqual(deOwnedSnapshot[k], v, "driving the settings hook changed frame field " .. tostring(k))
+	end
+	local deOwnedSnapshotCount = 0
+	for _ in pairs(deOwnedSnapshot) do
+		deOwnedSnapshotCount = deOwnedSnapshotCount + 1
+	end
+	assertEqual(deOwnedFieldCount, deOwnedSnapshotCount, "driving the settings hook added a field to a de-owned frame")
+
 	-- Re-adopt: the frame becomes ownable again (e.g. Blizzard reuses it for a
 	-- real party member later). The settings hook must not install a second time.
 	frame.groupType = CompactRaidGroupTypeEnum.Party
