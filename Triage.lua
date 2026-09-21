@@ -168,20 +168,36 @@ function Triage:OnEnable()
 
 	-- Hook our UpdateInRange function if the global function exists.
 	-- Using SecureHook ensures that our function will run 'after' the default function, which is what we want.
-	if CompactUnitFrame_UpdateInRange then
-		self:SecureHook("CompactUnitFrame_UpdateInRange", function(frame)
+	-- On Retail this body only marks the frame and returns; running SetAlpha inside
+	-- either Blizzard call stack leaves the frame's next health compare tainted, the
+	-- same class of problem the SetUnit hook already had to move off the stack for.
+	-- The mark lands on the same coalesced flush as SetUnit, so a frame touched by
+	-- more than one of these hooks in a tick still schedules only one timer.
+	local function onRangeOrStatusIconUpdate(frame)
+		if self.usesLegacyUnitAura then
 			self:UpdateInRange(frame)
-		end)
+			return
+		end
+		if not self:IsOwnableFrame(frame) then
+			return
+		end
+		if self.MarkFramePendingRange then
+			self:MarkFramePendingRange(frame)
+		else
+			self:UpdateInRange(frame)
+		end
 	end
 
-	-- Hook UpdateCenterStatusIcon to re-apply our range alpha after Blizzard sets its own.
+	if CompactUnitFrame_UpdateInRange then
+		self:SecureHook("CompactUnitFrame_UpdateInRange", onRangeOrStatusIconUpdate)
+	end
+
+	-- UpdateCenterStatusIcon re-applies our range alpha after Blizzard sets its own.
 	-- Blizzard's SetAlpha at CompactUnitFrame.lua:1583 uses frame.outOfRange which is
 	-- broken by C_Secrets in Midnight. Our hook runs after and overrides with LibRangeCheck.
 	-- We cannot write frame.outOfRange directly — that taints Blizzard's next comparison.
 	if CompactUnitFrame_UpdateCenterStatusIcon then
-		self:SecureHook("CompactUnitFrame_UpdateCenterStatusIcon", function(frame)
-			self:UpdateInRange(frame)
-		end)
+		self:SecureHook("CompactUnitFrame_UpdateCenterStatusIcon", onRangeOrStatusIconUpdate)
 	end
 
 	-- Hook frame unit assignment to refresh indicators and listeners when a frame gets a new unit.
@@ -233,7 +249,9 @@ function Triage:OnEnable()
 			-- reassigned. The unit is re-read at fire time because the hook's argument is
 			-- nil on clear and hooks arrive in bursts.
 			local pendingFrames = setmetatable({}, { __mode = "k" })
+			local pendingRangeFrames = setmetatable({}, { __mode = "k" })
 			local flushBatch = {}
+			local rangeFlushBatch = {}
 			local flushScheduled = false
 
 			-- Re-evaluate the dispel overlay on frame reassignment; already deferred by
@@ -245,19 +263,18 @@ function Triage:OnEnable()
 				self:UpdateDispelOverlay(frame)
 			end
 
-			-- Frames hooked while a flush runs belong to the next window: the set is
-			-- emptied before iterating so they schedule a fresh timer.
-			local function flushPendingFrames()
-				flushScheduled = false
-				wipe(flushBatch)
-				for frame in pairs(pendingFrames) do
-					flushBatch[#flushBatch + 1] = frame
+			-- Drains one pending set into its scratch batch and runs body on each frame,
+			-- each call wrapped so one frame's error can't strand the rest of the batch.
+			local function runDeferredBatch(pendingSet, batch, body)
+				wipe(batch)
+				for frame in pairs(pendingSet) do
+					batch[#batch + 1] = frame
 				end
-				wipe(pendingFrames)
-				for i = 1, #flushBatch do
-					local frame = flushBatch[i]
-					flushBatch[i] = nil
-					local ok, err = pcall(refreshRetailFrame, frame)
+				wipe(pendingSet)
+				for i = 1, #batch do
+					local frame = batch[i]
+					batch[i] = nil
+					local ok, err = pcall(body, frame)
 					if not ok then
 						pcall(function()
 							geterrorhandler()(err)
@@ -266,16 +283,38 @@ function Triage:OnEnable()
 				end
 			end
 
+			-- Frames hooked while a flush runs belong to the next window: each pending
+			-- set is emptied before iterating so a re-hook schedules a fresh timer.
+			local function flushPendingFrames()
+				flushScheduled = false
+				runDeferredBatch(pendingFrames, flushBatch, refreshRetailFrame)
+				runDeferredBatch(pendingRangeFrames, rangeFlushBatch, function(frame)
+					self:UpdateInRange(frame)
+				end)
+			end
+
+			local function scheduleDeferredFlush()
+				if not flushScheduled then
+					flushScheduled = true
+					C_Timer.After(0, flushPendingFrames)
+				end
+			end
+
 			self:SecureHook("CompactUnitFrame_SetUnit", function(frame)
 				if not self:IsOwnableFrame(frame) then
 					return
 				end
 				pendingFrames[frame] = true
-				if not flushScheduled then
-					flushScheduled = true
-					C_Timer.After(0, flushPendingFrames)
-				end
+				scheduleDeferredFlush()
 			end)
+
+			-- An addon-level entry point rather than a local, so the range hook above
+			-- (installed earlier in this same function, before this scope exists) still
+			-- reaches this exact flush purely through a runtime field lookup on self.
+			self.MarkFramePendingRange = function(_, frame)
+				pendingRangeFrames[frame] = true
+				scheduleDeferredFlush()
+			end
 		end
 	end
 
