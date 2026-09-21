@@ -1,4 +1,6 @@
 -- luacheck: globals arg LibStub InCombatLockdown hooksecurefunc dofile CompactUnitFrame_UpdateAuras
+-- luacheck: globals CompactUnitFrame_GetOptionShowBigDefensive CompactUnitFrame_GetOptionShowDispelIndicatorOverlay
+-- luacheck: globals CompactUnitFrame_GetOptionDisplayBuffs CompactUnitFrame_GetOptionDisplayDebuffs CompactUnitFrame_GetOptionDisplayDispelDebuffs
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
 
@@ -66,20 +68,33 @@ _G.Triage = {
 
 dofile(repoRoot .. "Overrides.lua")
 
+-- Classic-shaped getters: unlike Retail, this client does carry
+-- CompactUnitFrame_GetOptionShowDispelIndicatorOverlay.
+function CompactUnitFrame_GetOptionShowBigDefensive()
+	return true
+end
+function CompactUnitFrame_GetOptionShowDispelIndicatorOverlay()
+	return true
+end
+function CompactUnitFrame_GetOptionDisplayBuffs()
+	return true
+end
+function CompactUnitFrame_GetOptionDisplayDebuffs()
+	return true
+end
+function CompactUnitFrame_GetOptionDisplayDispelDebuffs()
+	return true
+end
+
 -- A Classic 1.15.9+ / 5.5.4+ CompactUnitFrame: no legacy buffFrames tables,
 -- but the ContainerPrivateAuraBehaviorMixin attribute surface is present.
 local function NewAttributeFrame()
 	return {
-		attributes = {
-			["max-buffs"] = 3,
-			["max-debuffs"] = 3,
-			["max-dispel-debuffs"] = 2,
-			["show-big-defensive"] = true,
-			["show-dispel-indicator-overlay"] = true,
-			["ignore-buffs"] = false,
-			["ignore-debuffs"] = false,
-			["ignore-dispel-debuffs"] = false,
-		},
+		maxBuffs = 3,
+		maxDebuffs = 3,
+		maxDispelDebuffs = 2,
+		optionTable = {},
+		attributes = {},
 		SetPrivateAuraAnchorSettings = function() end,
 		SetAttribute = function(self, key, value)
 			self.attributes[key] = value
@@ -105,11 +120,27 @@ attributeFrame.attributes["max-buffs"] = 3
 attributeFrame:SetPrivateAuraAnchorSettings()
 assertEqual(attributeFrame.attributes["max-buffs"], 0, "settings rewrite should re-apply the suppressed buff container")
 
--- Re-enable: attributes restored from the captured base values
+-- Re-enable: attributes restored from Blizzard's own current values
 _G.Triage.db.profile.showBuffs = true
 _G.Triage:UpdateStockAuraVisibility(attributeFrame)
 assertEqual(attributeFrame.attributes["ignore-buffs"], false, "re-enabled stock buffs should clear ignore-buffs")
-assertEqual(attributeFrame.attributes["max-buffs"], 3, "re-enabled stock buffs should restore base max-buffs")
+assertEqual(attributeFrame.attributes["max-buffs"], 3, "re-enabled stock buffs should restore genuine max-buffs")
+
+-- Unlike Retail, this client does carry the dispel-overlay getter:
+-- suppressing writes the hidden constant, and restoring round-trips to
+-- whatever that getter reports.
+do
+	local overlayFrame = NewAttributeFrame()
+	_G.Triage.db.profile.showDispellableDebuffs = false
+	_G.Triage:UpdateStockAuraVisibility(overlayFrame)
+	assertEqual(overlayFrame.attributes["show-dispel-indicator-overlay"], false,
+		"suppressing writes the hidden overlay constant")
+
+	_G.Triage.db.profile.showDispellableDebuffs = true
+	_G.Triage:UpdateStockAuraVisibility(overlayFrame)
+	assertEqual(overlayFrame.attributes["show-dispel-indicator-overlay"], true,
+		"restoring on a client with the getter round-trips to its value")
+end
 
 -- Legacy fallback: a frame without the attribute container (e.g. an older
 -- Classic client) still gets the OnShow-hook path. Re-enabling no longer restores

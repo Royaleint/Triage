@@ -11,18 +11,81 @@ local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 -------------------------------------------------------------------------
 
 local STOCK_AURA_ATTRIBUTES = {
-	{ option = "showBuffs", attribute = "ignore-buffs" },
-	{ option = "showDebuffs", attribute = "ignore-debuffs" },
-	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs" },
-}
-
-local STOCK_AURA_SUBCHANNEL_ATTRIBUTES = {
+	{ option = "showBuffs", attribute = "ignore-buffs", hiddenValue = true },
+	{ option = "showDebuffs", attribute = "ignore-debuffs", hiddenValue = true },
+	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs", hiddenValue = true },
 	{ option = "showBuffs", attribute = "max-buffs", hiddenValue = 0 },
 	{ option = "showDebuffs", attribute = "max-debuffs", hiddenValue = 0 },
 	{ option = "showDispellableDebuffs", attribute = "max-dispel-debuffs", hiddenValue = 0 },
 	{ option = "showBuffs", attribute = "show-big-defensive", hiddenValue = false },
 	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false },
 }
+
+-- Blizzard's own genuine value for each attribute Triage suppresses, computed
+-- fresh from Blizzard-owned sources every time. Never reads back anything
+-- Triage itself has written -- that's the read-back that used to poison a
+-- restore once an intervening rewrite landed between the read and the write.
+local function CallGenuineGetter(frame, getterName)
+	-- Every one of these getters indexes frame.optionTable unguarded.
+	if type(frame.optionTable) ~= "table" then
+		return nil
+	end
+
+	local getter = rawget(_G, getterName)
+	if type(getter) ~= "function" then
+		return nil
+	end
+
+	local value = getter(frame)
+	if issecretvalue and issecretvalue(value) then
+		return nil
+	end
+
+	return value
+end
+
+local function SecretSafeValue(value)
+	if issecretvalue and issecretvalue(value) then
+		return nil
+	end
+	return value
+end
+
+local function GenuineStockAuraValue(frame, attribute)
+	if attribute == "max-buffs" then
+		return SecretSafeValue(frame.maxBuffs)
+	elseif attribute == "max-debuffs" then
+		return SecretSafeValue(frame.maxDebuffs)
+	elseif attribute == "max-dispel-debuffs" then
+		return SecretSafeValue(frame.maxDispelDebuffs)
+	elseif attribute == "show-big-defensive" then
+		return CallGenuineGetter(frame, "CompactUnitFrame_GetOptionShowBigDefensive")
+	elseif attribute == "show-dispel-indicator-overlay" then
+		-- Absent on Retail 12.1; present on Classic Era and Mists Classic.
+		-- CallGenuineGetter already returns nil when the global doesn't exist.
+		return CallGenuineGetter(frame, "CompactUnitFrame_GetOptionShowDispelIndicatorOverlay")
+	elseif attribute == "ignore-buffs" then
+		local displayed = CallGenuineGetter(frame, "CompactUnitFrame_GetOptionDisplayBuffs")
+		if displayed == nil then
+			return nil
+		end
+		return not displayed
+	elseif attribute == "ignore-debuffs" then
+		local displayed = CallGenuineGetter(frame, "CompactUnitFrame_GetOptionDisplayDebuffs")
+		if displayed == nil then
+			return nil
+		end
+		return not displayed
+	elseif attribute == "ignore-dispel-debuffs" then
+		local displayed = CallGenuineGetter(frame, "CompactUnitFrame_GetOptionDisplayDispelDebuffs")
+		if displayed == nil then
+			return nil
+		end
+		return not displayed
+	end
+
+	return nil
+end
 
 local function GetFriendRangeChecker(range)
 	return LibRangeCheck:GetFriendMinChecker(range, InCombatLockdown() == true)
@@ -52,15 +115,6 @@ local function IsRetailPrivateAuraContainer(frame)
 			and type(frame.GetAttribute) == "function"
 end
 
-local function CaptureRetailStockAuraBaseAttributes(frame)
-	local baseAttributes = frame.Triage_stockAuraBaseAttributes or {}
-	frame.Triage_stockAuraBaseAttributes = baseAttributes
-
-	for _, mapping in ipairs(STOCK_AURA_SUBCHANNEL_ATTRIBUTES) do
-		baseAttributes[mapping.attribute] = frame:GetAttribute(mapping.attribute)
-	end
-end
-
 --- Set the visibility on the stock buff/debuff frames
 function Triage:UpdateAllStockAuraVisibility()
 	self:ForEachManagedFrame(function(frame)
@@ -81,8 +135,7 @@ end
 --- Apply stock aura visibility via Blizzard_PrivateAurasUI attributes (Retail 12.0.5+, Classic Era 1.15.9+, Mists Classic 5.5.4+).
 ---@param frame table @The frame to update
 ---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
----@param refreshBaseAttributes boolean|nil @Whether Blizzard just rewrote the base PrivateAurasUI attributes
-function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI, refreshBaseAttributes)
+function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
 	-- The per-frame settings hook below cannot be removed once installed, so this
 	-- is the one place that has to re-test ownership itself rather than trust
 	-- whatever admitted the frame earlier: a de-owned frame's hook still fires.
@@ -99,19 +152,25 @@ function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI, refre
 		return true
 	end
 
-	if refreshBaseAttributes or not frame.Triage_stockAuraVisibilityApplied then
-		CaptureRetailStockAuraBaseAttributes(frame)
+	-- Triage_stockAuraVisibilityApplied means "this frame currently carries
+	-- Triage-suppressed values", not "has been touched once". With every
+	-- switch on and nothing suppressed, Blizzard's own settings already
+	-- stand, so there is nothing to write and nothing to announce.
+	local suppressing = not (self.db.profile.showBuffs and self.db.profile.showDebuffs
+			and self.db.profile.showDispellableDebuffs)
+	if not suppressing and not frame.Triage_stockAuraVisibilityApplied then
+		return true
 	end
-	frame.Triage_stockAuraVisibilityApplied = true
+	frame.Triage_stockAuraVisibilityApplied = suppressing or nil
 
 	for _, mapping in ipairs(STOCK_AURA_ATTRIBUTES) do
-		frame:SetAttribute(mapping.attribute, not self.db.profile[mapping.option])
-	end
-
-	local baseAttributes = frame.Triage_stockAuraBaseAttributes
-	for _, mapping in ipairs(STOCK_AURA_SUBCHANNEL_ATTRIBUTES) do
 		if self.db.profile[mapping.option] then
-			frame:SetAttribute(mapping.attribute, baseAttributes[mapping.attribute])
+			-- Turning a switch back on hands the attribute back to whatever
+			-- Blizzard's own setting says, not to a value Triage remembered.
+			local genuine = GenuineStockAuraValue(frame, mapping.attribute)
+			if genuine ~= nil then
+				frame:SetAttribute(mapping.attribute, genuine)
+			end
 		else
 			frame:SetAttribute(mapping.attribute, mapping.hiddenValue)
 		end
@@ -139,7 +198,7 @@ function Triage:EnsureRetailStockAuraVisibilityHook(frame)
 	if not frame.Triage_stockAuraVisibilityHooked then
 		frame.Triage_stockAuraVisibilityHooked = true
 		hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", function(hookedFrame)
-			self:ApplyRetailStockAuraVisibility(hookedFrame, nil, true)
+			self:ApplyRetailStockAuraVisibility(hookedFrame, nil)
 		end)
 	end
 

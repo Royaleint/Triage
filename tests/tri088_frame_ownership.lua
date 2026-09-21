@@ -199,6 +199,10 @@ end
 -- installed-hook flag, which hooksecurefunc can never undo. Re-adopting the
 -- same frame later must not install that hook a second time.
 do
+	-- At least one switch must be off here -- with every switch on, applying
+	-- to a never-suppressed frame is a no-op and never sets the applied flag.
+	addon.db.profile.showBuffs = false
+
 	local attributes = {}
 	local frame = {
 		unit = "party3",
@@ -227,7 +231,6 @@ do
 		"re-registering a de-owned frame is rejected")
 	assertEqual(addon:GetManagedFrameEntry(frame), nil, "the registry drops a de-owned frame on its next touch")
 	assertEqual(frame.Triage_stockAuraVisibilityApplied, nil, "teardown clears the applied flag")
-	assertEqual(frame.Triage_stockAuraBaseAttributes, nil, "teardown clears the captured base attributes")
 	assertEqual(frame.Triage_privateAuraSettingsVersion, nil, "teardown clears the settings version toggle")
 	assertTrue(frame.Triage_stockAuraVisibilityHooked, "the hooked flag survives teardown -- the hook itself can't be removed")
 
@@ -285,6 +288,8 @@ do
 	addon:UpdateStockAuraVisibility(frame)
 	assertTrue(frame.Triage_stockAuraVisibilityApplied, "stock aura visibility re-applies once re-owned")
 	assertEqual(hooksecurefuncCounts[frame], 1, "re-adopting the frame does not install the settings hook a second time")
+
+	addon.db.profile.showBuffs = true
 end
 
 -- With CompactRaidGroupTypeEnum absent, Retail fails closed and every

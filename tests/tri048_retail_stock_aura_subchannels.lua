@@ -1,4 +1,6 @@
 -- luacheck: globals arg LibStub InCombatLockdown dofile
+-- luacheck: globals CompactUnitFrame_GetOptionShowBigDefensive
+-- luacheck: globals CompactUnitFrame_GetOptionDisplayBuffs CompactUnitFrame_GetOptionDisplayDebuffs CompactUnitFrame_GetOptionDisplayDispelDebuffs
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
 
@@ -39,21 +41,29 @@ _G.Triage = {
 
 dofile(repoRoot .. "Overrides.lua")
 
+-- Retail-shaped getters: no CompactUnitFrame_GetOptionShowDispelIndicatorOverlay
+-- here -- that global does not exist on Retail 12.1, only on Classic Era and
+-- Mists Classic.
+function CompactUnitFrame_GetOptionShowBigDefensive()
+	return true
+end
+function CompactUnitFrame_GetOptionDisplayBuffs()
+	return true
+end
+function CompactUnitFrame_GetOptionDisplayDebuffs()
+	return true
+end
+function CompactUnitFrame_GetOptionDisplayDispelDebuffs()
+	return true
+end
+
 local function NewRetailFrame()
 	return {
 		maxBuffs = 3,
 		maxDebuffs = 3,
 		maxDispelDebuffs = 2,
-		attributes = {
-			["max-buffs"] = 3,
-			["max-debuffs"] = 3,
-			["max-dispel-debuffs"] = 2,
-			["show-big-defensive"] = true,
-			["show-dispel-indicator-overlay"] = true,
-			["ignore-buffs"] = false,
-			["ignore-debuffs"] = false,
-			["ignore-dispel-debuffs"] = false,
-		},
+		optionTable = {},
+		attributes = {},
 		SetPrivateAuraAnchorSettings = function() end,
 		SetAttribute = function(self, key, value)
 			self.attributes[key] = value
@@ -83,11 +93,13 @@ _G.Triage:ApplyRetailStockAuraVisibility(frame, true)
 assertEqual(frame.attributes["ignore-buffs"], false, "re-enabled stock buffs should clear ignore-buffs")
 assertEqual(frame.attributes["ignore-debuffs"], false, "re-enabled stock debuffs should clear ignore-debuffs")
 assertEqual(frame.attributes["ignore-dispel-debuffs"], false, "re-enabled stock dispels should clear ignore-dispel-debuffs")
-assertEqual(frame.attributes["max-buffs"], 3, "re-enabled stock buffs should restore base max-buffs")
-assertEqual(frame.attributes["max-debuffs"], 3, "re-enabled stock debuffs should restore base max-debuffs")
-assertEqual(frame.attributes["max-dispel-debuffs"], 2, "re-enabled stock dispels should restore base max-dispel-debuffs")
-assertEqual(frame.attributes["show-big-defensive"], true, "re-enabled stock buffs should restore center defensive visibility")
-assertEqual(frame.attributes["show-dispel-indicator-overlay"], true, "re-enabled stock dispels should restore dispel overlay visibility")
+assertEqual(frame.attributes["max-buffs"], 3, "re-enabled stock buffs should restore genuine max-buffs")
+assertEqual(frame.attributes["max-debuffs"], 3, "re-enabled stock debuffs should restore genuine max-debuffs")
+assertEqual(frame.attributes["max-dispel-debuffs"], 2, "re-enabled stock dispels should restore genuine max-dispel-debuffs")
+assertEqual(frame.attributes["show-big-defensive"], true, "re-enabled stock buffs should restore genuine center defensive visibility")
+-- Retail has no dispel-overlay getter, so restoring must not invent a value;
+-- the attribute is simply left at whatever it was last written to.
+assertEqual(frame.attributes["show-dispel-indicator-overlay"], false, "retail restore must not write a made-up dispel overlay value")
 assertEqual(frame.attributes["update-settings"], false, "second notify should toggle update-settings again")
 
 print("tri048_retail_stock_aura_subchannels: PASS")
