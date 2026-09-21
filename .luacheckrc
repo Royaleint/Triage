@@ -105,6 +105,7 @@ read_globals = {
     "C_Timer",
 
     -- Raid frame globals
+    "CompactRaidGroupTypeEnum",
     "CompactRaidFrameContainer",
     "CompactRaidFrameContainer_ApplyToFrames",
     "CompactPartyFrame",

@@ -121,6 +121,10 @@ end
 --- Ensure Blizzard setting rewrites cannot restore stock auras over Triage indicators.
 ---@param frame table @The frame to hook
 function Triage:EnsureRetailStockAuraVisibilityHook(frame)
+	if not self:IsOwnableFrame(frame) then
+		return false
+	end
+
 	if not IsRetailPrivateAuraContainer(frame) then
 		return false
 	end
@@ -140,6 +144,10 @@ end
 ---@param frame table @The frame to set the visibility on
 function Triage:UpdateStockAuraVisibility(frame)
 	if frame.Triage_isTestFrame then
+		return
+	end
+
+	if not self:IsOwnableFrame(frame) then
 		return
 	end
 

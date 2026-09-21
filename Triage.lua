@@ -190,6 +190,9 @@ function Triage:OnEnable()
 	if rawget(_G, "CompactUnitFrame_SetUnit") then
 		-- Body of the hook, run against the frame's state at call time.
 		local function refreshFrameForUnit(frame)
+			if not self:IsOwnableFrame(frame) then
+				return
+			end
 			local unit = frame.displayedUnit or frame.unit
 			self:UpdateManagedFrameUnit(frame, unit, "blizzard")
 			self:InvalidateSecureAuraIndicators(frame)
@@ -264,6 +267,9 @@ function Triage:OnEnable()
 			end
 
 			self:SecureHook("CompactUnitFrame_SetUnit", function(frame)
+				if not self:IsOwnableFrame(frame) then
+					return
+				end
 				pendingFrames[frame] = true
 				if not flushScheduled then
 					flushScheduled = true

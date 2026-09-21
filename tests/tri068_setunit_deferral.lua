@@ -1,4 +1,8 @@
--- luacheck: globals arg debug dofile LibStub geterrorhandler C_Timer wipe
+-- luacheck: globals arg debug dofile LibStub geterrorhandler C_Timer wipe CompactRaidGroupTypeEnum
+
+-- A party/raid member frame carries this groupType on every verified client, so
+-- the ownership gate admits every frame this test drives regardless of client.
+CompactRaidGroupTypeEnum = { Party = "party", Raid = "raid", Arena = "arena" }
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
 
@@ -53,6 +57,7 @@ function LibStub()
 end
 
 dofile(repoRoot .. "Triage.lua")
+dofile(repoRoot .. "Utils/FrameRegistry.lua")
 
 -- Call log for the body calls the hook must not make synchronously.
 local calls = {}
@@ -69,6 +74,7 @@ end
 local hookCallback
 local function installHook(legacy)
 	addon.usesLegacyUnitAura = legacy
+	addon.isRetail = not legacy
 	hookCallback = nil
 	addon.ShouldContinue = function(frame, flag)
 		calls[#calls + 1] = { "ShouldContinue", frame, flag }
@@ -128,7 +134,12 @@ local function countCalls(name)
 end
 
 local function NewFrame(unit)
-	return { unit = unit, displayedUnit = unit, Triage_indicatorFrames = { "ind1" } }
+	return {
+		unit = unit,
+		displayedUnit = unit,
+		groupType = CompactRaidGroupTypeEnum.Party,
+		Triage_indicatorFrames = { "ind1" },
+	}
 end
 
 -- Row 1: Retail hook runs none of the body synchronously.
@@ -198,7 +209,7 @@ fireTimers()
 -- Row 4: nil unit at hook time, unit assigned before fire.
 resetState()
 installHook(false)
-frame = { Triage_indicatorFrames = {} }
+frame = { Triage_indicatorFrames = {}, groupType = CompactRaidGroupTypeEnum.Raid }
 hookCallback(frame, nil)
 frame.unit = "raid5"
 frame.displayedUnit = nil
