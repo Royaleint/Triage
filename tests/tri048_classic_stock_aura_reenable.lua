@@ -45,6 +45,9 @@ _G.Triage = {
 			showDispellableDebuffs = true,
 		},
 	},
+	-- Every Classic-family client, including the 1.15.9+/5.5.4+ clients this
+	-- fixture models, takes the legacy-aura branch; only Retail does not.
+	usesLegacyUnitAura = true,
 	ShouldContinue = function()
 		return true
 	end,

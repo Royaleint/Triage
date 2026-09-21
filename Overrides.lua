@@ -198,7 +198,19 @@ function Triage:EnsureRetailStockAuraVisibilityHook(frame)
 	if not frame.Triage_stockAuraVisibilityHooked then
 		frame.Triage_stockAuraVisibilityHooked = true
 		hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", function(hookedFrame)
-			self:ApplyRetailStockAuraVisibility(hookedFrame, nil)
+			-- Blizzard calls this from inside its own secure SetUnit and
+			-- settings-update code. Running the apply here writes secure
+			-- attributes on Blizzard's own stack, so on Retail this only
+			-- marks the frame for the shared deferred flush and returns.
+			-- Classic-family clients never get that flush set up, so they
+			-- keep applying right here, same as before.
+			if self.usesLegacyUnitAura then
+				self:ApplyRetailStockAuraVisibility(hookedFrame, nil)
+				return
+			end
+			if self.MarkFramePendingStockAura then
+				self:MarkFramePendingStockAura(hookedFrame)
+			end
 		end)
 	end
 

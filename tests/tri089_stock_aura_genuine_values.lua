@@ -1,6 +1,7 @@
 -- luacheck: globals arg LibStub InCombatLockdown dofile issecretvalue rawset
 -- luacheck: globals CompactUnitFrame_GetOptionShowBigDefensive CompactUnitFrame_GetOptionShowDispelIndicatorOverlay
 -- luacheck: globals CompactUnitFrame_GetOptionDisplayBuffs CompactUnitFrame_GetOptionDisplayDebuffs CompactUnitFrame_GetOptionDisplayDispelDebuffs
+-- luacheck: globals hooksecurefunc geterrorhandler C_Timer wipe CompactRaidGroupTypeEnum
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
 
@@ -274,6 +275,194 @@ do
 	assertEqual(applied, false, "a de-owned frame is rejected before any write")
 	assertEqual(#deOwnedFrame.calls, 0, "a de-owned frame receives no attribute writes")
 	ownable = true
+end
+
+-------------------------------------------------------------------------
+-- Mark-only settings hook and cross-set dedupe (Retail only). This section
+-- builds its own addon instance through Triage.lua's real OnEnable, the way
+-- tests/tri088_blizzard_stack_deferral.lua does, since the deferred flush
+-- and its pending sets live there rather than in Overrides.lua.
+-------------------------------------------------------------------------
+do
+	local timerQueue = {}
+	C_Timer = {
+		After = function(_, callback)
+			timerQueue[#timerQueue + 1] = callback
+		end,
+	}
+
+	local function fireTimers()
+		local queue = timerQueue
+		timerQueue = {}
+		for _, callback in ipairs(queue) do
+			callback()
+		end
+	end
+
+	function wipe(t)
+		for k in pairs(t) do
+			t[k] = nil
+		end
+		return t
+	end
+
+	function geterrorhandler()
+		return function() end
+	end
+
+	CompactRaidGroupTypeEnum = { Party = "party", Raid = "raid", Arena = "arena" }
+	rawset(_G, "CompactUnitFrame_SetUnit", function() end)
+
+	local addon = {}
+	function LibStub(name)
+		if name == "LibRangeCheck-3.0" then
+			return { GetFriendMinChecker = function() return nil end }
+		end
+		return {
+			NewAddon = function() return addon end,
+			GetLocale = function() return {} end,
+		}
+	end
+
+	function hooksecurefunc(owner, name, callback)
+		local original = owner[name]
+		owner[name] = function(...)
+			if original then
+				original(...)
+			end
+			callback(...)
+		end
+	end
+
+	dofile(repoRoot .. "Triage.lua")
+	dofile(repoRoot .. "Utils/FrameRegistry.lua")
+	dofile(repoRoot .. "Overrides.lua")
+
+	addon.db = {
+		profile = {
+			showBuffs = false,
+			showDebuffs = true,
+			showDispellableDebuffs = true,
+			rangeAlpha = 0.3,
+			customRangeCheck = false,
+		},
+	}
+	addon.usesLegacyUnitAura = false
+	addon.isRetail = true
+	addon.supportsDispelOverlay = false
+	addon.RegisterChatCommand = function() end
+	addon.RefreshManagedFrameRegistry = function() end
+	addon.RefreshConfig = function() end
+	addon.UpdateAllAuras = function() end
+	addon.RegisterBucketEvent = function() end
+	addon.RegisterEvent = function() end
+	addon.InvalidateSecureAuraIndicators = function() end
+	addon.ClearIndicator = function() end
+	addon.UpdateUnitAuras = function() end
+	addon.UpdateUnitAuras_Classic = function() end
+	addon.UpdateTargetMarker = function() end
+	addon.UpdateDispelOverlay = function() end
+
+	local hooks = {}
+	addon.SecureHook = function(_, name, callback)
+		hooks[name] = callback
+	end
+	addon:OnEnable()
+	assertTrue(hooks["CompactUnitFrame_SetUnit"], "the SetUnit hook installs")
+
+	-- A real attribute-container frame; SetAttribute/GetAttribute record every
+	-- call the way the recorder frames in tests/tri088_blizzard_stack_deferral.lua do.
+	local function NewMarkFrame(unit)
+		local calls = {}
+		local frame = {
+			unit = unit,
+			displayedUnit = unit,
+			groupType = CompactRaidGroupTypeEnum.Party,
+			maxBuffs = 5,
+			maxDebuffs = 5,
+			maxDispelDebuffs = 3,
+			optionTable = {},
+			IsForbidden = function() return false end,
+			IsShown = function() return true end,
+			SetPrivateAuraAnchorSettings = function() end,
+		}
+		frame.SetAttribute = function(_, key, value)
+			calls[#calls + 1] = { "SetAttribute", key, value }
+		end
+		frame.GetAttribute = function(_, key)
+			calls[#calls + 1] = { "GetAttribute", key }
+			return nil
+		end
+		return frame, calls
+	end
+
+	local function countCalls(calls, name, key)
+		local n = 0
+		for _, entry in ipairs(calls) do
+			if entry[1] == name and (key == nil or entry[2] == key) then
+				n = n + 1
+			end
+		end
+		return n
+	end
+
+	local function resetCalls(calls)
+		for i = #calls, 1, -1 do
+			calls[i] = nil
+		end
+	end
+
+	-- Driving the settings hook records no call before the timer fires; the
+	-- deferred apply runs once the timer does.
+	do
+		local frame, calls = NewMarkFrame("party1")
+		addon:RegisterManagedFrame(frame, "party1", "blizzard")
+		addon:UpdateStockAuraVisibility(frame) -- installs the hook; not the row under test
+		resetCalls(calls)
+
+		frame:SetPrivateAuraAnchorSettings()
+		assertEqual(#calls, 0, "the settings hook records no call before the timer fires")
+
+		fireTimers()
+		assertTrue(countCalls(calls, "SetAttribute") > 0, "the deferred apply writes the suppressed attributes once the timer fires")
+		assertEqual(countCalls(calls, "GetAttribute"), 0, "the deferred apply never reads a Triage-written attribute back")
+	end
+
+	-- A settings hook and the SetUnit hook firing on the same frame in one
+	-- tick still produce exactly one apply and at most one update-settings write.
+	do
+		local frame, calls = NewMarkFrame("party2")
+		addon:RegisterManagedFrame(frame, "party2", "blizzard")
+		addon:UpdateStockAuraVisibility(frame)
+		resetCalls(calls)
+
+		hooks["CompactUnitFrame_SetUnit"](frame, "party2")
+		frame:SetPrivateAuraAnchorSettings()
+		assertEqual(#calls, 0, "neither hook records a call before the timer fires")
+
+		fireTimers()
+		assertEqual(countCalls(calls, "SetAttribute", "update-settings"), 1,
+			"one unit assignment marking both sets yields at most one update-settings write per frame per tick")
+	end
+
+	-- If the deferred flush was never set up, the settings hook on Retail
+	-- must stay inert rather than fall back to a synchronous apply.
+	do
+		local frame, calls = NewMarkFrame("party3")
+		addon:RegisterManagedFrame(frame, "party3", "blizzard")
+		addon:UpdateStockAuraVisibility(frame)
+		resetCalls(calls)
+
+		local savedMark = addon.MarkFramePendingStockAura
+		addon.MarkFramePendingStockAura = nil
+
+		frame:SetPrivateAuraAnchorSettings()
+		assertEqual(#calls, 0, "the settings hook makes no recorded call when the deferred flush isn't set up")
+		fireTimers()
+		assertEqual(#calls, 0, "the settings hook still makes no recorded call after any pending timers fire")
+
+		addon.MarkFramePendingStockAura = savedMark
+	end
 end
 
 print("tri089_stock_aura_genuine_values: PASS")
