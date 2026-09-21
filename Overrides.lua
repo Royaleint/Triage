@@ -10,19 +10,77 @@ local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+-- Each entry names either a frame field (always present on both client
+-- families) or a Blizzard getter global (present on some clients only --
+-- CompactUnitFrame_GetOptionShowDispelIndicatorOverlay does not exist on
+-- Retail 12.1) that holds Blizzard's own genuine value for the attribute.
+-- negate marks the three keys Blizzard itself stores inverted from the
+-- option that drives them.
 local STOCK_AURA_ATTRIBUTES = {
-	{ option = "showBuffs", attribute = "ignore-buffs" },
-	{ option = "showDebuffs", attribute = "ignore-debuffs" },
-	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs" },
+	{ option = "showBuffs", attribute = "ignore-buffs", hiddenValue = true,
+		getterName = "CompactUnitFrame_GetOptionDisplayBuffs", negate = true },
+	{ option = "showDebuffs", attribute = "ignore-debuffs", hiddenValue = true,
+		getterName = "CompactUnitFrame_GetOptionDisplayDebuffs", negate = true },
+	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs", hiddenValue = true,
+		getterName = "CompactUnitFrame_GetOptionDisplayDispelDebuffs", negate = true },
+	{ option = "showBuffs", attribute = "max-buffs", hiddenValue = 0, frameField = "maxBuffs" },
+	{ option = "showDebuffs", attribute = "max-debuffs", hiddenValue = 0, frameField = "maxDebuffs" },
+	{ option = "showDispellableDebuffs", attribute = "max-dispel-debuffs", hiddenValue = 0, frameField = "maxDispelDebuffs" },
+	{ option = "showBuffs", attribute = "show-big-defensive", hiddenValue = false,
+		getterName = "CompactUnitFrame_GetOptionShowBigDefensive" },
+	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false,
+		getterName = "CompactUnitFrame_GetOptionShowDispelIndicatorOverlay" },
 }
 
-local STOCK_AURA_SUBCHANNEL_ATTRIBUTES = {
-	{ option = "showBuffs", attribute = "max-buffs", hiddenValue = 0 },
-	{ option = "showDebuffs", attribute = "max-debuffs", hiddenValue = 0 },
-	{ option = "showDispellableDebuffs", attribute = "max-dispel-debuffs", hiddenValue = 0 },
-	{ option = "showBuffs", attribute = "show-big-defensive", hiddenValue = false },
-	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false },
-}
+-- Whether this client has the attribute's genuine source at all. A frame
+-- field is always present; a getter is only present when the client's own
+-- CompactUnitFrame.lua defines it. This gates both directions: an attribute
+-- with no source on this client is never suppressed and never restored,
+-- because there is nothing Blizzard-owned to fall back to either way.
+local function AttributeSourceExists(mapping)
+	if mapping.frameField then
+		return true
+	end
+	return type(rawget(_G, mapping.getterName)) == "function"
+end
+
+-- Blizzard's own genuine value for one attribute, read fresh from a
+-- Blizzard-owned source every time -- a frame field or a Blizzard getter --
+-- and never from anything Triage itself wrote. available is false only when
+-- the source could not be read right now (no optionTable yet, or a secret
+-- value); a getter that legitimately returns nil or false is still a real
+-- reading, so value and availability are returned separately rather than
+-- folded into one nil-means-either result.
+local function GenuineAttributeValue(frame, mapping)
+	if mapping.frameField then
+		local value = frame[mapping.frameField]
+		if issecretvalue and issecretvalue(value) then
+			return nil, false
+		end
+		return value, true
+	end
+
+	-- Every one of these getters indexes frame.optionTable unguarded.
+	if type(frame.optionTable) ~= "table" then
+		return nil, false
+	end
+
+	local getter = rawget(_G, mapping.getterName)
+	if type(getter) ~= "function" then
+		return nil, false
+	end
+
+	local value = getter(frame)
+	if issecretvalue and issecretvalue(value) then
+		return nil, false
+	end
+
+	if mapping.negate then
+		value = not value
+	end
+
+	return value, true
+end
 
 local function GetFriendRangeChecker(range)
 	return LibRangeCheck:GetFriendMinChecker(range, InCombatLockdown() == true)
@@ -52,15 +110,6 @@ local function IsRetailPrivateAuraContainer(frame)
 			and type(frame.GetAttribute) == "function"
 end
 
-local function CaptureRetailStockAuraBaseAttributes(frame)
-	local baseAttributes = frame.Triage_stockAuraBaseAttributes or {}
-	frame.Triage_stockAuraBaseAttributes = baseAttributes
-
-	for _, mapping in ipairs(STOCK_AURA_SUBCHANNEL_ATTRIBUTES) do
-		baseAttributes[mapping.attribute] = frame:GetAttribute(mapping.attribute)
-	end
-end
-
 --- Set the visibility on the stock buff/debuff frames
 function Triage:UpdateAllStockAuraVisibility()
 	self:ForEachManagedFrame(function(frame)
@@ -81,8 +130,7 @@ end
 --- Apply stock aura visibility via Blizzard_PrivateAurasUI attributes (Retail 12.0.5+, Classic Era 1.15.9+, Mists Classic 5.5.4+).
 ---@param frame table @The frame to update
 ---@param notifyPrivateAuraUI boolean|nil @Whether to signal Blizzard_PrivateAurasUI to reread settings
----@param refreshBaseAttributes boolean|nil @Whether Blizzard just rewrote the base PrivateAurasUI attributes
-function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI, refreshBaseAttributes)
+function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
 	-- The per-frame settings hook below cannot be removed once installed, so this
 	-- is the one place that has to re-test ownership itself rather than trust
 	-- whatever admitted the frame earlier: a de-owned frame's hook still fires.
@@ -99,22 +147,43 @@ function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI, refre
 		return true
 	end
 
-	if refreshBaseAttributes or not frame.Triage_stockAuraVisibilityApplied then
-		CaptureRetailStockAuraBaseAttributes(frame)
+	-- Triage_stockAuraVisibilityApplied means "this frame currently carries
+	-- Triage-suppressed values", not "has been touched once". With every
+	-- switch on and nothing suppressed, Blizzard's own settings already
+	-- stand, so there is nothing to write and nothing to announce.
+	local suppressing = not (self.db.profile.showBuffs and self.db.profile.showDebuffs
+			and self.db.profile.showDispellableDebuffs)
+	if not suppressing and not frame.Triage_stockAuraVisibilityApplied then
+		return true
 	end
-	frame.Triage_stockAuraVisibilityApplied = true
+
+	-- Restoring can land on a source that isn't readable this instant (no
+	-- optionTable yet, a secret value). When that happens the flag stays set
+	-- so the next apply tries that attribute again instead of the frame
+	-- getting stuck showing Blizzard's stock icons forever.
+	local everyRestoredSourceRead = true
 
 	for _, mapping in ipairs(STOCK_AURA_ATTRIBUTES) do
-		frame:SetAttribute(mapping.attribute, not self.db.profile[mapping.option])
+		if AttributeSourceExists(mapping) then
+			if self.db.profile[mapping.option] then
+				-- Turning a switch back on hands the attribute back to whatever
+				-- Blizzard's own setting says, not to a value Triage remembered.
+				local genuine, available = GenuineAttributeValue(frame, mapping)
+				if available then
+					frame:SetAttribute(mapping.attribute, genuine)
+				else
+					everyRestoredSourceRead = false
+				end
+			else
+				frame:SetAttribute(mapping.attribute, mapping.hiddenValue)
+			end
+		end
 	end
 
-	local baseAttributes = frame.Triage_stockAuraBaseAttributes
-	for _, mapping in ipairs(STOCK_AURA_SUBCHANNEL_ATTRIBUTES) do
-		if self.db.profile[mapping.option] then
-			frame:SetAttribute(mapping.attribute, baseAttributes[mapping.attribute])
-		else
-			frame:SetAttribute(mapping.attribute, mapping.hiddenValue)
-		end
+	if suppressing then
+		frame.Triage_stockAuraVisibilityApplied = true
+	elseif everyRestoredSourceRead then
+		frame.Triage_stockAuraVisibilityApplied = nil
 	end
 
 	if notifyPrivateAuraUI then
@@ -139,7 +208,22 @@ function Triage:EnsureRetailStockAuraVisibilityHook(frame)
 	if not frame.Triage_stockAuraVisibilityHooked then
 		frame.Triage_stockAuraVisibilityHooked = true
 		hooksecurefunc(frame, "SetPrivateAuraAnchorSettings", function(hookedFrame)
-			self:ApplyRetailStockAuraVisibility(hookedFrame, nil, true)
+			-- Blizzard calls this from inside its own secure SetUnit and
+			-- settings-update code. Running the apply here writes secure
+			-- attributes on Blizzard's own stack, so on Retail this only
+			-- marks the frame for the shared deferred flush and returns.
+			-- Classic-family clients never get that flush set up, so they
+			-- keep applying right here, same as before.
+			if self.usesLegacyUnitAura then
+				self:ApplyRetailStockAuraVisibility(hookedFrame, nil)
+				return
+			end
+			if not self:IsOwnableFrame(hookedFrame) then
+				return
+			end
+			if self.MarkFramePendingStockAura then
+				self:MarkFramePendingStockAura(hookedFrame)
+			end
 		end)
 	end
 

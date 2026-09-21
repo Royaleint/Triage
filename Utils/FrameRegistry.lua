@@ -205,14 +205,16 @@ function Triage:ClearManagedFrameState(frame)
 	frame.Triage_activeTooltipIndicator = nil
 	frame.Triage_unitAuras = nil
 
-	-- Stock-aura attributes already written to the frame are left alone: restoring
-	-- Blizzard's captured values is itself a write on a frame we just decided we
-	-- don't own. Only Triage's own bookkeeping is cleared, so the hook goes inert.
-	-- Triage_stockAuraVisibilityHooked is NOT cleared here: hooksecurefunc cannot be
-	-- undone, so if this frame is re-adopted later the hook is already installed and
-	-- installing it again would run the settings body twice on every future call.
-	frame.Triage_stockAuraVisibilityApplied = nil
-	frame.Triage_stockAuraBaseAttributes = nil
+	-- Stock-aura attributes already written to the frame are left alone: writing
+	-- to a frame we just decided we don't own would be its own violation. That
+	-- also means Triage_stockAuraVisibilityApplied is NOT cleared here -- the
+	-- frame's content hasn't changed, so if it still carries suppressed values
+	-- the flag has to say so, or a later apply will believe those values are
+	-- already genuine and never restore them.
+	-- Triage_stockAuraVisibilityHooked is NOT cleared here either: hooksecurefunc
+	-- cannot be undone, so if this frame is re-adopted later the hook is already
+	-- installed and installing it again would run the settings body twice on
+	-- every future call.
 	frame.Triage_privateAuraSettingsVersion = nil
 end
 

@@ -251,8 +251,10 @@ function Triage:OnEnable()
 			-- reassigned. The unit is re-read at fire time because the hook's argument is
 			-- nil on clear and hooks arrive in bursts.
 			local pendingFrames = setmetatable({}, { __mode = "k" })
+			local pendingStockAuraFrames = setmetatable({}, { __mode = "k" })
 			local pendingRangeFrames = setmetatable({}, { __mode = "k" })
 			local flushBatch = {}
+			local stockAuraFlushBatch = {}
 			local rangeFlushBatch = {}
 			local flushScheduled = false
 
@@ -260,9 +262,18 @@ function Triage:OnEnable()
 			-- TRI-068, so this runs outside Blizzard's SetUnit stack like the rest of the
 			-- flush body. Folded into the same pcall as refreshFrameForUnit so a throw here
 			-- costs only this frame, not the rest of the batch.
+			-- UpdateStockAuraVisibility already applies the frame's stock aura settings
+			-- here, so drop it from the stock-aura pending set too -- otherwise a frame
+			-- reassigned in the same tick its settings hook also fired would get a
+			-- second apply and a second update-settings write from the batch below.
 			local function refreshRetailFrame(frame)
 				refreshFrameForUnit(frame)
 				self:UpdateDispelOverlay(frame)
+				pendingStockAuraFrames[frame] = nil
+			end
+
+			local function refreshRetailFrameStockAura(frame)
+				self:ApplyRetailStockAuraVisibility(frame, true)
 			end
 
 			local function refreshRetailFrameRange(frame)
@@ -294,6 +305,7 @@ function Triage:OnEnable()
 			local function flushPendingFrames()
 				flushScheduled = false
 				runDeferredBatch(pendingFrames, flushBatch, refreshRetailFrame)
+				runDeferredBatch(pendingStockAuraFrames, stockAuraFlushBatch, refreshRetailFrameStockAura)
 				runDeferredBatch(pendingRangeFrames, rangeFlushBatch, refreshRetailFrameRange)
 			end
 
@@ -317,6 +329,12 @@ function Triage:OnEnable()
 			-- reaches this exact flush purely through a runtime field lookup on self.
 			self.MarkFramePendingRange = function(_, frame)
 				pendingRangeFrames[frame] = true
+				scheduleDeferredFlush()
+			end
+
+			-- Same shape, for the stock-aura settings hook in Overrides.lua.
+			self.MarkFramePendingStockAura = function(_, frame)
+				pendingStockAuraFrames[frame] = true
 				scheduleDeferredFlush()
 			end
 		end

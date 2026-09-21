@@ -196,10 +196,16 @@ end
 
 -- A frame adopted while ownable, then de-owned (groupType cleared), is rejected
 -- on its next touch and the fix's own bookkeeping is torn down -- except the
--- installed-hook flag, which hooksecurefunc can never undo. Re-adopting the
--- same frame later must not install that hook a second time.
+-- installed-hook flag, which hooksecurefunc can never undo, and the applied
+-- flag, since the suppressed attributes are still sitting on the frame and
+-- de-owning it does not touch them. Re-adopting the same frame later must
+-- not install that hook a second time.
 do
-	local attributes = {}
+	-- At least one switch must be off here -- with every switch on, applying
+	-- to a never-suppressed frame is a no-op and never sets the applied flag.
+	addon.db.profile.showBuffs = false
+
+	local calls = {}
 	local frame = {
 		unit = "party3",
 		displayedUnit = "party3",
@@ -208,10 +214,11 @@ do
 		IsShown = function() return true end,
 		SetPrivateAuraAnchorSettings = function() end,
 		SetAttribute = function(_, key, value)
-			attributes[key] = value
+			calls[#calls + 1] = { "SetAttribute", key, value }
 		end,
 		GetAttribute = function(_, key)
-			return attributes[key]
+			calls[#calls + 1] = { "GetAttribute", key }
+			return nil
 		end,
 	}
 
@@ -226,15 +233,12 @@ do
 	assertEqual(addon:RegisterManagedFrame(frame, "party3", "blizzard"), nil,
 		"re-registering a de-owned frame is rejected")
 	assertEqual(addon:GetManagedFrameEntry(frame), nil, "the registry drops a de-owned frame on its next touch")
-	assertEqual(frame.Triage_stockAuraVisibilityApplied, nil, "teardown clears the applied flag")
-	assertEqual(frame.Triage_stockAuraBaseAttributes, nil, "teardown clears the captured base attributes")
+	assertTrue(frame.Triage_stockAuraVisibilityApplied,
+		"the applied flag survives teardown -- the frame still carries the suppressed values")
 	assertEqual(frame.Triage_privateAuraSettingsVersion, nil, "teardown clears the settings version toggle")
 	assertTrue(frame.Triage_stockAuraVisibilityHooked, "the hooked flag survives teardown -- the hook itself can't be removed")
 
-	local attributeWritesBefore = 0
-	for _ in pairs(attributes) do
-		attributeWritesBefore = attributeWritesBefore + 1
-	end
+	local callsBefore = #calls
 
 	assertTrue(not Triage.ShouldContinue(frame, true), "ShouldContinue rejects the de-owned frame")
 	addon:UpdateStockAuraVisibility(frame)
@@ -243,29 +247,25 @@ do
 	assertEqual(timersScheduled, 0, "the SetUnit hook does not re-adopt a de-owned frame")
 	fireTimers()
 
-	local attributeWritesAfter = 0
-	for _ in pairs(attributes) do
-		attributeWritesAfter = attributeWritesAfter + 1
-	end
-	assertEqual(attributeWritesAfter, attributeWritesBefore, "no hook body writes to a de-owned frame")
+	assertEqual(#calls, callsBefore, "no hook body writes to a de-owned frame")
 
 	-- The settings hook itself can't be removed (Triage_stockAuraVisibilityHooked
 	-- above stays true), so drive it directly the way Blizzard would -- calling
 	-- the frame's own SetPrivateAuraAnchorSettings, which the hooksecurefunc stub
-	-- already wraps in place -- and confirm it writes nothing while de-owned.
+	-- already wraps in place -- and fire any timer it could have scheduled before
+	-- asserting, so this proves rejection rather than a write that just hasn't
+	-- happened yet.
 	local deOwnedSnapshot = {}
 	for k, v in pairs(frame) do
 		deOwnedSnapshot[k] = v
 	end
 
+	timersScheduled = 0
 	frame:SetPrivateAuraAnchorSettings()
+	assertEqual(timersScheduled, 0, "the settings hook does not mark a de-owned frame for the deferred flush")
+	fireTimers()
 
-	local attributeWritesAfterHookDrive = 0
-	for _ in pairs(attributes) do
-		attributeWritesAfterHookDrive = attributeWritesAfterHookDrive + 1
-	end
-	assertEqual(attributeWritesAfterHookDrive, attributeWritesAfter,
-		"driving the settings hook directly writes no attributes to a de-owned frame")
+	assertEqual(#calls, callsBefore, "driving the settings hook directly writes no attributes to a de-owned frame")
 
 	local deOwnedFieldCount = 0
 	for k, v in pairs(frame) do
@@ -285,6 +285,8 @@ do
 	addon:UpdateStockAuraVisibility(frame)
 	assertTrue(frame.Triage_stockAuraVisibilityApplied, "stock aura visibility re-applies once re-owned")
 	assertEqual(hooksecurefuncCounts[frame], 1, "re-adopting the frame does not install the settings hook a second time")
+
+	addon.db.profile.showBuffs = true
 end
 
 -- With CompactRaidGroupTypeEnum absent, Retail fails closed and every
