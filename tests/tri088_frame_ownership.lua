@@ -62,7 +62,9 @@ function InCombatLockdown()
 	return false
 end
 
+local hooksecurefuncCounts = setmetatable({}, { __mode = "k" })
 function hooksecurefunc(owner, name, callback)
+	hooksecurefuncCounts[owner] = (hooksecurefuncCounts[owner] or 0) + 1
 	local original = owner[name]
 	owner[name] = function(...)
 		if original then
@@ -92,7 +94,7 @@ addon.db = {
 	},
 }
 
--- Row 1: party and raid groupTypes are ownable; arena is excluded on purpose.
+-- Party and raid groupTypes are ownable; arena is excluded on purpose.
 do
 	local partyFrame = { groupType = CompactRaidGroupTypeEnum.Party }
 	local raidFrame = { groupType = CompactRaidGroupTypeEnum.Raid }
@@ -122,7 +124,7 @@ end
 addon:OnEnable()
 assertTrue(hookCallback, "the SetUnit hook installs")
 
--- Row 2: a nameplate-shaped frame is rejected by ShouldContinue, by
+-- A nameplate-shaped frame is rejected by ShouldContinue, by
 -- RegisterManagedFrame, and by the SetUnit hook, and admission never writes to it.
 do
 	local nameplateFrame = {
@@ -159,7 +161,7 @@ do
 	assertEqual(fieldCount, snapshotCount, "admission added a field to the frame")
 end
 
--- Row 3: a forbidden frame rejects every field access except IsForbidden itself;
+-- A forbidden frame rejects every field access except IsForbidden itself;
 -- the ownership test must not touch anything else, proving the check runs first.
 do
 	local forbiddenFrame = setmetatable({}, {
@@ -179,21 +181,23 @@ do
 	assertTrue(not result, "a forbidden frame is rejected")
 end
 
--- Row 4: a token-shaped frame missing groupType is rejected -- the unit token
+-- A token-shaped frame missing groupType is rejected -- the unit token
 -- no longer admits by itself once the enum is present.
 do
 	local frame = { unit = "party1", displayedUnit = "party1", IsForbidden = function() return false end }
 	assertTrue(not addon:IsOwnableFrame(frame), "a token-shaped frame with no groupType is not ownable")
 end
 
--- Row 5: a Triage-created test-mode frame is admitted without a groupType.
+-- A Triage-created test-mode frame is admitted without a groupType.
 do
 	local frame = { Triage_isTestFrame = true }
 	assertTrue(addon:IsOwnableFrame(frame), "a test-mode frame is ownable without a groupType")
 end
 
--- Row 6: a frame adopted while ownable, then de-owned (groupType cleared), is
--- rejected on its next touch and every field the fix added is torn down.
+-- A frame adopted while ownable, then de-owned (groupType cleared), is rejected
+-- on its next touch and the fix's own bookkeeping is torn down -- except the
+-- installed-hook flag, which hooksecurefunc can never undo. Re-adopting the
+-- same frame later must not install that hook a second time.
 do
 	local attributes = {}
 	local frame = {
@@ -215,6 +219,7 @@ do
 	addon:UpdateStockAuraVisibility(frame)
 	assertTrue(frame.Triage_stockAuraVisibilityHooked, "the settings hook installs while ownable")
 	assertTrue(frame.Triage_stockAuraVisibilityApplied, "stock aura visibility applies while ownable")
+	assertEqual(hooksecurefuncCounts[frame], 1, "the settings hook installs exactly once")
 
 	frame.groupType = nil -- adopted earlier this session; now de-owned
 
@@ -224,7 +229,7 @@ do
 	assertEqual(frame.Triage_stockAuraVisibilityApplied, nil, "teardown clears the applied flag")
 	assertEqual(frame.Triage_stockAuraBaseAttributes, nil, "teardown clears the captured base attributes")
 	assertEqual(frame.Triage_privateAuraSettingsVersion, nil, "teardown clears the settings version toggle")
-	assertEqual(frame.Triage_stockAuraVisibilityHooked, nil, "teardown clears the hooked flag")
+	assertTrue(frame.Triage_stockAuraVisibilityHooked, "the hooked flag survives teardown -- the hook itself can't be removed")
 
 	local attributeWritesBefore = 0
 	for _ in pairs(attributes) do
@@ -243,9 +248,17 @@ do
 		attributeWritesAfter = attributeWritesAfter + 1
 	end
 	assertEqual(attributeWritesAfter, attributeWritesBefore, "no hook body writes to a de-owned frame")
+
+	-- Re-adopt: the frame becomes ownable again (e.g. Blizzard reuses it for a
+	-- real party member later). The settings hook must not install a second time.
+	frame.groupType = CompactRaidGroupTypeEnum.Party
+	assertTrue(addon:RegisterManagedFrame(frame, "party3", "blizzard"), "the frame registers again once re-owned")
+	addon:UpdateStockAuraVisibility(frame)
+	assertTrue(frame.Triage_stockAuraVisibilityApplied, "stock aura visibility re-applies once re-owned")
+	assertEqual(hooksecurefuncCounts[frame], 1, "re-adopting the frame does not install the settings hook a second time")
 end
 
--- Row 7: with CompactRaidGroupTypeEnum absent, Retail fails closed and every
+-- With CompactRaidGroupTypeEnum absent, Retail fails closed and every
 -- other client falls back to today's unit-token gate.
 do
 	CompactRaidGroupTypeEnum = nil

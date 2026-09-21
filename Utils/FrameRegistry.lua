@@ -125,9 +125,6 @@ function Triage:IsSupportedUnitToken(unit, allowedUnitPrefixes)
 	if allowedUnitPrefixes.raidpet and unit:match("^raidpet%d+$") then
 		return true
 	end
-	if allowedUnitPrefixes.boss and unit:match("^boss%d+$") then
-		return true
-	end
 
 	return false
 end
@@ -211,10 +208,12 @@ function Triage:ClearManagedFrameState(frame)
 	-- Stock-aura attributes already written to the frame are left alone: restoring
 	-- Blizzard's captured values is itself a write on a frame we just decided we
 	-- don't own. Only Triage's own bookkeeping is cleared, so the hook goes inert.
+	-- Triage_stockAuraVisibilityHooked is NOT cleared here: hooksecurefunc cannot be
+	-- undone, so if this frame is re-adopted later the hook is already installed and
+	-- installing it again would run the settings body twice on every future call.
 	frame.Triage_stockAuraVisibilityApplied = nil
 	frame.Triage_stockAuraBaseAttributes = nil
 	frame.Triage_privateAuraSettingsVersion = nil
-	frame.Triage_stockAuraVisibilityHooked = nil
 end
 
 --- Register a frame in the central managed frame registry.

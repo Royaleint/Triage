@@ -135,7 +135,8 @@ local function resetState()
 	reportedErrors = {}
 end
 
--- A frame that records every method the plan calls out as Blizzard-stack-sensitive.
+-- A frame that records every method a hook running on Blizzard's stack could call:
+-- SetAlpha, the private-aura attribute writes, and the child frame/visibility calls.
 local function NewRecorderFrame(unit)
 	local calls = {}
 	local frame = {
@@ -181,8 +182,8 @@ local function countCalls(calls, name)
 	return n
 end
 
--- Row 8 (range hook and SetUnit hook halves; the settings-hook half is added in
--- tests/tri088_frame_ownership.lua's companion once that hook exists).
+-- Neither the range hook nor the SetUnit hook makes a recorded call before its
+-- timer fires; the range flush applies alpha exactly once once it does.
 resetState()
 addon.db.profile.customRangeCheck = true
 friendChecker = function() return true end
@@ -199,7 +200,7 @@ do
 	assertEqual(countCalls(calls, "SetAlpha"), 1, "the range flush applies alpha exactly once after the timer fires")
 end
 
--- Row 9: a range hook, the center-status-icon hook, and the SetUnit hook on the
+-- A range hook, the center-status-icon hook, and the SetUnit hook on the
 -- same frame in one tick schedule exactly one timer and run one flush pass.
 resetState()
 do
@@ -214,7 +215,7 @@ do
 	assertEqual(timersScheduled, 1, "the flush schedules no further timer once nothing else fires")
 end
 
--- Row 11: Custom Range off on Retail performs no SetAlpha; Custom Range on
+-- Custom Range off on Retail performs no SetAlpha; Custom Range on
 -- performs exactly one SetAlpha per frame per flush.
 resetState()
 addon.db.profile.customRangeCheck = false
@@ -233,6 +234,26 @@ do
 	hooks["CompactUnitFrame_UpdateInRange"](frame)
 	fireTimers()
 	assertEqual(countCalls(calls, "SetAlpha"), 1, "Custom Range on performs exactly one SetAlpha per frame per flush")
+end
+
+-- If the deferred flush was never set up (MarkFramePendingRange missing), the
+-- range hook on Retail must stay inert rather than fall back to running its
+-- body on Blizzard's stack -- checked both immediately and after any timer.
+resetState()
+addon.db.profile.customRangeCheck = true
+friendChecker = function() return true end
+do
+	local savedMarkFramePendingRange = addon.MarkFramePendingRange
+	addon.MarkFramePendingRange = nil
+
+	local frame, calls = NewRecorderFrame("party1")
+	hooks["CompactUnitFrame_UpdateInRange"](frame)
+	assertEqual(#calls, 0, "the range hook makes no recorded call when the deferred flush isn't set up")
+
+	fireTimers()
+	assertEqual(#calls, 0, "the range hook still makes no recorded call after any pending timers fire")
+
+	addon.MarkFramePendingRange = savedMarkFramePendingRange
 end
 
 print("tri088_blizzard_stack_deferral: PASS")

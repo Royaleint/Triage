@@ -181,10 +181,12 @@ function Triage:OnEnable()
 		if not self:IsOwnableFrame(frame) then
 			return
 		end
+		-- No fallback to a synchronous UpdateInRange here: that would run the body
+		-- inside Blizzard's call stack, the exact thing this hook exists to avoid.
+		-- If the flush was never set up, the 0.2s Custom Range ticker still refreshes
+		-- alpha; a frame just stays stale for up to that long instead.
 		if self.MarkFramePendingRange then
 			self:MarkFramePendingRange(frame)
-		else
-			self:UpdateInRange(frame)
 		end
 	end
 
@@ -263,6 +265,10 @@ function Triage:OnEnable()
 				self:UpdateDispelOverlay(frame)
 			end
 
+			local function refreshRetailFrameRange(frame)
+				self:UpdateInRange(frame)
+			end
+
 			-- Drains one pending set into its scratch batch and runs body on each frame,
 			-- each call wrapped so one frame's error can't strand the rest of the batch.
 			local function runDeferredBatch(pendingSet, batch, body)
@@ -288,9 +294,7 @@ function Triage:OnEnable()
 			local function flushPendingFrames()
 				flushScheduled = false
 				runDeferredBatch(pendingFrames, flushBatch, refreshRetailFrame)
-				runDeferredBatch(pendingRangeFrames, rangeFlushBatch, function(frame)
-					self:UpdateInRange(frame)
-				end)
+				runDeferredBatch(pendingRangeFrames, rangeFlushBatch, refreshRetailFrameRange)
 			end
 
 			local function scheduleDeferredFlush()
