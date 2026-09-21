@@ -33,6 +33,8 @@ local hooks = setmetatable({}, { __mode = "k" })
 
 -- Classic-family client: 1.15.9+ / 5.5.4+ frames carry the attribute-based
 -- private-aura container; older Classic-family frames fall to the legacy path.
+-- Ownership admission is exercised in tests/tri088_frame_ownership.lua, not here,
+-- so this frame is a party/raid member frame as far as this test is concerned.
 _G.Triage = {
 	db = {
 		profile = {
@@ -42,6 +44,9 @@ _G.Triage = {
 		},
 	},
 	ShouldContinue = function()
+		return true
+	end,
+	IsOwnableFrame = function()
 		return true
 	end,
 	IsHooked = function(_, frame, scriptName)
