@@ -33,7 +33,7 @@ end
 
 local secretMarker
 function issecretvalue(value)
-	return value == secretMarker
+	return secretMarker ~= nil and value == secretMarker
 end
 
 local ownable = true
@@ -152,13 +152,14 @@ do
 	assertEqual(countMatchingCalls(frame.calls, "GetAttribute"), 0, "restoring never reads a Triage-written attribute back")
 end
 
--- Retail has no dispel-overlay getter: suppressing still writes the hidden
--- constant, but restoring must not invent a replacement value.
+-- Retail has no dispel-overlay getter at all: this attribute is never
+-- written in either direction on this client, suppressing or restoring.
 do
 	local frame = NewFrame()
 	_G.Triage.db.profile.showDispellableDebuffs = false
 	_G.Triage:ApplyRetailStockAuraVisibility(frame, true)
-	assertEqual(frame.attributes["show-dispel-indicator-overlay"], false, "suppressing writes the hidden overlay constant")
+	assertEqual(countMatchingCalls(frame.calls, "SetAttribute", "show-dispel-indicator-overlay"), 0,
+		"with no overlay getter on this client, suppressing must not write that attribute either")
 
 	frame.calls = {}
 	_G.Triage.db.profile.showDispellableDebuffs = true
@@ -462,6 +463,97 @@ do
 		assertEqual(#calls, 0, "the settings hook still makes no recorded call after any pending timers fire")
 
 		addon.MarkFramePendingStockAura = savedMark
+	end
+
+	-- Teardown through the real registry, then re-adoption with every switch
+	-- now on, still restores genuine values: the applied flag survives that
+	-- teardown instead of resetting to "nothing to restore".
+	do
+		addon.db.profile.showBuffs = false
+		addon.db.profile.showDebuffs = true
+		addon.db.profile.showDispellableDebuffs = true
+
+		local frame, calls = NewMarkFrame("party4")
+		addon:RegisterManagedFrame(frame, "party4", "blizzard")
+		addon:UpdateStockAuraVisibility(frame)
+		assertTrue(frame.Triage_stockAuraVisibilityApplied, "the frame carries suppressed values before teardown")
+
+		frame.groupType = nil
+		addon:RegisterManagedFrame(frame, "party4", "blizzard") -- de-owned; runs the real teardown
+		assertTrue(frame.Triage_stockAuraVisibilityApplied, "the applied flag survives the real registry teardown")
+
+		frame.groupType = CompactRaidGroupTypeEnum.Party
+		addon:RegisterManagedFrame(frame, "party4", "blizzard")
+		addon.db.profile.showBuffs = true
+		resetCalls(calls)
+		addon:UpdateStockAuraVisibility(frame)
+
+		assertEqual(countCalls(calls, "SetAttribute", "max-buffs"), 1,
+			"re-adoption with every switch on restores the genuine buff count")
+		assertTrue(not frame.Triage_stockAuraVisibilityApplied, "the flag clears once every suppressed attribute is restored")
+
+		addon.db.profile.showBuffs = false
+	end
+
+	-- A restore pass where a present source can't be read right now leaves
+	-- the flag set so a later pass tries that source again; once it can be
+	-- read, that later pass restores it and clears the flag.
+	do
+		addon.db.profile.showBuffs = true
+		addon.db.profile.showDebuffs = false
+		addon.db.profile.showDispellableDebuffs = true
+
+		local frame, calls = NewMarkFrame("party5")
+		addon:RegisterManagedFrame(frame, "party5", "blizzard")
+		addon:UpdateStockAuraVisibility(frame)
+		assertTrue(frame.Triage_stockAuraVisibilityApplied, "the frame carries suppressed values before the restore attempt")
+
+		frame.optionTable = nil
+		addon.db.profile.showDebuffs = true
+		resetCalls(calls)
+		addon:UpdateStockAuraVisibility(frame)
+
+		assertEqual(countCalls(calls, "SetAttribute", "ignore-debuffs"), 0,
+			"a source that can't be read right now is not written")
+		assertTrue(frame.Triage_stockAuraVisibilityApplied, "the flag stays set so a later pass tries the unread source again")
+
+		frame.optionTable = {}
+		resetCalls(calls)
+		addon:UpdateStockAuraVisibility(frame)
+
+		assertEqual(countCalls(calls, "SetAttribute", "ignore-debuffs"), 1, "the source restores once it can be read again")
+		assertTrue(not frame.Triage_stockAuraVisibilityApplied, "the flag clears once every suppressed attribute has been restored")
+
+		addon.db.profile.showBuffs = false
+		addon.db.profile.showDebuffs = true
+	end
+
+	-- A full suppress-then-restore cycle on the Retail shape ends with the
+	-- flag clear, and a further apply with nothing left to do performs no
+	-- calls at all.
+	do
+		addon.db.profile.showBuffs = false
+		addon.db.profile.showDebuffs = false
+		addon.db.profile.showDispellableDebuffs = false
+
+		local frame, calls = NewMarkFrame("party6")
+		addon:RegisterManagedFrame(frame, "party6", "blizzard")
+		addon:UpdateStockAuraVisibility(frame)
+		assertTrue(frame.Triage_stockAuraVisibilityApplied, "the frame carries suppressed values")
+
+		addon.db.profile.showBuffs = true
+		addon.db.profile.showDebuffs = true
+		addon.db.profile.showDispellableDebuffs = true
+		addon:UpdateStockAuraVisibility(frame)
+		assertTrue(not frame.Triage_stockAuraVisibilityApplied, "the flag clears once the full cycle restores everything")
+
+		resetCalls(calls)
+		addon:UpdateStockAuraVisibility(frame)
+		assertEqual(#calls, 0, "a further apply with the flag already clear performs no calls at all")
+
+		addon.db.profile.showBuffs = false
+		addon.db.profile.showDebuffs = true
+		addon.db.profile.showDispellableDebuffs = true
 	end
 end
 

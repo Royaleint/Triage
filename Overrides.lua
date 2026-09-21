@@ -10,81 +10,76 @@ local LibRangeCheck = LibStub("LibRangeCheck-3.0")
 -------------------------------------------------------------------------
 -------------------------------------------------------------------------
 
+-- Each entry names either a frame field (always present on both client
+-- families) or a Blizzard getter global (present on some clients only --
+-- CompactUnitFrame_GetOptionShowDispelIndicatorOverlay does not exist on
+-- Retail 12.1) that holds Blizzard's own genuine value for the attribute.
+-- negate marks the three keys Blizzard itself stores inverted from the
+-- option that drives them.
 local STOCK_AURA_ATTRIBUTES = {
-	{ option = "showBuffs", attribute = "ignore-buffs", hiddenValue = true },
-	{ option = "showDebuffs", attribute = "ignore-debuffs", hiddenValue = true },
-	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs", hiddenValue = true },
-	{ option = "showBuffs", attribute = "max-buffs", hiddenValue = 0 },
-	{ option = "showDebuffs", attribute = "max-debuffs", hiddenValue = 0 },
-	{ option = "showDispellableDebuffs", attribute = "max-dispel-debuffs", hiddenValue = 0 },
-	{ option = "showBuffs", attribute = "show-big-defensive", hiddenValue = false },
-	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false },
+	{ option = "showBuffs", attribute = "ignore-buffs", hiddenValue = true,
+		getterName = "CompactUnitFrame_GetOptionDisplayBuffs", negate = true },
+	{ option = "showDebuffs", attribute = "ignore-debuffs", hiddenValue = true,
+		getterName = "CompactUnitFrame_GetOptionDisplayDebuffs", negate = true },
+	{ option = "showDispellableDebuffs", attribute = "ignore-dispel-debuffs", hiddenValue = true,
+		getterName = "CompactUnitFrame_GetOptionDisplayDispelDebuffs", negate = true },
+	{ option = "showBuffs", attribute = "max-buffs", hiddenValue = 0, frameField = "maxBuffs" },
+	{ option = "showDebuffs", attribute = "max-debuffs", hiddenValue = 0, frameField = "maxDebuffs" },
+	{ option = "showDispellableDebuffs", attribute = "max-dispel-debuffs", hiddenValue = 0, frameField = "maxDispelDebuffs" },
+	{ option = "showBuffs", attribute = "show-big-defensive", hiddenValue = false,
+		getterName = "CompactUnitFrame_GetOptionShowBigDefensive" },
+	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false,
+		getterName = "CompactUnitFrame_GetOptionShowDispelIndicatorOverlay" },
 }
 
--- Blizzard's own genuine value for each attribute Triage suppresses, computed
--- fresh from Blizzard-owned sources every time. Never reads back anything
--- Triage itself has written -- that's the read-back that used to poison a
--- restore once an intervening rewrite landed between the read and the write.
-local function CallGenuineGetter(frame, getterName)
-	-- Every one of these getters indexes frame.optionTable unguarded.
-	if type(frame.optionTable) ~= "table" then
-		return nil
+-- Whether this client has the attribute's genuine source at all. A frame
+-- field is always present; a getter is only present when the client's own
+-- CompactUnitFrame.lua defines it. This gates both directions: an attribute
+-- with no source on this client is never suppressed and never restored,
+-- because there is nothing Blizzard-owned to fall back to either way.
+local function AttributeSourceExists(mapping)
+	if mapping.frameField then
+		return true
+	end
+	return type(rawget(_G, mapping.getterName)) == "function"
+end
+
+-- Blizzard's own genuine value for one attribute, read fresh from a
+-- Blizzard-owned source every time -- a frame field or a Blizzard getter --
+-- and never from anything Triage itself wrote. available is false only when
+-- the source could not be read right now (no optionTable yet, or a secret
+-- value); a getter that legitimately returns nil or false is still a real
+-- reading, so value and availability are returned separately rather than
+-- folded into one nil-means-either result.
+local function GenuineAttributeValue(frame, mapping)
+	if mapping.frameField then
+		local value = frame[mapping.frameField]
+		if issecretvalue and issecretvalue(value) then
+			return nil, false
+		end
+		return value, true
 	end
 
-	local getter = rawget(_G, getterName)
+	-- Every one of these getters indexes frame.optionTable unguarded.
+	if type(frame.optionTable) ~= "table" then
+		return nil, false
+	end
+
+	local getter = rawget(_G, mapping.getterName)
 	if type(getter) ~= "function" then
-		return nil
+		return nil, false
 	end
 
 	local value = getter(frame)
 	if issecretvalue and issecretvalue(value) then
-		return nil
+		return nil, false
 	end
 
-	return value
-end
-
-local function SecretSafeValue(value)
-	if issecretvalue and issecretvalue(value) then
-		return nil
-	end
-	return value
-end
-
-local function GenuineStockAuraValue(frame, attribute)
-	if attribute == "max-buffs" then
-		return SecretSafeValue(frame.maxBuffs)
-	elseif attribute == "max-debuffs" then
-		return SecretSafeValue(frame.maxDebuffs)
-	elseif attribute == "max-dispel-debuffs" then
-		return SecretSafeValue(frame.maxDispelDebuffs)
-	elseif attribute == "show-big-defensive" then
-		return CallGenuineGetter(frame, "CompactUnitFrame_GetOptionShowBigDefensive")
-	elseif attribute == "show-dispel-indicator-overlay" then
-		-- Absent on Retail 12.1; present on Classic Era and Mists Classic.
-		-- CallGenuineGetter already returns nil when the global doesn't exist.
-		return CallGenuineGetter(frame, "CompactUnitFrame_GetOptionShowDispelIndicatorOverlay")
-	elseif attribute == "ignore-buffs" then
-		local displayed = CallGenuineGetter(frame, "CompactUnitFrame_GetOptionDisplayBuffs")
-		if displayed == nil then
-			return nil
-		end
-		return not displayed
-	elseif attribute == "ignore-debuffs" then
-		local displayed = CallGenuineGetter(frame, "CompactUnitFrame_GetOptionDisplayDebuffs")
-		if displayed == nil then
-			return nil
-		end
-		return not displayed
-	elseif attribute == "ignore-dispel-debuffs" then
-		local displayed = CallGenuineGetter(frame, "CompactUnitFrame_GetOptionDisplayDispelDebuffs")
-		if displayed == nil then
-			return nil
-		end
-		return not displayed
+	if mapping.negate then
+		value = not value
 	end
 
-	return nil
+	return value, true
 end
 
 local function GetFriendRangeChecker(range)
@@ -161,19 +156,34 @@ function Triage:ApplyRetailStockAuraVisibility(frame, notifyPrivateAuraUI)
 	if not suppressing and not frame.Triage_stockAuraVisibilityApplied then
 		return true
 	end
-	frame.Triage_stockAuraVisibilityApplied = suppressing or nil
+
+	-- Restoring can land on a source that isn't readable this instant (no
+	-- optionTable yet, a secret value). When that happens the flag stays set
+	-- so the next apply tries that attribute again instead of the frame
+	-- getting stuck showing Blizzard's stock icons forever.
+	local everyRestoredSourceRead = true
 
 	for _, mapping in ipairs(STOCK_AURA_ATTRIBUTES) do
-		if self.db.profile[mapping.option] then
-			-- Turning a switch back on hands the attribute back to whatever
-			-- Blizzard's own setting says, not to a value Triage remembered.
-			local genuine = GenuineStockAuraValue(frame, mapping.attribute)
-			if genuine ~= nil then
-				frame:SetAttribute(mapping.attribute, genuine)
+		if AttributeSourceExists(mapping) then
+			if self.db.profile[mapping.option] then
+				-- Turning a switch back on hands the attribute back to whatever
+				-- Blizzard's own setting says, not to a value Triage remembered.
+				local genuine, available = GenuineAttributeValue(frame, mapping)
+				if available then
+					frame:SetAttribute(mapping.attribute, genuine)
+				else
+					everyRestoredSourceRead = false
+				end
+			else
+				frame:SetAttribute(mapping.attribute, mapping.hiddenValue)
 			end
-		else
-			frame:SetAttribute(mapping.attribute, mapping.hiddenValue)
 		end
+	end
+
+	if suppressing then
+		frame.Triage_stockAuraVisibilityApplied = true
+	elseif everyRestoredSourceRead then
+		frame.Triage_stockAuraVisibilityApplied = nil
 	end
 
 	if notifyPrivateAuraUI then
@@ -206,6 +216,9 @@ function Triage:EnsureRetailStockAuraVisibilityHook(frame)
 			-- keep applying right here, same as before.
 			if self.usesLegacyUnitAura then
 				self:ApplyRetailStockAuraVisibility(hookedFrame, nil)
+				return
+			end
+			if not self:IsOwnableFrame(hookedFrame) then
 				return
 			end
 			if self.MarkFramePendingStockAura then
