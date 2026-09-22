@@ -21,8 +21,6 @@ _G.Triage = _G.EnhancedRaidFrames
 local Triage = _G.Triage
 
 -- Import libraries
--- AceLocale namespace frozen; paired with NewLocale("EnhancedRaidFrames", ...) registrations.
-local L = LibStub("AceLocale-3.0"):GetLocale("EnhancedRaidFrames")
 local AceDBOptions = LibStub("AceDBOptions-3.0")
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
@@ -381,21 +379,6 @@ function Triage:OnEnable()
 	end
 end
 
---- Open the Triage panel inside the Blizzard addon settings UI.
-function Triage:OpenBlizzardOptions()
-	if InCombatLockdown() then
-		self:Print("Cannot open settings during combat.")
-		return
-	end
-
-	if self.generalOptionsCategoryID and Settings and Settings.OpenToCategory then
-		Settings.OpenToCategory(self.generalOptionsCategoryID)
-		return
-	end
-
-	self:OpenConfigWindow()
-end
-
 --- Return whether the current client has the native UI primitives required
 --- for Triage's standalone Blizzard-style options frame.
 function Triage:SupportsNativeOptionsFrame()
@@ -502,7 +485,7 @@ function Triage:InitializeDatabase()
 	end
 end
 
---- Set up our configuration panels and add them to the Blizzard interface options
+--- Set up our configuration panels and register the options window's Settings entry
 function Triage:InitializeConfigPanels()
 	-- Build our config panels
 	AceConfigRegistry:RegisterOptionsTable("Triage", self:CreateGeneralOptions())
@@ -511,16 +494,12 @@ function Triage:InitializeConfigPanels()
 	AceConfigRegistry:RegisterOptionsTable("Triage Profiles", AceDBOptions:GetOptionsTable(self.db))
 	AceConfigRegistry:RegisterOptionsTable("Triage Import Export Profile Options", self:CreateProfileImportExportOptions())
 
-	-- Add config panels to in-game interface options
-	self.generalOptionsFrame, self.generalOptionsCategoryID = AceConfigDialog:AddToBlizOptions("Triage", "Triage")
-	AceConfigDialog:AddToBlizOptions("Triage Indicator Options", L["Indicator Options"], "Triage")
-	AceConfigDialog:AddToBlizOptions("Triage Target Marker Options", L["Target Marker Options"], "Triage")
-	AceConfigDialog:AddToBlizOptions("Triage Profiles", L["Profiles"], "Triage")
-	AceConfigDialog:AddToBlizOptions("Triage Import Export Profile Options",
-			(L["Profile"] .. " " .. L["Import"] .. "/" .. L["Export"]), "Triage")
-
 	if self.OptionsFrame and self.OptionsFrame.Initialize then
 		self.OptionsFrame:Initialize()
+	end
+
+	if self.OptionsFrame and self.OptionsFrame.RegisterSettingsCategory then
+		self.OptionsFrame:RegisterSettingsCategory()
 	end
 end
 

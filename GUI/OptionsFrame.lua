@@ -482,6 +482,8 @@ local function CreateShell()
 	return ownerFrame
 end
 
+-- Only used by the canvas and legacy fallback paths below; the button
+-- category path hands the Settings panel no frame of its own.
 local function CreateSettingsPanel()
 	local panel = OptionsFrame.settingsPanel
 	if panel then
@@ -501,7 +503,7 @@ local function CreateSettingsPanel()
 	button:SetPoint("TOPLEFT", label, "BOTTOMLEFT", 0, -16)
 	button:SetText("Open Triage Options")
 	button:SetScript("OnClick", function()
-		OptionsFrame:Open()
+		Triage:OpenConfigWindow()
 	end)
 	panel.openButton = button
 
@@ -509,8 +511,55 @@ local function CreateSettingsPanel()
 	return panel
 end
 
-local function RegisterSettingsBridge()
+-- Whether this client has every API the button category path needs. The
+-- fallback chain below is chosen by this check alone, never by whether the
+-- registration attempt itself succeeds.
+local function HasButtonCategoryAPI()
+	local registerVertical = Settings and Settings.RegisterVerticalLayoutCategory
+	local registerInitializer = Settings and Settings.RegisterInitializer
+	local registerAddOn = Settings and Settings.RegisterAddOnCategory
+	local buttonInitializer = rawget(_G, "CreateSettingsButtonInitializer")
+	return type(registerVertical) == "function"
+			and type(registerInitializer) == "function"
+			and type(registerAddOn) == "function"
+			and type(buttonInitializer) == "function"
+end
+
+-- The Settings panel reads fields on every canvas frame when it closes, on
+-- the same execution that then re-shows Edit Mode, so Triage must never hand
+-- the Settings panel a frame of its own. It registers a plain category with
+-- one button instead. If this attempt fails, that is reported once and
+-- nothing else is registered; falling back to a canvas frame here would hand
+-- the Settings panel a Triage frame after all.
+local function RegisterButtonCategory()
+	local buttonInitializer = rawget(_G, "CreateSettingsButtonInitializer")
+	local ok, err = pcall(function()
+		local category = Settings.RegisterVerticalLayoutCategory("Triage")
+		local initializer = buttonInitializer("", "Open Triage Options", function()
+			Triage:OpenConfigWindow()
+		end, nil, false)
+		Settings.RegisterInitializer(category, initializer)
+		Settings.RegisterAddOnCategory(category)
+		OptionsFrame.settingsCategory = category
+		OptionsFrame.settingsCategoryID = category:GetID()
+	end)
+
+	if not ok then
+		local handler = geterrorhandler()
+		if handler then
+			handler(err)
+		end
+	end
+end
+
+function OptionsFrame:RegisterSettingsCategory()
 	if settingsBridgeRegistered then
+		return
+	end
+
+	if HasButtonCategoryAPI() then
+		RegisterButtonCategory()
+		settingsBridgeRegistered = true
 		return
 	end
 
@@ -546,7 +595,6 @@ function OptionsFrame:Initialize()
 		frame = CreateShell()
 	end
 
-	RegisterSettingsBridge()
 	return frame
 end
 
