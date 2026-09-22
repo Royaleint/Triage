@@ -4,6 +4,38 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
+## v1.4.0-beta.1 (2026-09-21)
+
+Retail fixes for indicators during combat, the dispel border after Edit Mode, and stock icon visibility, plus two options page fixes.
+
+---
+
+This is a beta build. Please test it and report anything that looks wrong. Not every fix in this list has been confirmed in game yet.
+
+### Bug Fixes
+
+- Custom aura indicators no longer disappear during Retail combat when the game restricts aura information. Configured indicators stay visible, keep their placement and size, and recover after combat.
+- Fixed a red pulsing dispel border appearing on every party frame on Retail after leaving Edit Mode and then changing any option. It no longer appears without a real dispellable debuff.
+- Turning a stock icon switch back on releases Blizzard's own icons immediately, with no reload needed.
+- Indicators no longer take mouse clicks meant for the party or raid frame underneath them.
+- Fixed indicator offsets sticking after the first change, so later horizontal or vertical changes move the indicator as expected.
+- Changing Indicator Size no longer scrolls the options page back to the top.
+- Triage no longer prints a diagnostic line to chat on Retail when the game restricts aura information.
+- This beta contains changes intended to stop the flood of Lua errors from Blizzard's party frames when Edit Mode is opened on Retail with Triage running. Please report whether you still see them.
+
+### Changed
+
+- Turning a Stock Buff Icons, Stock Debuff Icons or Stock Dispellable Icons switch on no longer forces Blizzard's own icons to show. If you turned them off in Blizzard's raid frame settings, they stay off.
+- Indicators set to Show Only if Missing stay hidden while the game restricts aura information during combat, with a one-time notice in chat.
+
+### Known Issues
+
+- On Retail, turning Stock Dispellable Icons off hides the icons but not Blizzard's colored dispel border.
+- Stock icon changes made during combat apply when combat ends.
+- A brief one-frame flicker of stock icons can happen when settings change.
+- Classic Era, TBC Classic and Pandaria Classic are only lightly tested in this beta.
+- Indicator text now uses the transparency set in the text color picker. If your countdown text looks too faint, reopen the picker and set the transparency you want.
+
 ## v1.3.4 (2026-08-23)
 
 Fixes for Retail 12.1 aura errors, stock aura icon visibility, and indicator placement, plus an autocomplete improvement.

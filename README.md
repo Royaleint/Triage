@@ -2,6 +2,8 @@
 
 Current release: v1.3.4
 
+Current beta: v1.4.0-beta.1
+
 Enhanced Raid Frames, reforged for Midnight and still supporting Classic Era, TBC Classic, and Pandaria Classic.
 
 Triage continues the work of [Enhanced Raid Frames](https://github.com/brittyazel/EnhancedRaidFrames) by Britt W. Yazel (Soyier), which enhanced Blizzard's built-in raid frames with configurable aura indicators, target markers, range checking, and more.
