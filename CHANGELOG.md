@@ -4,6 +4,16 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
+## Unreleased
+
+### Bug Fixes
+
+- Closing the game's Options window while Edit Mode is open no longer breaks the raid frames' incoming-heal display until the next reload.
+
+### Changed
+
+- The Triage entry in the Options window is now a single button that opens the Triage options.
+
 ## v1.4.0-beta.1 (2026-09-21)
 
 Retail fixes for indicators during combat, the dispel border after Edit Mode, and stock icon visibility, plus two options page fixes.
