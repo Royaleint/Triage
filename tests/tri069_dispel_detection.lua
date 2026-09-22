@@ -171,9 +171,9 @@ local function overlayIsShown(frame)
 end
 
 -- EventRegistry: captures the callbacks Triage:OnEnable registers so rows can fire them
--- directly, the way Blizzard's real EventRegistry would. Only EditMode.Exit is still
--- registered this way; AURA_DATA_PROVIDER_SWITCH goes through Triage's own AceEvent
--- RegisterEvent stub below instead.
+-- directly, the way Blizzard's real EventRegistry would. Both EditMode.Enter and
+-- EditMode.Exit go through this stub; Triage no longer registers anything through its own
+-- AceEvent RegisterEvent for aura provider state.
 local eventRegistryCallbacks = {}
 EventRegistry = {
 	RegisterCallback = function(_, name, callback, owner)
@@ -181,8 +181,8 @@ EventRegistry = {
 	end,
 }
 
--- RegisterEvent: captures the handler Triage:OnEnable registers through its own AceEvent-3.0
--- handle, so rows can fire it directly the way the WoW engine would dispatch the real event.
+-- RegisterEvent: captures any handler Triage:OnEnable registers through its own AceEvent-3.0
+-- handle, so rows can fire it directly the way the WoW engine would dispatch a real event.
 local registeredEvents = {}
 
 dofile(repoRoot .. "Triage.lua")
@@ -347,26 +347,28 @@ do
 end
 
 -- Row 6: while Edit Mode's sample aura provider is active the overlay hides even with a
--- matching aura present; clearing the provider and firing the coalesced timer re-evaluates it.
+-- matching aura present; exiting Edit Mode and firing the coalesced timer re-evaluates it.
 installOnEnable(true)
 do
 	local frame = NewRaidFrame("party1")
 	foreachAuraImpl = function(callback) callback({ dispelName = "Magic" }) end
 	addon.ForEachManagedFrame = function(_, func) func(frame) end
 
-	local switchHandler = registeredEvents["AURA_DATA_PROVIDER_SWITCH"]
-	assertTrue(switchHandler, "OnEnable registers AURA_DATA_PROVIDER_SWITCH through Triage's own AceEvent")
+	local enterEntry = eventRegistryCallbacks["EditMode.Enter"]
+	assertTrue(enterEntry, "OnEnable registers the EditMode.Enter callback")
+	local exitEntry = eventRegistryCallbacks["EditMode.Exit"]
+	assertTrue(exitEntry, "OnEnable registers the EditMode.Exit callback")
 
-	switchHandler("AURA_DATA_PROVIDER_SWITCH", false)
-	assertEqual(addon.dispelProviderIsSample, true, "switching off the real provider marks the sample state")
+	enterEntry.callback()
+	assertEqual(addon.dispelProviderIsSample, true, "entering Edit Mode marks the sample state")
 	assertEqual(addon:GetActiveDispelType(frame), addon.DISPEL_STATE_UNAVAILABLE,
 		"the probe reports unavailable while the sample provider is active, even with a matching aura present")
 
 	addon:UpdateDispelOverlay(frame)
 	assertTrue(not overlayIsShown(frame), "the overlay hides while the sample provider is active")
 
-	switchHandler("AURA_DATA_PROVIDER_SWITCH", true)
-	assertEqual(addon.dispelProviderIsSample, false, "switching back to the real provider clears the sample state")
+	exitEntry.callback()
+	assertEqual(addon.dispelProviderIsSample, false, "exiting Edit Mode clears the sample state")
 	fireTimers()
 	assertTrue(overlayIsShown(frame),
 		"clearing the sample provider and firing the deferred timer re-evaluates the overlay")
@@ -398,13 +400,13 @@ do
 	addon.UpdateAllDispelOverlays = originalUpdateAll
 end
 
--- Row 7b: the AURA_DATA_PROVIDER_SWITCH handler body performs zero refresh work before its
--- timer fires either -- setting the sample-state marker is cheap mark-and-defer, not refresh
--- work; only the coalesced C_Timer.After(0) actually re-evaluates any overlay.
+-- Row 7b: the EditMode.Enter callback body performs zero refresh work before its timer fires
+-- either -- setting the sample-state marker is cheap mark-and-defer, not refresh work; only
+-- the coalesced C_Timer.After(0) actually re-evaluates any overlay.
 installOnEnable(true)
 do
-	local switchHandler = registeredEvents["AURA_DATA_PROVIDER_SWITCH"]
-	assertTrue(switchHandler, "OnEnable registers AURA_DATA_PROVIDER_SWITCH through Triage's own AceEvent")
+	local enterEntry = eventRegistryCallbacks["EditMode.Enter"]
+	assertTrue(enterEntry, "OnEnable registers the EditMode.Enter callback")
 
 	local updateAllCalls = 0
 	local originalUpdateAll = addon.UpdateAllDispelOverlays
@@ -413,16 +415,53 @@ do
 		return originalUpdateAll(...)
 	end
 
-	switchHandler("AURA_DATA_PROVIDER_SWITCH", false)
-	assertEqual(addon.dispelProviderIsSample, true, "the handler body still marks the sample state synchronously")
+	enterEntry.callback()
+	assertEqual(addon.dispelProviderIsSample, true, "the callback body still marks the sample state synchronously")
 	assertEqual(updateAllCalls, 0,
-		"the AURA_DATA_PROVIDER_SWITCH handler body performs zero refresh work before the timer fires")
-	assertEqual(timersScheduled, 1, "the handler schedules exactly one coalesced timer")
+		"the EditMode.Enter callback body performs zero refresh work before the timer fires")
+	assertEqual(timersScheduled, 1, "the callback schedules exactly one coalesced timer")
 
 	fireTimers()
 	assertEqual(updateAllCalls, 1, "the deferred timer runs the overlay refresh")
 
 	addon.UpdateAllDispelOverlays = originalUpdateAll
+end
+
+-- Row 7c: a repeated EditMode.Enter before the timer fires (Edit Mode re-entered, or Blizzard
+-- calling it more than once) coalesces onto the same single timer as the eventual Exit.
+installOnEnable(true)
+do
+	local enterEntry = eventRegistryCallbacks["EditMode.Enter"]
+	local exitEntry = eventRegistryCallbacks["EditMode.Exit"]
+	assertTrue(enterEntry, "OnEnable registers the EditMode.Enter callback")
+	assertTrue(exitEntry, "OnEnable registers the EditMode.Exit callback")
+
+	local updateAllCalls = 0
+	local originalUpdateAll = addon.UpdateAllDispelOverlays
+	addon.UpdateAllDispelOverlays = function(...)
+		updateAllCalls = updateAllCalls + 1
+		return originalUpdateAll(...)
+	end
+
+	enterEntry.callback()
+	enterEntry.callback()
+	exitEntry.callback()
+	assertEqual(timersScheduled, 1, "repeated Enter followed by Exit still schedules exactly one coalesced timer")
+	assertEqual(addon.dispelProviderIsSample, false, "Exit clears the sample state regardless of how many Enters preceded it")
+
+	fireTimers()
+	assertEqual(updateAllCalls, 1, "the single coalesced timer runs the overlay refresh exactly once")
+
+	addon.UpdateAllDispelOverlays = originalUpdateAll
+end
+
+-- New row: the invariant this fix exists for -- Retail OnEnable must never register an
+-- AURA_DATA_PROVIDER_SWITCH handler, since that event dispatches synchronously inside
+-- Blizzard's own Edit Mode entry stack.
+installOnEnable(true)
+do
+	assertEqual(registeredEvents["AURA_DATA_PROVIDER_SWITCH"], nil,
+		"Retail OnEnable registers no AURA_DATA_PROVIDER_SWITCH handler")
 end
 
 -- Row 8: Classic clients reach the legacy frame.dispels path, register no new EventRegistry
@@ -431,6 +470,8 @@ installOnEnable(false)
 do
 	assertEqual(registeredEvents["AURA_DATA_PROVIDER_SWITCH"], nil,
 		"Classic OnEnable registers no AURA_DATA_PROVIDER_SWITCH handler")
+	assertEqual(eventRegistryCallbacks["EditMode.Enter"], nil,
+		"Classic OnEnable registers no EditMode.Enter callback")
 	assertEqual(eventRegistryCallbacks["EditMode.Exit"], nil,
 		"Classic OnEnable registers no EditMode.Exit callback")
 
