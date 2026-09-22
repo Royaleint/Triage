@@ -343,7 +343,7 @@ function Triage:OnEnable()
 	-- Dispel overlay detection state (TRI-069): the Retail probe (Modules/DispelSource.lua)
 	-- consults dispelProviderIsSample instead of reading any Blizzard overlay/frame state.
 	-- Both callback bodies below do mark-and-defer only, coalesced onto one timer, so no work
-	-- runs inside Blizzard's AURA_DATA_PROVIDER_SWITCH event or EditMode.Exit callback stack.
+	-- runs inside Blizzard's own EditMode.Enter/Exit callback stack.
 	if self.supportsDispelOverlay then
 		self.dispelProviderIsSample = false
 		local dispelOverlayRefreshScheduled = false
@@ -359,23 +359,21 @@ function Triage:OnEnable()
 		end
 
 		-- Edit Mode's sample aura data provider fabricates dispellable debuffs; while it is
-		-- active the overlay must go dark rather than trust it. AURA_DATA_PROVIDER_SWITCH is a
-		-- real WoW engine event (UnitAuraDocumentation.lua), so it is registered through
-		-- Triage's own AceEvent-3.0 handle rather than EventRegistry: the handler then runs in
-		-- Triage's own execution instead of alongside Blizzard's own listener on that event.
-		-- Already Retail-gated by the enclosing "if self.supportsDispelOverlay" check, so this
-		-- never registers on a client where the event might not exist. Payload per the engine's
-		-- event definition: (event, useRealDataProvider).
-		self:RegisterEvent("AURA_DATA_PROVIDER_SWITCH", function(_, useRealDataProvider)
-			self.dispelProviderIsSample = useRealDataProvider == false
+		-- active the overlay must go dark rather than trust it. The sample provider is active
+		-- exactly while Edit Mode is active, so both edges come from EventRegistry's own
+		-- EditMode.Enter/Exit callbacks, never from an AURA_DATA_PROVIDER_SWITCH handler:
+		-- Blizzard dispatches that event synchronously from inside EnterEditMode's own call to
+		-- C_UnitAuras.SwitchAuraDataProvider(), before Edit Mode has finished its own setup, so a
+		-- Triage handler on it would taint Blizzard's own execution and leave the rest of Edit
+		-- Mode's setup tainted behind it. The enter/exit callbacks are safe: Blizzard triggers
+		-- them only after its own setup is complete, and dispatches them through its protected
+		-- callback registry (securecallfunction inside secureexecuterange,
+		-- Blizzard_SharedXMLBase/CallbackRegistry.lua).
+		EventRegistry:RegisterCallback("EditMode.Enter", function()
+			self.dispelProviderIsSample = true
 			scheduleDispelOverlayRefresh()
-		end)
+		end, self)
 
-		-- EditMode.Exit is an EventRegistry-only callback name, not a WoW engine event, so it
-		-- has no AceEvent equivalent and stays on EventRegistry. Belt-and-suspenders: Edit Mode
-		-- always exits back onto the real provider, but this also covers the case where
-		-- AURA_DATA_PROVIDER_SWITCH never fires because nothing inside Edit Mode requested a
-		-- sample aura.
 		EventRegistry:RegisterCallback("EditMode.Exit", function()
 			self.dispelProviderIsSample = false
 			scheduleDispelOverlayRefresh()
