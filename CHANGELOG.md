@@ -2,18 +2,34 @@
 
 ## Maintenance mode (2026-05-24)
 
-Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed — but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
+Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed, but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
-## Unreleased
+## v1.4.0-beta.2 (2026-09-22)
+
+Retail fixes for raid frame errors in Edit Mode, plus a simpler Triage entry in the Options window.
+
+---
+
+This is a beta build. Please test it and report anything that looks wrong. The dispel border on party frames has not been re-checked in game on this build; if it shows without a dispellable debuff, or stays off when there is one, please report it. Closing the Options window after typing in its search box has also not been re-checked.
 
 ### Bug Fixes
 
+- Opening Edit Mode with Triage running no longer sets off a flood of Lua errors from Blizzard's party and arena frames. Please report if you still see them.
 - Closing the game's Options window while Edit Mode is open no longer breaks the raid frames' incoming-heal display until the next reload.
-- Closing the Options window or leaving Edit Mode through its close button no longer trips a raid frame error on arena frames when Triage is loaded.
+- Leaving Edit Mode through its close button, or closing the game's Options window while Edit Mode is open, no longer causes a Lua error from Blizzard's arena frames.
 
 ### Changed
 
-- The Triage entry in the Options window is now a single button that opens the Triage options.
+- The Triage entry in the game's Options window is now a single Open Triage Options button that opens Triage's own options window.
+- On Retail, while Edit Mode is open, Triage indicators show the unit's real auras instead of Edit Mode's placeholder auras.
+
+### Known Issues
+
+- On Retail, turning Stock Dispellable Icons off hides the icons but not Blizzard's colored dispel border.
+- Stock icon changes made during combat apply when combat ends.
+- A brief one-frame flicker of stock icons can happen when settings change.
+- Classic Era, TBC Classic and Pandaria Classic are only lightly tested in this beta; the new single-button Triage entry in the Options window has not been checked on them.
+- Indicator text uses the transparency set in the text color picker. If your countdown text looks too faint, reopen the picker and set the transparency you want.
 
 ## v1.4.0-beta.1 (2026-09-21)
 

@@ -2,7 +2,7 @@
 
 Current release: v1.3.4
 
-Current beta: v1.4.0-beta.1
+Current beta: v1.4.0-beta.2
 
 Enhanced Raid Frames, reforged for Midnight and still supporting Classic Era, TBC Classic, and Pandaria Classic.
 
