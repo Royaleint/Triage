@@ -1,4 +1,4 @@
--- luacheck: globals arg dofile LibStub geterrorhandler C_Timer wipe issecretvalue AuraUtil
+-- luacheck: globals arg dofile LibStub geterrorhandler C_Timer wipe issecretvalue AuraUtil C_UnitAuras
 -- luacheck: globals IsInRaid UnitExists UnitIsConnected UnitIsDeadOrGhost CreateFrame UIParent EventRegistry
 -- Run from the repository root with a relative path: lua5.1 tests/tri069_dispel_detection.lua
 
@@ -96,16 +96,45 @@ function issecretvalue(value)
 	return secretValues[value] == true
 end
 
--- AuraUtil.ForEachAura: each row installs foreachAuraImpl to control what the probe sees
--- (nothing, a throw, or one or more fake auraData tables delivered through the callback).
+-- AuraUtil.ForEachAura is never called by the code under test any more (it walks C_UnitAuras
+-- directly); this stub stays only as a regression trap, so a call here fails loudly instead of
+-- silently feeding stale data.
+AuraUtil = {
+	ForEachAura = function()
+		error("tri069: AuraUtil.ForEachAura must not be called; the probe goes through C_UnitAuras directly")
+	end,
+}
+
+-- C_UnitAuras.GetAuraSlots / GetAuraDataBySlot: each row installs foreachAuraImpl to control
+-- what the probe sees (nothing, a throw, or one or more fake auraData tables delivered through
+-- the callback) -- same row-facing shape as when this drove AuraUtil.ForEachAura directly, now
+-- wired through the direct C_UnitAuras walk the probe actually uses.
 local foreachAuraCalls = {}
 local foreachAuraImpl
-AuraUtil = {
-	ForEachAura = function(unit, filter, _maxCount, callback, _usePackedAura)
-		foreachAuraCalls[#foreachAuraCalls + 1] = { unit = unit, filter = filter }
-		if foreachAuraImpl then
-			foreachAuraImpl(callback)
+local pendingAuraData
+C_UnitAuras = {
+	GetAuraSlots = function(unit, filter, _maxCount, continuationToken)
+		if continuationToken ~= nil then
+			return nil
 		end
+		foreachAuraCalls[#foreachAuraCalls + 1] = { unit = unit, filter = filter }
+		pendingAuraData = {}
+		if foreachAuraImpl then
+			foreachAuraImpl(function(auraData)
+				pendingAuraData[#pendingAuraData + 1] = auraData
+			end)
+		end
+		if #pendingAuraData == 0 then
+			return nil
+		end
+		local slots = {}
+		for i = 1, #pendingAuraData do
+			slots[i] = i
+		end
+		return nil, unpack(slots)
+	end,
+	GetAuraDataBySlot = function(_unit, slot)
+		return pendingAuraData[slot]
 	end,
 }
 

@@ -9,6 +9,7 @@ Triage has moved to maintenance mode. It still works and stays compatible with c
 ### Bug Fixes
 
 - Closing the game's Options window while Edit Mode is open no longer breaks the raid frames' incoming-heal display until the next reload.
+- Closing the Options window or leaving Edit Mode through its close button no longer trips a raid frame error on arena frames when Triage is loaded.
 
 ### Changed
 
