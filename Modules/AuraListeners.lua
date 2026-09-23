@@ -125,6 +125,40 @@ local function SafeField(value, fallback)
 	return value
 end
 
+--- Delivers one page of C_UnitAuras.GetAuraSlots's return values to callback and reports the
+--- next continuation token, without collecting the slot numbers into a table: this helper runs
+--- on every UNIT_AURA for every managed frame via the dispel probe, the same no-per-call-
+--- allocation hot path DispelSource.lua's own file-local state exists for (see its comment).
+---@param unit string @The unit being scanned
+---@param callback function @Called once per packed auraData table
+---@param continuationToken any @GetAuraSlots's first return value, passed through unchanged
+---@param ... any @GetAuraSlots's remaining return values: the slot numbers for this page
+local function WalkAuraSlotPage(unit, callback, continuationToken, ...)
+	for i = 1, select("#", ...) do
+		local auraData = C_UnitAuras.GetAuraDataBySlot(unit, (select(i, ...)))
+		if auraData then
+			callback(auraData)
+		end
+	end
+	return continuationToken
+end
+
+--- Walks a unit's aura slots straight through C_UnitAuras, one callback per packed auraData
+--- table. AuraUtil.ForEachAura routes through a swappable data provider; while Edit Mode is
+--- open that provider is Blizzard's sample-aura table, built once per session by whoever
+--- reads it first and then read by Blizzard's own frame updates. Reading real auras directly
+--- keeps this addon's scans out of that table entirely. Used by DispelSource.lua as well as
+--- the full-rescan path below.
+---@param unit string @The unit to scan
+---@param filter string @The aura filter, e.g. "HELPFUL" or "HARMFUL|RAID"
+---@param callback function @Called once per packed auraData table
+function Triage:ForEachUnitAura(unit, filter, callback)
+	local continuationToken
+	repeat
+		continuationToken = WalkAuraSlotPage(unit, callback, C_UnitAuras.GetAuraSlots(unit, filter, nil, continuationToken))
+	until continuationToken == nil
+end
+
 --- Called by our UNIT_AURA listeners and is used to store unit aura information for a given unit.
 --- Unit aura information for tracked auras is stored in the Triage_unitAuras table.
 --- It uses the C_UnitAuras API that was added in 10.0.
@@ -188,18 +222,21 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 		-- partway (scanOK false below) we roll back to previousAuras and must NOT report an
 		-- update for auras that only ever lived in the table we're about to discard.
 		local scanUpdateFlag = false
-		-- Iterate through all buffs and debuffs on the unit. pcall-wrapped: AuraUtil.ForEachAura
-		-- calls C_UnitAuras.GetAuraSlots, which can hard-throw ("Auras cannot be accessed when
-		-- secret while tainted by...") when a tainted caller is denied unit aura access outright
-		-- under restriction — a distinct failure class from the secret-*value* taint addToAuraTable
-		-- already guards against, and one issecretvalue() cannot detect in advance.
+		-- Iterate through all buffs and debuffs on the unit via a direct C_UnitAuras walk, not
+		-- AuraUtil.ForEachAura: that helper routes through Edit Mode's sample aura provider
+		-- while Edit Mode is open (see ForEachUnitAura above), and this scan has no reason to
+		-- touch that table. Still pcall-wrapped: C_UnitAuras.GetAuraSlots can hard-throw ("Auras
+		-- cannot be accessed when secret while tainted by...") when a tainted caller is denied
+		-- unit aura access outright under restriction — a distinct failure class from the
+		-- secret-*value* taint addToAuraTable already guards against, and one issecretvalue()
+		-- cannot detect in advance.
 		for _, filter in pairs(AURA_FILTERS) do
-			local ok = pcall(AuraUtil.ForEachAura, unit, filter, nil, function(auraData)
+			local ok = pcall(self.ForEachUnitAura, self, unit, filter, function(auraData)
 				-- Add our auraData to the Triage_unitAuras table
 				if self:addToAuraTable(parentFrame, auraData) then
 					scanUpdateFlag = true
 				end
-			end, true)
+			end)
 			if not ok then
 				scanOK = false
 				break
@@ -232,10 +269,10 @@ function Triage:UpdateUnitAuras(parentFrame, payload, forceRefresh)
 			-- yielding against it: a stale cache cannot answer whether the unit currently carries
 			-- an aura the secure slot cannot show.
 			parentFrame.Triage_unitAurasStale = true
-			-- A denied scan is a restricted scan, and the clearest one there is: ForEachAura
-			-- throws precisely because a tainted caller was refused unit aura access. Do not
-			-- roll the flag back — addToAuraTable never ran to set it, so rolling back would
-			-- switch off the secure path in exactly the case it exists for.
+			-- A denied scan is a restricted scan, and the clearest one there is:
+			-- C_UnitAuras.GetAuraSlots throws precisely because a tainted caller was refused
+			-- unit aura access. Do not roll the flag back — addToAuraTable never ran to set it,
+			-- so rolling back would switch off the secure path in exactly the case it exists for.
 			parentFrame.Triage_auraDataRestricted = true
 			-- Module-level so PLAYER_REGEN_ENABLED can tell, cheaply, whether combat exit needs
 			-- to force a rescan; cleared there, never here.

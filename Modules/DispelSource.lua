@@ -119,7 +119,9 @@ local function GetActiveDispelTypeRetail(frame)
 	wipe(readableTypes)
 	foundUnknownActive = false
 
-	local ok = pcall(AuraUtil.ForEachAura, unit, "HARMFUL|RAID", nil, DispelProbeCallback, true)
+	-- Direct C_UnitAuras walk, not AuraUtil.ForEachAura: see ForEachUnitAura in
+	-- AuraListeners.lua for why this probe stays off Edit Mode's sample aura provider.
+	local ok = pcall(Triage.ForEachUnitAura, Triage, unit, "HARMFUL|RAID", DispelProbeCallback)
 
 	if not ok then
 		return Triage.DISPEL_STATE_UNAVAILABLE

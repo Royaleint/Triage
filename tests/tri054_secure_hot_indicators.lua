@@ -1,4 +1,4 @@
--- luacheck: globals arg debug dofile CreateFrame InCombatLockdown UnitIsUnit LibStub AuraUtil collectgarbage rawequal
+-- luacheck: globals arg debug dofile CreateFrame InCombatLockdown UnitIsUnit LibStub AuraUtil C_UnitAuras collectgarbage rawequal
 -- Run from the repository root with a relative path: lua.exe tests/tri054_secure_hot_indicators.lua
 
 local repoRoot = arg[0]:match("^(.*[\\/])tests[\\/]") or "./"
@@ -1367,14 +1367,30 @@ assertEqual(_G.Triage:addToAuraTable(restrictedFrame, { name = { restricted = tr
 assertEqual(restrictedFrame.Triage_auraDataRestricted, true,
 	"the listener marks restricted updates for secure rendering")
 
+-- AuraUtil.ForEachAura is never called by the code under test any more (it walks C_UnitAuras
+-- directly); this stub stays only as a regression trap, so a call here fails loudly instead of
+-- silently feeding stale data.
+AuraUtil = {
+	ForEachAura = function()
+		error("tri054: AuraUtil.ForEachAura must not be called; Triage's aura scans go through C_UnitAuras directly")
+	end,
+}
+
+-- C_UnitAuras.GetAuraSlots / GetAuraDataBySlot: the actual scan mock. Each row below installs
+-- its own GetAuraSlots, and GetAuraDataBySlot resolves whatever slot numbers that row's
+-- GetAuraSlots returned back to fake auraData tables.
+local pendingAuraData
+C_UnitAuras = {
+	GetAuraSlots = function() return nil end,
+	GetAuraDataBySlot = function(_unit, slot) return pendingAuraData and pendingAuraData[slot] end,
+}
+
 -- A scan the client refuses outright is the least ambiguous restricted update there is, and
 -- addToAuraTable never runs to record it. Rolling the flag back would switch the secure path
 -- off in exactly the case it exists for.
-AuraUtil = {
-	ForEachAura = function()
-		error("Auras cannot be accessed when secret while tainted by an addon")
-	end,
-}
+C_UnitAuras.GetAuraSlots = function()
+	error("Auras cannot be accessed when secret while tainted by an addon")
+end
 local deniedFrame = { unit = "party1", Triage_unitAuras = { existing = { name = "Rejuvenation" } } }
 local updatesBeforeDenial = indicatorUpdates
 _G.Triage:UpdateUnitAuras(deniedFrame, { isFullUpdate = true })
@@ -1411,7 +1427,7 @@ end
 -- [FAIL@d6b092c] denied scan does not yield: the marker does not exist at base, so the yield
 -- fires on stale data -- a readable match that is rollback data from before access was denied,
 -- not a reading of the unit's current auras.
-AuraUtil.ForEachAura = function()
+C_UnitAuras.GetAuraSlots = function()
 	error("Auras cannot be accessed when secret while tainted by an addon")
 end
 _G.Triage:UpdateUnitAuras(yieldListenerParent, { isFullUpdate = true })
@@ -1423,12 +1439,16 @@ assertEqual(ensureYieldListener(), true,
 -- restriction paths rather than switching the rule off under restriction generally. At base the
 -- position claims unconditionally whatever the readable cache holds.
 _G.Triage.allAuras = " " .. " " .. "regrowth" .. " " .. " " .. "cross-class aura" .. " "
-AuraUtil.ForEachAura = function(_, filter, _, callback)
-	if filter == "HELPFUL" then
-		callback({ name = { restricted = true } })
-		callback({ name = "Cross-Class Aura", spellId = 999, isHelpful = true, auraInstanceID = 7 })
+C_UnitAuras.GetAuraSlots = function(_unit, filter, _maxCount, continuationToken)
+	if continuationToken ~= nil or filter ~= "HELPFUL" then
+		return nil
 	end
+	return nil, 1, 2
 end
+pendingAuraData = {
+	{ name = { restricted = true } },
+	{ name = "Cross-Class Aura", spellId = 999, isHelpful = true, auraInstanceID = 7 },
+}
 _G.Triage:UpdateUnitAuras(yieldListenerParent, { isFullUpdate = true })
 assertEqual(yieldListenerParent.Triage_unitAurasStale, nil,
 	"a scan that actually reads the unit clears the stale marker")
@@ -1450,11 +1470,12 @@ _G.Triage.ForEachManagedFrame = function(_, callback)
 	callback(recoveryReadableFrame)
 	callback(recoveryDeniedFrame)
 end
-AuraUtil.ForEachAura = function(unit)
+C_UnitAuras.GetAuraSlots = function(unit)
 	if unit == "denied-unit" then
 		error("Auras cannot be accessed when secret while tainted by an addon")
 	end
 	-- The readable frame has nothing to report; an empty scan is still a successful one.
+	return nil
 end
 
 -- [coverage]: UpdateAllAuras already re-derives Triage_auraDataRestricted correctly on both
