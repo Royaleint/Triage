@@ -163,10 +163,11 @@ end
 -- (lib:73, 92, 93-102, 122, 123-135). Do not paraphrase: the struct->
 -- positional translation and the nil-guards are load-bearing across clients.
 -- (lib:74 GetSpellBookItemName is intentionally NOT copied — names come from
--- the spellID via ResolveNameIcon, not from the slot-name function; see spec
--- Gate 0.) They live inside BuildPlayerSpells so nothing touches the WoW API
--- at file scope. The one adaptation: the lib's `_G.GetSpellBookItemInfo`
--- prefix is the bare global here, matching how .luacheckrc allowlists it.
+-- the spellID via ResolveNameIcon, not from the slot-name function, so
+-- copying it would just be dead code.) They live inside BuildPlayerSpells so
+-- nothing touches the WoW API at file scope. The one adaptation: the lib's
+-- `_G.GetSpellBookItemInfo` prefix is the bare global here, matching how
+-- .luacheckrc allowlists it.
 
 local playerSpellsCache
 
@@ -212,7 +213,7 @@ local function BuildPlayerSpells()
 	-- the same spellType filter as LibRangeCheck's findSpellIdx (lib:3851-3856).
 	-- Unlike the lib (which returns the slot index on Classic), we resolve the
 	-- spellID from GetSpellBookItemInfo's 2nd return so ResolveNameIcon can name
-	-- it — an intentional adaptation noted in the spec's Gate 3.
+	-- it — a deliberate difference from the lib, not a bug.
 	local spells = {}
 	local seen = {}
 	for i = 1, getNumSpells() do
