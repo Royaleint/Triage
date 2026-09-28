@@ -260,22 +260,26 @@ local LibDualSpec = LibStub("LibDualSpec-1.0")
 
 -------------------------------------------------------------------------
 -- 9. StaticPopup stubs, mirroring Blizzard's show/hide/escape/click
--- semantics (StaticPopup.lua, GameDialog.lua; see the plan's Gate 0 rows).
+-- semantics (Blizzard's StaticPopup.lua and GameDialog.lua).
 -------------------------------------------------------------------------
 StaticPopupDialogs = {}
 local popupLog = {}
 local shownDialogs = {}
 
 local function makeDialog(entry)
-	local dialog = { which = entry.which, data = entry.data }
+	local dialog = { which = entry.which, data = entry.data, entry = entry }
 	local editText = ""
 	dialog.editBox = {
 		SetText = function(_, text) editText = text end,
 		GetText = function() return editText end,
 		HighlightText = function() end,
+		GetParent = function() return dialog end,
 	}
 	function dialog:GetEditBox()
 		return self.editBox
+	end
+	function dialog:Hide()
+		self.entry.shown = false
 	end
 	return dialog
 end
@@ -332,6 +336,22 @@ local function lastPopup(which)
 		end
 	end
 	return nil
+end
+
+-- Mirrors StaticPopupEditBoxMixin:OnEscapePressed(): a dialog's edit box
+-- auto-focuses as soon as it shows, so Escape reaches the edit box's own
+-- handler instead of the global StaticPopup_EscapePressed path used by
+-- every other dialog.
+local function escapeEditBox(which)
+	local popup = lastPopup(which)
+	if not popup then
+		return
+	end
+	local def = StaticPopupDialogs[which]
+	local handler = def and def.EditBoxOnEscapePressed
+	if handler then
+		handler(popup.dialog.editBox, popup.data)
+	end
 end
 
 -- Mirrors StaticPopup_OnClick's non-selectCallbackByIndex branch: the
@@ -426,6 +446,13 @@ function Triage:Deserialize(input)
 	end
 	return true, deepcopy(pendingPayload)
 end
+
+-- GUI/OptionsModel.lua is the native options frame's data model. It loads
+-- cleanly under these same stand-ins plus Triage.POSITIONS left nil (the
+-- default here), so T15 drives the real native Import button instead of
+-- scanning its source. A load failure here fails the whole run loudly,
+-- rather than being silently absorbed into a weaker fallback check.
+dofile(repoRoot .. "GUI/OptionsModel.lua")
 
 -------------------------------------------------------------------------
 -- Helpers
@@ -614,7 +641,7 @@ local function svWithExistingImported()
 	return sv
 end
 
--- Wording fragment unique to the spec note (D4.7), absent from the plain
+-- Wording fragment unique to the spec note, absent from the plain
 -- name-prompt text.
 local L_SPEC_NOTE_MARK = "assigned profile"
 
@@ -796,9 +823,9 @@ tests.T12 = function()
 end
 
 tests.T13 = function()
-	-- Fixture A (the reviewer's counterexample): legacy colors keep every
-	-- component, plus a non-default top-level key and an all-default
-	-- nested table. Old and new must match exactly.
+	-- Fixture A: legacy colors keep every component, plus a non-default
+	-- top-level key and an all-default nested table. Old and new must
+	-- match exactly.
 	local fixtureA = {
 		profileKeys = { [CHAR_KEY] = "Legacy" },
 		profiles = {
@@ -820,8 +847,8 @@ tests.T13 = function()
 	local okA, diffA = deepEqual(oldA, newA)
 	assertTrue(okA, "fixture A old/new profiles differ at " .. tostring(diffA))
 
-	-- Fixture B: a partial legacy color -- the one place D2 allows old and
-	-- new to differ.
+	-- Fixture B: a partial legacy color -- the one case where old and new
+	-- migration are allowed to differ (see the alpha-slot check below).
 	local fixtureB = {
 		profileKeys = { [CHAR_KEY] = "Legacy" },
 		profiles = {
@@ -835,7 +862,7 @@ tests.T13 = function()
 	local newB = Triage.db.profile
 
 	assertEqual(oldB[1].indicatorColor[4], 1, "old path fills legacy alpha through the shared (aliased) table")
-	assertEqual(newB[1].indicatorColor[4], nil, "new path leaves legacy alpha unfilled (D2 (2))")
+	assertEqual(newB[1].indicatorColor[4], nil, "new path leaves legacy alpha unfilled")
 	assertEqual(oldB["indicator-1"].indicatorColor[4], 1, "old path's indicator-1 color is default-filled")
 	assertEqual(newB["indicator-1"].indicatorColor[4], 1, "new path's indicator-1 color is still default-filled")
 
@@ -904,13 +931,30 @@ tests.T14 = function()
 end
 
 tests.T15 = function()
-	local f = io.open(repoRoot .. "GUI/OptionsModel.lua", "r")
-	local content = f:read("*a")
-	f:close()
-	local block = content:match('key = "importCurrentProfile".-\n%s*},')
-	assertTrue(block ~= nil, "found the importCurrentProfile row")
-	assertTrue(block:find("PromptProfileImport", 1, true) ~= nil, "importCurrentProfile calls PromptProfileImport")
-	assertTrue(block:find("RefreshConfig%(%)") == nil, "importCurrentProfile no longer calls RefreshConfig() directly")
+	freshLogin(baseSV())
+	local importExportSection = Triage.OptionsModel:GetSection("importExport")
+	local textRow, importRow
+	for _, row in ipairs(importExportSection.rows) do
+		if row.key == "importExportText" then
+			textRow = row
+		elseif row.key == "importCurrentProfile" then
+			importRow = row
+		end
+	end
+	assertTrue(textRow ~= nil and importRow ~= nil, "found the native import/export rows")
+
+	pendingPayload = { DB_VERSION = Triage.DATABASE_VERSION }
+	textRow.onTextChanged("x")
+	local before = refreshConfigCount
+	importRow.run()
+	pendingPayload = nil
+
+	local popup = lastPopup("TRIAGE_IMPORT_PROFILE_NAME")
+	assertTrue(popup ~= nil and popup.shown, "the native Import button shows the name popup")
+
+	acceptName("NativeImp")
+	assertEqual(refreshConfigCount, before + 1, "RefreshConfig delta from the native Import button")
+	assertEqual(ldbIconRefreshCount, 1, "LDBIcon refreshed once through the native Import button")
 end
 
 tests.T16 = function()
@@ -1072,7 +1116,8 @@ tests.T21 = function()
 	local okI, diffI = deepEqual(Triage.db.sv.profiles.Imported, snapImported)
 	assertTrue(okI, "Imported unaffected, differs at " .. tostring(diffI))
 
-	-- (ii) the reviewer's interleaving
+	-- (ii) a second import starts while the first one's collision popup is
+	-- still open, then the stale popup's button is clicked anyway
 	local sv = baseSV()
 	sv.profiles.Imported = { DB_VERSION = Triage.DATABASE_VERSION }
 	freshLogin(sv)
@@ -1178,8 +1223,14 @@ tests.T23 = function()
 end
 
 tests.T24 = function()
-	-- (i) spec profiles enabled
+	-- (i) spec profiles enabled. IsDualSpecEnabled() also requires
+	-- lib.currentSpec > 0, which is LibDualSpec's own module state and
+	-- outlives freshLogin; fire a spec event here instead of relying on
+	-- another row having already done so, so this row passes standalone.
 	freshLogin(baseSV())
+	currentSpec = 1
+	local eventFn = LibDualSpec.eventFrame:GetScript("OnEvent")
+	eventFn(LibDualSpec.eventFrame, "PLAYER_SPECIALIZATION_CHANGED")
 	Triage.db:SetDualSpecEnabled(true)
 	Triage.db:SetDualSpecProfile("B", 2)
 	local snapChar = deepcopy(LibDualSpec.registry[Triage.db].db.char)
@@ -1225,6 +1276,8 @@ tests.T25 = function()
 	assertTrue(nameDef.hideOnEscape == true, "name popup hides on Escape")
 	assertTrue(type(nameDef.OnAccept) == "function", "name popup has OnAccept")
 	assertTrue(type(nameDef.OnShow) == "function", "name popup has OnShow")
+	assertTrue(type(nameDef.EditBoxOnEnterPressed) == "function", "name popup has EditBoxOnEnterPressed")
+	assertTrue(type(nameDef.EditBoxOnEscapePressed) == "function", "name popup has EditBoxOnEscapePressed")
 	assertTrue(nameDef.OnCancel == nil, "name popup has no OnCancel")
 	assertTrue(nameDef.editBoxSecureText == nil, "name popup does not set editBoxSecureText")
 
@@ -1254,7 +1307,9 @@ tests.T25 = function()
 	assertTrue(okC, "Escape on the collision popup changed nothing, differs at " .. tostring(diffC))
 	assertEqual(refreshConfigCount, refreshBefore, "Escape on the collision popup fires no RefreshConfig")
 
-	-- Escape on the name popup
+	-- Escape on the name popup. Its edit box auto-focuses on show, so real
+	-- Escape reaches EditBoxOnEscapePressed, not the global escape handler
+	-- used above -- model it through that path.
 	local snapProfiles2 = deepcopy(Triage.db.sv.profiles)
 	local refreshBefore2 = refreshConfigCount
 	pendingPayload = { DB_VERSION = Triage.DATABASE_VERSION }
@@ -1262,8 +1317,8 @@ tests.T25 = function()
 	pendingPayload = nil
 	local namePopup = lastPopup("TRIAGE_IMPORT_PROFILE_NAME")
 	assertTrue(namePopup.shown, "name popup shown before Escape")
-	escape("TRIAGE_IMPORT_PROFILE_NAME")
-	assertTrue(not namePopup.shown, "Escape hides the name popup")
+	escapeEditBox("TRIAGE_IMPORT_PROFILE_NAME")
+	assertTrue(not namePopup.shown, "Escape (via the edit box) hides the name popup")
 	local okN, diffN = deepEqual(Triage.db.sv.profiles, snapProfiles2)
 	assertTrue(okN, "Escape on the name popup changed nothing, differs at " .. tostring(diffN))
 	assertEqual(refreshConfigCount, refreshBefore2, "Escape on the name popup fires no RefreshConfig")
@@ -1307,6 +1362,39 @@ tests.T26 = function()
 	assertTrue(okBoth, "the two apply paths give the same content, differs at " .. tostring(diffBoth))
 end
 
+tests.T27 = function()
+	-- Enter in the name box accepts, same result as clicking Import.
+	freshLogin(customMainSV())
+	pendingPayload = { DB_VERSION = Triage.DATABASE_VERSION, showBuffs = false }
+	Triage:PromptProfileImport("x")
+	pendingPayload = nil
+	local popup = lastPopup("TRIAGE_IMPORT_PROFILE_NAME")
+	popup.dialog.editBox:SetText("EnterImp")
+	local def = StaticPopupDialogs["TRIAGE_IMPORT_PROFILE_NAME"]
+	def.EditBoxOnEnterPressed(popup.dialog.editBox, popup.data)
+
+	assertEqual(Triage.db:GetCurrentProfile(), "EnterImp", "Enter accepts the typed name, same as clicking Import")
+	assertEqual(Triage.db.profile.showBuffs, false, "the payload was applied")
+	assertTrue(not popup.shown, "Enter hides the dialog, same as Escape")
+
+	-- Enter with an empty/whitespace name changes nothing and keeps the
+	-- dialog open, same as clicking Import with an empty box.
+	freshLogin(baseSV())
+	local snapProfiles = deepcopy(Triage.db.sv.profiles)
+	local refreshBefore = refreshConfigCount
+	pendingPayload = { DB_VERSION = Triage.DATABASE_VERSION }
+	Triage:PromptProfileImport("x")
+	pendingPayload = nil
+	local popup2 = lastPopup("TRIAGE_IMPORT_PROFILE_NAME")
+	popup2.dialog.editBox:SetText("   ")
+	local result = def.EditBoxOnEnterPressed(popup2.dialog.editBox, popup2.data)
+	assertTrue(result == true, "empty name keeps the dialog open")
+	assertTrue(popup2.shown, "dialog stays open on an empty name")
+	local ok, diff = deepEqual(Triage.db.sv.profiles, snapProfiles)
+	assertTrue(ok, "nothing applied on an empty-name Enter, differs at " .. tostring(diff))
+	assertEqual(refreshConfigCount, refreshBefore, "no RefreshConfig from an empty-name Enter")
+end
+
 -------------------------------------------------------------------------
 -- Runner
 -------------------------------------------------------------------------
@@ -1314,7 +1402,7 @@ end
 local order = {
 	"T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9", "T10",
 	"T11", "T12", "T14", "T15", "T16", "T17", "T18", "T19", "T20", "T21",
-	"T22", "T23", "T24", "T25", "T26", "T13",
+	"T22", "T23", "T24", "T25", "T26", "T27", "T13",
 }
 
 local anyFailed = false

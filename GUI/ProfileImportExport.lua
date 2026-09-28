@@ -70,6 +70,19 @@ function Triage:TryImportAs(name, decoded, allowOverwrite)
 	return false
 end
 
+-- Shared by the Import button and by pressing Enter in the edit box, so the
+-- two can't drift. The edit box auto-focuses as soon as the popup shows
+-- (that's the default for edit boxes), so Enter and Escape there are
+-- handled by the box itself, not by the dialog's button clicks.
+local function acceptImportName(editBox, data)
+	local name = editBox:GetText():match("^%s*(.-)%s*$")
+	if name == "" then
+		return true -- keep the dialog open; an empty name isn't a choice
+	end
+	Triage:TryImportAs(name, data.profile, false)
+	editBox:GetParent():Hide()
+end
+
 local popupDialogs = rawget(_G, "StaticPopupDialogs")
 if popupDialogs then
 	popupDialogs.TRIAGE_IMPORT_PROFILE_NAME = {
@@ -87,11 +100,11 @@ if popupDialogs then
 			editBox:HighlightText()
 		end,
 		OnAccept = function(dialog, data)
-			local name = dialog:GetEditBox():GetText():match("^%s*(.-)%s*$")
-			if name == "" then
-				return true -- keep the dialog open; an empty name isn't a choice
-			end
-			Triage:TryImportAs(name, data.profile, false)
+			return acceptImportName(dialog:GetEditBox(), data)
+		end,
+		EditBoxOnEnterPressed = acceptImportName,
+		EditBoxOnEscapePressed = function(editBox)
+			editBox:GetParent():Hide()
 		end,
 	}
 

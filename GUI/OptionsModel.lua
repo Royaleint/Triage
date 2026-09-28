@@ -1153,7 +1153,7 @@ OptionsModel.sections = {
 						return
 					end
 					Triage:PromptProfileImport(importExportBuffer)
-					importExportStatus = L["Import"] .. " attempted. Check chat for the result."
+					importExportStatus = L["ImportProfile_StatusPrompt"]
 				end,
 			},
 			{

@@ -384,3 +384,4 @@ L["ImportProfile_NamePrompt"] = "Import the pasted settings as a new profile nam
 L["ImportProfile_SpecNote"] = "Spec profiles are on. Changing spec, a loading screen, or a reload switches back to your spec's assigned profile. To keep the imported one, assign it to a spec in the Profiles tab."
 L["ImportProfile_Exists"] = "A profile named %s already exists."
 L["ImportProfile_UseName"] = "Use \"%s\""
+L["ImportProfile_StatusPrompt"] = "Choose a name for the imported profile in the popup."
