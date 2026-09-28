@@ -368,11 +368,20 @@ L["ImportExport_WarningDesc"] = [[
 
 Copying and pasting profile data can be a time consuming experience. It may stall your game for multiple seconds.
 
-WARNING: This will overwrite the current profile, and any changes you have made will be lost.
+Importing creates a new profile or replaces one you choose; nothing is overwritten without asking.
 ]]
-L["ImportWarning"] = "Are you absolutely certain you wish to import this profile? The current profile will be overwritten."
+L["ImportWarning"] = "Imports the pasted string as a new profile. You choose its name first, and your current profile is not changed."
 L["No data to import."] = true
 L["Decoding failed."] = true
 L["Decompression failed."] = true
 L["Data import Failed."] = true
 L["Aborting."] = true
+
+L["Imported"] = true
+L["Cancel"] = true
+L["Overwrite"] = true
+L["ImportProfile_NamePrompt"] = "Import the pasted settings as a new profile named:"
+L["ImportProfile_SpecNote"] = "Spec profiles are on. Changing spec, a loading screen, or a reload switches back to your spec's assigned profile. To keep the imported one, assign it to a spec in the Profiles tab."
+L["ImportProfile_Exists"] = "A profile named %s already exists."
+L["ImportProfile_UseName"] = "Use \"%s\""
+L["ImportProfile_StatusPrompt"] = "Choose a name for the imported profile in the popup."

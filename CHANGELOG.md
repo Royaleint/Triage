@@ -4,6 +4,11 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed, but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
+## Unreleased
+
+- Resetting, creating, or copying a profile no longer leaves the Profiles panel out of step with the addon until a reload.
+- Importing a profile now asks for a name and creates a new profile, or replaces one you choose, so your current profile is never overwritten by accident.
+
 ## v1.4.0-beta.2 (2026-09-22)
 
 Retail fixes for raid frame errors in Edit Mode, plus a simpler Triage entry in the Options window.

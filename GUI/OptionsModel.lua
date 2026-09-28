@@ -1152,9 +1152,8 @@ OptionsModel.sections = {
 						importExportStatus = L["No data to import."] .. " " .. L["Aborting."]
 						return
 					end
-					Triage:DeserializeAndDecompressProfile(importExportBuffer)
-					importExportStatus = L["Import"] .. " attempted. Check chat for the result."
-					RefreshConfig()
+					Triage:PromptProfileImport(importExportBuffer)
+					importExportStatus = L["ImportProfile_StatusPrompt"]
 				end,
 			},
 			{

@@ -41,10 +41,12 @@ function Triage:MigrateDatabase()
 
 		-- Added in database version 2.2 on 12/4/2023
 		-- Rename indicator position keys to be "indicator-1" rather than just "1"
+		-- Copy rather than alias table values, so later default-stripping on
+		-- indicator-i can never reach the old key's copy of the same data.
 		for i = 1, 9 do
 			if self.db.profile[i] then
 				for k, v in pairs(self.db.profile[i]) do
-					self.db.profile["indicator-" .. i][k] = v
+					self.db.profile["indicator-" .. i][k] = type(v) == "table" and CopyTable(v) or v
 				end
 			end
 		end
@@ -60,8 +62,9 @@ function Triage:MigrateDatabase()
 			end
 		end
 
-		-- Reload our database object with the defaults post-migration
-		self:InitializeDatabase()
+		-- Re-apply defaults to the live profile now that the keys above have
+		-- moved; the database object itself stays the same one from login.
+		self.db:RegisterDefaults(self:CreateDefaults())
 
 		-----------------------------------------------------------
 		-----------------------------------------------------------

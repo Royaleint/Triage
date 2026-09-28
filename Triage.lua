@@ -42,23 +42,35 @@ function Triage:OnInitialize()
 	self:InitializeConfigPanels()
 
 	-- Register callbacks for profile switching
-	local function onProfileUpdate()
-		if self:IsTestModeActive() then
-			self:StopTestMode(true)
-		end
-		self:MigrateDatabase()
-		self:RefreshConfig()
-		local LDBIcon = LibStub("LibDBIcon-1.0", true)
-		if LDBIcon then
-			LDBIcon:Refresh("Triage", self.db.profile.minimap)
-		end
-	end
-	self.db.RegisterCallback(self, "OnProfileChanged", onProfileUpdate)
-	self.db.RegisterCallback(self, "OnProfileCopied", onProfileUpdate)
-	self.db.RegisterCallback(self, "OnProfileReset", onProfileUpdate)
+	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileUpdate")
+	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileUpdate")
+	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileUpdate")
 
 	-- Initialize minimap button
 	self:InitializeMinimapButton()
+end
+
+--- Stamp the active profile with the current database version, without
+--- going through CreateDefaults (DB_VERSION is not a default).
+function Triage:StampProfileVersion()
+	self.db.profile.DB_VERSION = self.DATABASE_VERSION
+end
+
+--- Called whenever the active profile changes, is copied into, or is reset.
+---@param event string|nil @The AceDB callback event name
+function Triage:OnProfileUpdate(event)
+	if self:IsTestModeActive() then
+		self:StopTestMode(true)
+	end
+	if event == "OnProfileReset" then
+		self:StampProfileVersion()
+	end
+	self:MigrateDatabase()
+	self:RefreshConfig()
+	local LDBIcon = LibStub("LibDBIcon-1.0", true)
+	if LDBIcon then
+		LDBIcon:Refresh("Triage", self.db.profile.minimap)
+	end
 end
 
 -------------------------------------------------------------------------
@@ -476,6 +488,9 @@ function Triage:InitializeDatabase()
 	local svName = (ADDON_NAME == "Triage_DevBuild") and DEVBUILD_SV_NAME
 		or (DEVBUILD_SV_NAME:gsub("_DevBuild$", ""))
 	self.db = AceDB:New(svName, defaults)
+	-- Stamp a brand-new profile with the current database version as soon as
+	-- it's created, so a later login never mistakes it for a legacy one.
+	self.db.RegisterCallback(self, "OnNewProfile", "StampProfileVersion")
 	-- Enhance database and profile options using LibDualSpec
 	if self.supportsLibDualSpec then
 		-- Not available on Classic Era or TBC Classic Anniversary
