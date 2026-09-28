@@ -8,12 +8,12 @@ local ADDON_NAME = ...
 
 --- Triage is the main addon object.
 ---@class Triage : AceAddon-3.0 @The main addon object for Triage
--- AceAddon registration name is frozen. External addons, including Triage_Dev,
--- hook _G.EnhancedRaidFrames; _G.Triage below is the canonical internal handle.
+-- The AceAddon registration name is frozen: external addons hook
+-- _G.EnhancedRaidFrames directly. _G.Triage below is the canonical internal
+-- handle to the same table.
 _G.EnhancedRaidFrames = LibStub("AceAddon-3.0"):NewAddon("EnhancedRaidFrames", "AceTimer-3.0", "AceHook-3.0",
 		"AceEvent-3.0", "AceBucket-3.0", "AceConsole-3.0", "AceSerializer-3.0")
 
--- Backwards-compatibility alias; _G.Triage is the canonical internal handle.
 _G.Triage = _G.EnhancedRaidFrames
 
 -- Create a local handle to our addon table
