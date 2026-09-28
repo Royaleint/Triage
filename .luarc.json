@@ -109,7 +109,6 @@
     "CompactUnitFrame_UpdateCenterStatusIcon",
     "CompactUnitFrame_UpdateAuras",
     "CompactUnitFrame_UpdateInRange",
-    "CompactUnitFrame_UpdatePrivateAuras",
     "UnitFrame_UpdateTooltip",
 
     "ActionButtonSpellAlertManager",

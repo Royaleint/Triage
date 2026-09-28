@@ -115,16 +115,6 @@ function Triage:UpdateAllStockAuraVisibility()
 	self:ForEachManagedFrame(function(frame)
 		self:UpdateStockAuraVisibility(frame)
 	end)
-
-	-- In retail, there's a special type of boss aura called a "private aura" that is not accessible to addons.
-	-- We can attempt to hide these auras by hooking the default CompactUnitFrame_UpdatePrivateAuras function.
-	if self.supportsPrivateAuraSuppression then
-		if CompactUnitFrame_UpdatePrivateAuras and not self:IsHooked("CompactUnitFrame_UpdatePrivateAuras") then
-			self:SecureHook("CompactUnitFrame_UpdatePrivateAuras", function(frame)
-				self:UpdatePrivateAuraVisOverrides(frame)
-			end)
-		end
-	end
 end
 
 --- Apply stock aura visibility via Blizzard_PrivateAurasUI attributes (Retail 12.0.5+, Classic Era 1.15.9+, Mists Classic 5.5.4+).
@@ -299,34 +289,6 @@ function Triage:UpdateStockAuraVisibility(frame)
 	-- touches plain texture/cooldown regions on these sub-frames, not secure attributes.
 	if unhookedAny and CompactUnitFrame_UpdateAuras then
 		CompactUnitFrame_UpdateAuras(frame)
-	end
-end
-
---- Set the visibility on the private buff/debuff frames
---- This function is secure hooked to the CompactUnitFrame_UpdateAuras function.
---- We can't hide the private aura frames directly, so we'll hide their anchor frames instead.
----@param frame table @The frame to set the visibility on
-function Triage:UpdatePrivateAuraVisOverrides(frame)
-	if frame.Triage_isTestFrame then
-		return
-	end
-
-	if not self.ShouldContinue(frame) then
-		return
-	end
-
-	-- If we don't have any private auras, stop here
-	if not frame.PrivateAuraAnchors then
-		return
-	end
-
-	-- Use our debuff visibility flag because that's where these auras are anchored by default
-	if not self.db.profile.showDebuffs then
-		-- Try to "hide" the private aura by clearing the attachment of its anchor frame and hiding the anchor frame
-		for _, auraAnchor in ipairs(frame.PrivateAuraAnchors) do
-			auraAnchor:ClearAllPoints()
-			auraAnchor:Hide()
-		end
 	end
 end
 
