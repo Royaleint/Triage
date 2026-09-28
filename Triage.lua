@@ -42,23 +42,26 @@ function Triage:OnInitialize()
 	self:InitializeConfigPanels()
 
 	-- Register callbacks for profile switching
-	local function onProfileUpdate()
-		if self:IsTestModeActive() then
-			self:StopTestMode(true)
-		end
-		self:MigrateDatabase()
-		self:RefreshConfig()
-		local LDBIcon = LibStub("LibDBIcon-1.0", true)
-		if LDBIcon then
-			LDBIcon:Refresh("Triage", self.db.profile.minimap)
-		end
-	end
-	self.db.RegisterCallback(self, "OnProfileChanged", onProfileUpdate)
-	self.db.RegisterCallback(self, "OnProfileCopied", onProfileUpdate)
-	self.db.RegisterCallback(self, "OnProfileReset", onProfileUpdate)
+	self.db.RegisterCallback(self, "OnProfileChanged", "OnProfileUpdate")
+	self.db.RegisterCallback(self, "OnProfileCopied", "OnProfileUpdate")
+	self.db.RegisterCallback(self, "OnProfileReset", "OnProfileUpdate")
 
 	-- Initialize minimap button
 	self:InitializeMinimapButton()
+end
+
+--- Called whenever the active profile changes, is copied into, or is reset.
+---@param event string|nil @The AceDB callback event name
+function Triage:OnProfileUpdate(event)
+	if self:IsTestModeActive() then
+		self:StopTestMode(true)
+	end
+	self:MigrateDatabase()
+	self:RefreshConfig()
+	local LDBIcon = LibStub("LibDBIcon-1.0", true)
+	if LDBIcon then
+		LDBIcon:Refresh("Triage", self.db.profile.minimap)
+	end
 end
 
 -------------------------------------------------------------------------
