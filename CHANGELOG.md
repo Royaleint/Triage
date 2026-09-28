@@ -25,7 +25,6 @@ This is a beta build. Please test it and report anything that looks wrong. The d
 
 ### Known Issues
 
-- On Retail, turning Stock Dispellable Icons off hides the icons but not Blizzard's colored dispel border.
 - Stock icon changes made during combat apply when combat ends.
 - A brief one-frame flicker of stock icons can happen when settings change.
 - Classic Era, TBC Classic and Pandaria Classic are only lightly tested in this beta; the new single-button Triage entry in the Options window has not been checked on them.

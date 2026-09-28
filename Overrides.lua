@@ -28,6 +28,9 @@ local STOCK_AURA_ATTRIBUTES = {
 	{ option = "showDispellableDebuffs", attribute = "max-dispel-debuffs", hiddenValue = 0, frameField = "maxDispelDebuffs" },
 	{ option = "showBuffs", attribute = "show-big-defensive", hiddenValue = false,
 		getterName = "CompactUnitFrame_GetOptionShowBigDefensive" },
+	-- Only takes effect on Classic Era, TBC and Mists -- Retail reads a
+	-- different overlay key so this row never matches there. The dispel
+	-- border itself is already hidden on every client by max-dispel-debuffs = 0 above.
 	{ option = "showDispellableDebuffs", attribute = "show-dispel-indicator-overlay", hiddenValue = false,
 		getterName = "CompactUnitFrame_GetOptionShowDispelIndicatorOverlay" },
 }
