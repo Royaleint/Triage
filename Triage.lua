@@ -13,7 +13,7 @@ local ADDON_NAME = ...
 _G.EnhancedRaidFrames = LibStub("AceAddon-3.0"):NewAddon("EnhancedRaidFrames", "AceTimer-3.0", "AceHook-3.0",
 		"AceEvent-3.0", "AceBucket-3.0", "AceConsole-3.0", "AceSerializer-3.0")
 
--- Backwards-compatibility alias and canonical internal handle as of TRI-036.
+-- Backwards-compatibility alias; _G.Triage is the canonical internal handle.
 _G.Triage = _G.EnhancedRaidFrames
 
 -- Create a local handle to our addon table
@@ -257,10 +257,11 @@ function Triage:OnEnable()
 			local rangeFlushBatch = {}
 			local flushScheduled = false
 
-			-- Re-evaluate the dispel overlay on frame reassignment; already deferred by
-			-- TRI-068, so this runs outside Blizzard's SetUnit stack like the rest of the
-			-- flush body. Folded into the same pcall as refreshFrameForUnit so a throw here
-			-- costs only this frame, not the rest of the batch.
+			-- Re-evaluate the dispel overlay on frame reassignment; this already runs
+			-- through the deferred flush, so it lands outside Blizzard's SetUnit stack
+			-- like the rest of the flush body. Folded into the same pcall as
+			-- refreshFrameForUnit so a throw here costs only this frame, not the rest
+			-- of the batch.
 			-- UpdateStockAuraVisibility already applies the frame's stock aura settings
 			-- here, so drop it from the stock-aura pending set too -- otherwise a frame
 			-- reassigned in the same tick its settings hook also fired would get a
@@ -339,7 +340,7 @@ function Triage:OnEnable()
 		end
 	end
 
-	-- Dispel overlay detection state (TRI-069): the Retail probe (Modules/DispelSource.lua)
+	-- Dispel overlay detection state: the Retail probe (Modules/DispelSource.lua)
 	-- consults dispelProviderIsSample instead of reading any Blizzard overlay/frame state.
 	-- Both callback bodies below do mark-and-defer only, coalesced onto one timer, so no work
 	-- runs inside Blizzard's own EditMode.Enter/Exit callback stack.
