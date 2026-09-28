@@ -112,7 +112,6 @@ read_globals = {
     "CompactUnitFrame_UpdateCenterStatusIcon",
     "CompactUnitFrame_UpdateAuras",
     "CompactUnitFrame_UpdateInRange",
-    "CompactUnitFrame_UpdatePrivateAuras",
     "UnitFrame_UpdateTooltip",
 
     -- Glow API (Retail 11.1.7+)
