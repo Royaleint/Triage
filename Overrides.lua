@@ -366,7 +366,7 @@ function Triage:UpdateInRange(frame, rangeChecker)
 		-- Default range: Blizzard handles 40yd range correctly via privileged code
 		-- (immune to C_Secrets). frame.outOfRange, GetAlpha(), and UnitInRange() are
 		-- all secret-tainted and unreadable from addon code. Let Blizzard's hardcoded
-		-- 0.3 alpha stand on Retail. Classic-family clients can safely override stale
+		-- 0.5 alpha stand on Retail. Classic-family clients can safely override stale
 		-- combat fades with LibRangeCheck; if no safe checker exists, keep frames visible.
 		-- Users who want custom dim alpha should enable Custom Range.
 		return

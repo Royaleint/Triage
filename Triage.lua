@@ -193,9 +193,10 @@ function Triage:OnEnable()
 	end
 
 	-- UpdateCenterStatusIcon re-applies our range alpha after Blizzard sets its own.
-	-- Blizzard's SetAlpha at CompactUnitFrame.lua:1583 uses frame.outOfRange which is
-	-- broken by C_Secrets in Midnight. Our hook runs after and overrides with LibRangeCheck.
-	-- We cannot write frame.outOfRange directly — that taints Blizzard's next comparison.
+	-- Blizzard's own SetAlpha call inside CompactUnitFrame_UpdateCenterStatusIcon uses
+	-- frame.outOfRange, which is broken by C_Secrets in Midnight. Our hook runs after
+	-- and overrides with LibRangeCheck. We cannot write frame.outOfRange directly —
+	-- that taints Blizzard's next comparison.
 	if CompactUnitFrame_UpdateCenterStatusIcon then
 		self:SecureHook("CompactUnitFrame_UpdateCenterStatusIcon", onRangeOrStatusIconUpdate)
 	end
