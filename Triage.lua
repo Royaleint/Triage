@@ -56,6 +56,15 @@ function Triage:StampProfileVersion()
 	self.db.profile.DB_VERSION = self.DATABASE_VERSION
 end
 
+--- Set up a profile that was just created or reset: stamp the database
+--- version and start with Blizzard's buff icons hidden.
+function Triage:SetUpNewProfile()
+	self:StampProfileVersion()
+	-- Written here rather than as a default, so profiles that already
+	-- exist (and relied on the old default) keep showing buff icons.
+	self.db.profile.showBuffs = false
+end
+
 --- Called whenever the active profile changes, is copied into, or is reset.
 ---@param event string|nil @The AceDB callback event name
 function Triage:OnProfileUpdate(event)
@@ -63,7 +72,7 @@ function Triage:OnProfileUpdate(event)
 		self:StopTestMode(true)
 	end
 	if event == "OnProfileReset" then
-		self:StampProfileVersion()
+		self:SetUpNewProfile()
 	end
 	self:MigrateDatabase()
 	self:RefreshConfig()
@@ -488,9 +497,9 @@ function Triage:InitializeDatabase()
 	local svName = (ADDON_NAME == "Triage_DevBuild") and DEVBUILD_SV_NAME
 		or (DEVBUILD_SV_NAME:gsub("_DevBuild$", ""))
 	self.db = AceDB:New(svName, defaults)
-	-- Stamp a brand-new profile with the current database version as soon as
-	-- it's created, so a later login never mistakes it for a legacy one.
-	self.db.RegisterCallback(self, "OnNewProfile", "StampProfileVersion")
+	-- Set up a brand-new profile as soon as it's created, so a later login
+	-- never mistakes it for a legacy one.
+	self.db.RegisterCallback(self, "OnNewProfile", "SetUpNewProfile")
 	-- Enhance database and profile options using LibDualSpec
 	if self.supportsLibDualSpec then
 		-- Not available on Classic Era or TBC Classic Anniversary
