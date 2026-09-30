@@ -57,6 +57,7 @@ function LibStub()
 end
 
 dofile(repoRoot .. "Triage.lua")
+dofile(repoRoot .. "Utils/SpecDefaults.lua")
 dofile(repoRoot .. "Utils/FrameRegistry.lua")
 
 -- Call log for the body calls the hook must not make synchronously.

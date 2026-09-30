@@ -56,14 +56,39 @@ function Triage:StampProfileVersion()
 	self.db.profile.DB_VERSION = self.DATABASE_VERSION
 end
 
+--- Set up a profile that was just created or reset: stamp the database
+--- version, start with Blizzard's buff icons hidden, and give it the
+--- current spec's starter indicator setup.
+function Triage:SetUpNewProfile()
+	self:StampProfileVersion()
+	-- Written here rather than as a default, so profiles that already
+	-- exist (and relied on the default) keep showing buff icons.
+	self.db.profile.showBuffs = false
+	if self.supportsSpecDefaults then
+		-- The spec can't be trusted while the addon is still loading, so a
+		-- profile created then is filled from OnEnable instead.
+		self.Triage_pendingStarterSetupKey = self.db:GetCurrentProfile()
+		if self.Triage_starterSetupReady then
+			self:ResolvePendingStarterSetup()
+		end
+	end
+end
+
 --- Called whenever the active profile changes, is copied into, or is reset.
 ---@param event string|nil @The AceDB callback event name
 function Triage:OnProfileUpdate(event)
+	-- A starter setup still waiting for the spec belongs only to the profile
+	-- it was made for. Switching away, Copy From, Reset, or an import over it
+	-- (which calls this with no event) cancels it; Reset then sets it up again.
+	local pendingKey = self.Triage_pendingStarterSetupKey
+	if pendingKey and (event ~= "OnProfileChanged" or pendingKey ~= self.db:GetCurrentProfile()) then
+		self.Triage_pendingStarterSetupKey = nil
+	end
 	if self:IsTestModeActive() then
 		self:StopTestMode(true)
 	end
 	if event == "OnProfileReset" then
-		self:StampProfileVersion()
+		self:SetUpNewProfile()
 	end
 	self:MigrateDatabase()
 	self:RefreshConfig()
@@ -118,6 +143,11 @@ function Triage:OnEnable()
 	-- Sync the managed frame registry before the first config refresh/update pass.
 	self:RefreshManagedFrameRegistry()
 
+	-- A profile created while the addon was loading gets its starter setup
+	-- here, before the first refresh, if the spec is known by now.
+	self.Triage_starterSetupReady = true
+	self:ResolvePendingStarterSetup()
+
 	-- Populate our starting config values
 	self:RefreshConfig()
 
@@ -147,6 +177,8 @@ function Triage:OnEnable()
 	end)
 
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", function()
+		-- Does work only while a new profile is still waiting for the spec.
+		self:ResolvePendingStarterSetup(true)
 		self:RefreshRangeTicker()
 		self:UpdateTriageFocus()
 		self:UpdateAllStockAuraVisibility()
@@ -488,9 +520,9 @@ function Triage:InitializeDatabase()
 	local svName = (ADDON_NAME == "Triage_DevBuild") and DEVBUILD_SV_NAME
 		or (DEVBUILD_SV_NAME:gsub("_DevBuild$", ""))
 	self.db = AceDB:New(svName, defaults)
-	-- Stamp a brand-new profile with the current database version as soon as
-	-- it's created, so a later login never mistakes it for a legacy one.
-	self.db.RegisterCallback(self, "OnNewProfile", "StampProfileVersion")
+	-- Set up a brand-new profile as soon as it's created, so a later login
+	-- never mistakes it for a legacy one.
+	self.db.RegisterCallback(self, "OnNewProfile", "SetUpNewProfile")
 	-- Enhance database and profile options using LibDualSpec
 	if self.supportsLibDualSpec then
 		-- Not available on Classic Era or TBC Classic Anniversary
