@@ -8,6 +8,7 @@ Triage has moved to maintenance mode. It still works and stays compatible with c
 
 - Resetting, creating, or copying a profile no longer leaves the Profiles panel out of step with the addon until a reload.
 - The Stock Buff Icons, Stock Debuff Icons and Stock Dispellable Icons checkboxes are now Hide Stock Buff Icons, Hide Stock Debuff Icons and Hide Stock Dispellable Icons, so a checked box hides Blizzard's icons. Your existing settings carry over unchanged.
+- New profiles now start with Hide Stock Buff Icons checked, so Blizzard's buff icons on party and raid frames are hidden until you untick it. This also hides Blizzard's large defensive icon. On Retail, if your specialization has spec aura defaults, a new profile also starts with them filled in, the same lists Apply Current Spec Defaults adds, so Triage's indicators take the place of Blizzard's icons. This covers a new character's first profile, a profile made with New, and a profile you reset. Profiles you already have keep what they show today, and debuff and dispellable icons are unchanged.
 - Importing a profile now asks for a name and creates a new profile, or replaces one you choose, so your current profile is never overwritten by accident.
 
 ## v1.4.0-beta.2 (2026-09-22)
