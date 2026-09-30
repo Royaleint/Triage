@@ -449,39 +449,39 @@ OptionsModel.sections = {
 			{
 				key = "showBuffs",
 				type = "checkbox",
-				label = L["Stock Buff Icons"],
+				label = L["Hide Stock Buff Icons"],
 				tooltip = L["showBuffs_desc"],
 				get = function()
-					return GetProfile().showBuffs
+					return not GetProfile().showBuffs
 				end,
 				set = function(value)
-					GetProfile().showBuffs = value
+					GetProfile().showBuffs = not value
 					RefreshConfig()
 				end,
 			},
 			{
 				key = "showDebuffs",
 				type = "checkbox",
-				label = L["Stock Debuff Icons"],
+				label = L["Hide Stock Debuff Icons"],
 				tooltip = L["showDebuffs_desc"],
 				get = function()
-					return GetProfile().showDebuffs
+					return not GetProfile().showDebuffs
 				end,
 				set = function(value)
-					GetProfile().showDebuffs = value
+					GetProfile().showDebuffs = not value
 					RefreshConfig()
 				end,
 			},
 			{
 				key = "showDispellableDebuffs",
 				type = "checkbox",
-				label = L["Stock Dispellable Icons"],
+				label = L["Hide Stock Dispellable Icons"],
 				tooltip = L["showDispellableDebuffs_desc"],
 				get = function()
-					return GetProfile().showDispellableDebuffs
+					return not GetProfile().showDispellableDebuffs
 				end,
 				set = function(value)
-					GetProfile().showDispellableDebuffs = value
+					GetProfile().showDispellableDebuffs = not value
 					RefreshConfig()
 				end,
 			},

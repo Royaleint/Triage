@@ -121,14 +121,14 @@ L["blizzardRaidOptionsButton_desc"] = "Launch the built-in raid profiles interfa
 
 L["Default Icon Visibility"] = true
 
-L["Stock Buff Icons"] = true
-L["showBuffs_desc"] = "Show the standard raid frame buff icons"
+L["Hide Stock Buff Icons"] = true
+L["showBuffs_desc"] = "Hide the standard raid frame buff icons"
 
-L["Stock Debuff Icons"] = true
-L["showDebuffs_desc"] = "Show the standard raid frame debuff icons"
+L["Hide Stock Debuff Icons"] = true
+L["showDebuffs_desc"] = "Hide the standard raid frame debuff icons"
 
-L["Stock Dispellable Icons"] = true
-L["showDispellableDebuffs_desc"] = "Show the standard raid frame dispellable icons"
+L["Hide Stock Dispellable Icons"] = true
+L["showDispellableDebuffs_desc"] = "Hide the standard raid frame dispellable icons"
 
 L["Power Bar Vertical Offset"] = true
 L["powerBarOffset_desc"] = "Apply a vertical offset to icons and indicators to keep them from overlapping the power bar (mana/rage/energy)"
