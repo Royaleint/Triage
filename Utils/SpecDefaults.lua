@@ -1,7 +1,7 @@
 -- Triage - Enhanced Raid Frames Reforged
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
--- luacheck: globals GetSpecialization GetSpecializationInfo
+-- luacheck: globals GetSpecialization GetSpecializationInfo C_SpecializationInfo
 
 local Triage = _G.Triage
 
@@ -35,17 +35,27 @@ local function NotifyIndicatorOptionsChanged()
 	end
 end
 
+-- The player's spec index and ID. C_SpecializationInfo first; the old
+-- globals exist only when the game loads its deprecation fallbacks.
+local function ReadCurrentSpec()
+	local specInfo = C_SpecializationInfo
+	local getSpecialization = (specInfo and specInfo.GetSpecialization) or GetSpecialization
+	local getSpecializationInfo = (specInfo and specInfo.GetSpecializationInfo) or GetSpecializationInfo
+	local specIndex = getSpecialization and getSpecialization()
+	if not specIndex then
+		return nil, nil
+	end
+
+	local specID = getSpecializationInfo and getSpecializationInfo(specIndex)
+	return specIndex, specID
+end
+
 function Triage:GetCurrentSpecDefaultsID()
 	if not self.supportsSpecDefaults then
 		return nil
 	end
 
-	local specIndex = GetSpecialization and GetSpecialization()
-	if not specIndex then
-		return nil
-	end
-
-	local specID = GetSpecializationInfo and GetSpecializationInfo(specIndex)
+	local _, specID = ReadCurrentSpec()
 	return specID
 end
 
