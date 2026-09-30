@@ -63,16 +63,10 @@ function Triage:HasCurrentSpecAuraDefaults()
 	return defaults ~= nil
 end
 
-function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
-	if not self.db or not self.db.profile then
-		return 0, 0, nil
-	end
-
-	local defaults, specID = self:GetCurrentSpecAuraDefaults()
-	if not defaults then
-		return 0, 0, specID
-	end
-
+-- Writes a spec's aura lists into the active profile's indicator slots and
+-- records the spec in defaultsState when anything was written. Data only:
+-- callers decide whether to refresh the frames and the options panel.
+local function WriteSpecAuraDefaults(self, defaults, specID, overwrite)
 	local applied = 0
 	local skipped = 0
 	local baseDefaults = overwrite and self:CreateDefaults()
@@ -101,6 +95,25 @@ function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
 	if applied > 0 then
 		local defaultsState = EnsureDefaultsState(self.db.profile)
 		defaultsState.aura[specID] = true
+	end
+
+	return applied, skipped
+end
+
+function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
+	if not self.db or not self.db.profile then
+		return 0, 0, nil
+	end
+
+	local defaults, specID = self:GetCurrentSpecAuraDefaults()
+	if not defaults then
+		-- Keep returning specID: callers print "No spec aura defaults
+		-- available." only when there is no spec at all.
+		return 0, 0, specID
+	end
+
+	local applied, skipped = WriteSpecAuraDefaults(self, defaults, specID, overwrite)
+	if applied > 0 then
 		self:RefreshConfig()
 		NotifyIndicatorOptionsChanged()
 	end
