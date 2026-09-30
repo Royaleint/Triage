@@ -7,6 +7,7 @@ Triage has moved to maintenance mode. It still works and stays compatible with c
 ## Unreleased
 
 - Resetting, creating, or copying a profile no longer leaves the Profiles panel out of step with the addon until a reload.
+- The Stock Buff Icons, Stock Debuff Icons and Stock Dispellable Icons checkboxes are now Hide Stock Buff Icons, Hide Stock Debuff Icons and Hide Stock Dispellable Icons, so a checked box hides Blizzard's icons. Your existing settings carry over unchanged.
 - Importing a profile now asks for a name and creates a new profile, or replaces one you choose, so your current profile is never overwritten by accident.
 
 ## v1.4.0-beta.2 (2026-09-22)

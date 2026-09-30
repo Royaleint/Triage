@@ -134,13 +134,13 @@ function Triage:CreateGeneralOptions()
 			},
 			showBuffs = {
 				type = "toggle",
-				name = L["Stock Buff Icons"],
+				name = L["Hide Stock Buff Icons"],
 				desc = L["showBuffs_desc"],
 				get = function()
-					return self.db.profile.showBuffs
+					return not self.db.profile.showBuffs
 				end,
 				set = function(_, value)
-					self.db.profile.showBuffs = value
+					self.db.profile.showBuffs = not value
 					self:RefreshConfig()
 				end,
 				width = THIRD_WIDTH,
@@ -148,13 +148,13 @@ function Triage:CreateGeneralOptions()
 			},
 			showDebuffs = {
 				type = "toggle",
-				name = L["Stock Debuff Icons"],
+				name = L["Hide Stock Debuff Icons"],
 				desc = L["showDebuffs_desc"],
 				get = function()
-					return self.db.profile.showDebuffs
+					return not self.db.profile.showDebuffs
 				end,
 				set = function(_, value)
-					self.db.profile.showDebuffs = value
+					self.db.profile.showDebuffs = not value
 					self:RefreshConfig()
 				end,
 				width = THIRD_WIDTH,
@@ -162,13 +162,13 @@ function Triage:CreateGeneralOptions()
 			},
 			showDispellableDebuffs = {
 				type = "toggle",
-				name = L["Stock Dispellable Icons"],
+				name = L["Hide Stock Dispellable Icons"],
 				desc = L["showDispellableDebuffs_desc"],
 				get = function()
-					return self.db.profile.showDispellableDebuffs
+					return not self.db.profile.showDispellableDebuffs
 				end,
 				set = function(_, value)
-					self.db.profile.showDispellableDebuffs = value
+					self.db.profile.showDispellableDebuffs = not value
 					self:RefreshConfig()
 				end,
 				width = THIRD_WIDTH,
