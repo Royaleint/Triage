@@ -336,6 +336,7 @@ do
 	end
 
 	dofile(repoRoot .. "Triage.lua")
+	dofile(repoRoot .. "Utils/SpecDefaults.lua")
 	dofile(repoRoot .. "Utils/FrameRegistry.lua")
 	dofile(repoRoot .. "Overrides.lua")
 

@@ -215,6 +215,7 @@ EventRegistry = {
 local registeredEvents = {}
 
 dofile(repoRoot .. "Triage.lua")
+dofile(repoRoot .. "Utils/SpecDefaults.lua")
 
 -- Frame-registry and gating stubs the modules under test call into; not under test here.
 addon.GetManagedFrameUnit = function(_, frame) return frame and (frame.displayedUnit or frame.unit) end

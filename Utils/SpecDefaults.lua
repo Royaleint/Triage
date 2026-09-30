@@ -1,7 +1,7 @@
 -- Triage - Enhanced Raid Frames Reforged
 -- Original work copyright (c) 2017-2025 Britt W. Yazel
 -- Continued by Royaleint - licensed under the MIT license (see LICENSE for details)
--- luacheck: globals GetSpecialization GetSpecializationInfo C_SpecializationInfo
+-- luacheck: globals GetSpecialization GetSpecializationInfo C_SpecializationInfo GetNumSpecializations
 
 local Triage = _G.Triage
 
@@ -129,4 +129,63 @@ function Triage:ApplyCurrentSpecAuraDefaults(overwrite)
 	end
 
 	return applied, skipped, specID
+end
+
+--- The spec a new profile's starter setup comes from: its ID once spec data
+--- is loaded, false for a starting spec (no setup to give), nil while the
+--- game is still loading spec data.
+function Triage:GetStarterSpecID()
+	local specInfo = C_SpecializationInfo
+	if specInfo and specInfo.IsInitialized and not specInfo.IsInitialized() then
+		return nil
+	end
+
+	local specIndex, specID = ReadCurrentSpec()
+	local numSpecs = GetNumSpecializations and GetNumSpecializations()
+	-- Anything half-loaded counts as "not yet", never as "no spec": a false
+	-- here permanently skips the fill for this profile.
+	if not specIndex or specIndex < 1 or not numSpecs or numSpecs < 1 then
+		return nil
+	end
+	if specIndex > numSpecs then
+		return false
+	end
+	if not specID or specID == 0 then
+		return nil
+	end
+
+	return specID
+end
+
+--- Give the profile created this session its spec's starter aura lists once
+--- the spec is known. Pass render to refresh and notify when this runs
+--- outside a profile change. Returns the number of slots filled.
+function Triage:ResolvePendingStarterSetup(render)
+	local key = self.Triage_pendingStarterSetupKey
+	if not key then
+		return 0
+	end
+	if not self.supportsSpecDefaults or key ~= self.db:GetCurrentProfile() then
+		self.Triage_pendingStarterSetupKey = nil
+		return 0
+	end
+
+	local specID = self:GetStarterSpecID()
+	if specID == nil then
+		return 0
+	end
+	self.Triage_pendingStarterSetupKey = nil
+
+	local defaults = specID and self.SpecDefaults and self.SpecDefaults[specID]
+	if not defaults then
+		return 0
+	end
+
+	local applied = WriteSpecAuraDefaults(self, defaults, specID, false)
+	if render and applied > 0 then
+		self:RefreshConfig()
+		NotifyIndicatorOptionsChanged()
+	end
+
+	return applied
 end
