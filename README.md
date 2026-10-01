@@ -1,8 +1,6 @@
 # Triage - Enhanced Raid Frames Reforged
 
-Current release: v1.3.4
-
-Current beta: v1.4.0-beta.2
+Current release: v1.4.0
 
 Enhanced Raid Frames, reforged for Midnight and still supporting Classic Era, TBC Classic, and Pandaria Classic.
 

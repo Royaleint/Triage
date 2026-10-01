@@ -4,12 +4,47 @@
 
 Triage has moved to maintenance mode. It still works and stays compatible with current game patches across Retail, Classic Era, TBC Classic, and Pandaria Classic, and critical bugs will be fixed, but new feature development has ended. See [SHELVED.md](SHELVED.md) for the full picture.
 
-## Unreleased
+## v1.4.0 (2026-09-30)
 
+Retail fixes for indicators in combat and errors in Edit Mode, clearer stock icon options, safer profile importing, and new profiles that start with Blizzard's buff icons hidden.
+
+---
+
+### New
+
+- New profiles now start with Hide Stock Buff Icons checked, so Blizzard's buff icons on party and raid frames are hidden until you untick it. This also hides Blizzard's large defensive icon. On Retail, if your specialization has spec aura defaults, a new profile also starts with them filled in, the same lists Apply Current Spec Defaults adds, so Triage's indicators show those auras instead. This covers a new character's first profile, a profile made with New, and a profile you reset. Profiles you already have keep what they show today, and debuff and dispellable icons are unchanged.
+- Importing a profile now asks for a name and creates a new profile, or replaces one you choose, so your current profile is never overwritten by accident. Escape and Enter work in the name box.
+
+### Bug Fixes
+
+- Custom aura indicators no longer disappear during Retail combat when the game restricts aura information. Configured indicators stay visible, keep their placement and size, and recover after combat.
 - Resetting, creating, or copying a profile no longer leaves the Profiles panel out of step with the addon until a reload.
+- Fixed a red pulsing dispel border appearing on every party frame on Retail after leaving Edit Mode and then changing any option. It no longer appears without a real dispellable debuff.
+- Opening Edit Mode with Triage running no longer sets off a flood of Lua errors from Blizzard's party and arena frames. Please report if you still see them.
+- Closing the game's Options window while Edit Mode is open no longer breaks the raid frames' incoming-heal display until the next reload.
+- Leaving Edit Mode through its close button, or closing the game's Options window while Edit Mode is open, no longer causes a Lua error from Blizzard's arena frames.
+- Unticking a Hide Stock Icons box releases Blizzard's own icons immediately, with no reload needed.
+- Fixed indicator offsets sticking after the first change, so later horizontal or vertical changes move the indicator as expected.
+- Changing Indicator Size no longer scrolls the options page back to the top.
+- Triage no longer prints a diagnostic line to chat on Retail when the game restricts aura information.
+- Corrected the Retail spec aura defaults used by new profiles and by the Apply and Reset Current Spec Defaults buttons. Restoration Shaman, Mistweaver Monk and Preservation Evoker now track the spec's main ally aura first (Earth Shield, Renewing Mist, Enveloping Mist, Soothing Mist, Reversion), a duplicate Soothing Mist entry is gone, and Rapture and Divine Favor are no longer listed.
+- On Retail, Apply Current Spec Defaults and Reset Current Spec Defaults no longer report that no spec aura defaults are available for a specialization that has them.
+
+### Changed
+
 - The Stock Buff Icons, Stock Debuff Icons and Stock Dispellable Icons checkboxes are now Hide Stock Buff Icons, Hide Stock Debuff Icons and Hide Stock Dispellable Icons, so a checked box hides Blizzard's icons. Your existing settings carry over unchanged.
-- New profiles now start with Hide Stock Buff Icons checked, so Blizzard's buff icons on party and raid frames are hidden until you untick it. This also hides Blizzard's large defensive icon. On Retail, if your specialization has spec aura defaults, a new profile also starts with them filled in, the same lists Apply Current Spec Defaults adds, so Triage's indicators take the place of Blizzard's icons. This covers a new character's first profile, a profile made with New, and a profile you reset. Profiles you already have keep what they show today, and debuff and dispellable icons are unchanged.
-- Importing a profile now asks for a name and creates a new profile, or replaces one you choose, so your current profile is never overwritten by accident.
+- Unticking a Hide Stock Icons box no longer forces Blizzard's own icons to show. If you turned them off in Blizzard's raid frame settings, they stay off.
+- Indicators set to Show Only if Missing stay hidden while the game restricts aura information during combat, with a one-time notice in chat.
+- The Triage entry in the game's Options window is now a single Open Triage Options button that opens Triage's own options window.
+- On Retail, while Edit Mode is open, Triage indicators show the unit's real auras instead of Edit Mode's placeholder auras.
+
+### Known Issues
+
+- Stock icon changes made during combat apply when combat ends.
+- A brief one-frame flicker of stock icons can happen when settings change.
+- Classic Era, TBC Classic and Pandaria Classic are only lightly tested in this release. The new single-button Triage entry in the Options window, the Hide Stock Icons checkboxes, new profiles starting with stock buff icons hidden, and the import name prompt have not been checked on them.
+- Closing the game's Options window after typing in its search box has not been re-checked in game on this release.
+- Indicator text uses the transparency set in the text color picker. If your countdown text looks too faint, reopen the picker and set the transparency you want.
 
 ## v1.4.0-beta.2 (2026-09-22)
 
